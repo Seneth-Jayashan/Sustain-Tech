@@ -20,6 +20,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  if (pathname.startsWith('/admin')) {
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    try {
+      // Decode JWT to check role
+      const secretKey = process.env.SESSION_SECRET || 'fallback-secret-key-do-not-use-in-prod';
+      const key = new TextEncoder().encode(secretKey);
+      const { payload } = await jwtVerify(session, key, { algorithms: ['HS256'] });
+      
+      if (payload.role !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    } catch (e) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

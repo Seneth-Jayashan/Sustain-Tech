@@ -23,9 +23,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    await createSession(team._id.toString(), team.name);
+    await createSession(team._id.toString(), team.name, team.role);
 
-    return NextResponse.json({ success: true, teamId: team._id });
+    return NextResponse.json({ success: true, teamId: team._id, role: team.role });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
