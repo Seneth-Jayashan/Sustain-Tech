@@ -8,7 +8,7 @@ import { SCENARIOS } from '@/game/scenario';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
 import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
-import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info } from 'lucide-react';
+import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut } from 'lucide-react';
 import Image from 'next/image';
 
 interface Props {
@@ -82,6 +82,11 @@ export default function DashboardClient({ initialState, teamName }: Props) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
   };
 
   if (!currentScenario) return <div className="fixed inset-0 flex items-center justify-center bg-black"><span className="animate-pulse text-2xl font-mono text-blue-500">INITIALIZING LINK...</span></div>;
@@ -172,6 +177,15 @@ export default function DashboardClient({ initialState, teamName }: Props) {
               <span className="font-bold text-sm">LVL {Math.round(state.variables.C / 20)}</span>
             </div>
           </div>
+          
+          {/* Logout Button */}
+          <button 
+            onClick={handleLogout}
+            className="flex items-center justify-center h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 backdrop-blur-md transition-all hover:bg-red-500/20 hover:border-red-400 ml-2"
+            title="Disconnect"
+          >
+            <LogOut size={20} />
+          </button>
         </div>
       </motion.header>
 
