@@ -137,11 +137,11 @@ export default function DashboardClient({ initialState, teamName }: Props) {
           </div>
           <div className="flex flex-col items-end gap-1">
             <span className="text-gray-500 tracking-wider">INTEL</span>
-            <span className={\`font-bold \${state.variables.I < 40 ? 'text-orange-400' : 'text-blue-400'}\`}>{getConfidenceText(state.variables.I)}</span>
+            <span className={`font-bold ${state.variables.I < 40 ? 'text-orange-400' : 'text-blue-400'}`}>{getConfidenceText(state.variables.I)}</span>
           </div>
           <div className="flex flex-col items-end gap-1">
             <span className="text-gray-500 tracking-wider">TRUST</span>
-            <span className={\`font-bold \${state.variables.C < 40 ? 'text-red-400' : 'text-purple-400'}\`}>{getTrustText(state.variables.C)}</span>
+            <span className={`font-bold ${state.variables.C < 40 ? 'text-red-400' : 'text-purple-400'}`}>{getTrustText(state.variables.C)}</span>
           </div>
         </div>
       </motion.header>
@@ -222,17 +222,17 @@ export default function DashboardClient({ initialState, teamName }: Props) {
                       whileHover={{ scale: 1.02, x: 10 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => toggleSelection(action.id)}
-                      className={\`relative flex items-center justify-between p-5 rounded-xl border transition-all duration-300 text-left overflow-hidden group \${
+                      className={`relative flex items-center justify-between p-5 rounded-xl border transition-all duration-300 text-left overflow-hidden group ${
                         isSelected 
                           ? 'border-[var(--color-sustain-accent)] bg-[var(--color-sustain-accent)]/10 shadow-[0_0_25px_rgba(45,212,191,0.15)]' 
                           : 'border-gray-800 bg-black/40 hover:border-gray-600 hover:bg-gray-900/50'
-                      }\`}
+                      }`}
                     >
                       {/* Scanline effect on hover */}
                       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent h-[200%] -top-[100%] group-hover:animate-scanline pointer-events-none opacity-0 group-hover:opacity-100"></div>
 
                       <div className="relative z-10 pr-12">
-                        <span className={\`font-bold block text-lg mb-1 \${isSelected ? 'text-white' : 'text-gray-300'}\`}>{action.title}</span>
+                        <span className={`font-bold block text-lg mb-1 ${isSelected ? 'text-white' : 'text-gray-300'}`}>{action.title}</span>
                         {action.description && <span className="text-xs font-mono text-gray-500 block leading-relaxed">{action.description}</span>}
                       </div>
                       
@@ -256,11 +256,11 @@ export default function DashboardClient({ initialState, teamName }: Props) {
                   whileTap={selectedOrder.length === 5 ? { scale: 0.95 } : {}}
                   disabled={selectedOrder.length !== 5 || submitting}
                   onClick={handleSubmit}
-                  className={\`px-10 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all duration-500 flex items-center gap-3 \${
+                  className={`px-10 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all duration-500 flex items-center gap-3 ${
                     selectedOrder.length === 5 
                       ? 'bg-[var(--color-sustain-accent)] text-black cursor-pointer' 
                       : 'bg-gray-900 border border-gray-800 text-gray-600 cursor-not-allowed'
-                  }\`}
+                  }`}
                 >
                   {submitting ? (
                     <span className="flex items-center gap-2">
