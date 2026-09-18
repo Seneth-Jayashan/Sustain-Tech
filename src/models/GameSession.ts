@@ -15,14 +15,6 @@ const GameSessionSchema: Schema = new Schema({
   status: { type: String, enum: ['ACTIVE', 'COMPLETED'], default: 'ACTIVE' },
   state: { type: Schema.Types.Mixed, required: true }, // Store full GameState as JSON
   finalResult: { type: Schema.Types.Mixed },
-  startedAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
-
-// Update the updatedAt field on save
-GameSessionSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
+}, { timestamps: true });
 
 export default mongoose.models.GameSession || mongoose.model<IGameSession>('GameSession', GameSessionSchema);

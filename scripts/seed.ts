@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env' });
 
 const TeamSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
@@ -14,7 +14,7 @@ const Team = mongoose.models.Team || mongoose.model('Team', TeamSchema);
 
 async function main() {
   const MONGODB_URI = process.env.MONGODB_URI;
-  if (!MONGODB_URI) throw new Error('MONGODB_URI is not set in .env.local');
+  if (!MONGODB_URI) throw new Error('MONGODB_URI is not set in .env');
 
   await mongoose.connect(MONGODB_URI);
   console.log('Connected to MongoDB');
