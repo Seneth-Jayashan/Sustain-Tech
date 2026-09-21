@@ -46,8 +46,15 @@ export async function POST(request: Request) {
       const { floodPreparedness, droughtPreparedness } = newState.scores;
       const pathway = droughtPreparedness > floodPreparedness ? 'Drought' : 'Flood';
       
-      const rawCps = (floodPreparedness + droughtPreparedness) / 2;
-      const cps = Math.max(0, Math.min(100, rawCps));
+      let rawCps = (floodPreparedness + droughtPreparedness) / 2;
+      let cps = rawCps;
+      
+      // Asymptotic curve: makes it exponentially harder to reach 100
+      if (rawCps > 50) {
+        cps = 50 + 50 * (1 - Math.exp(-(rawCps - 50) / 40));
+      }
+      
+      cps = Math.max(0, Math.min(100, Math.round(cps)));
       
       gameSession.finalResult = {
         cps,

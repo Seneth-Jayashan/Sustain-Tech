@@ -8,8 +8,81 @@ import { SCENARIOS } from '@/game/scenario';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
 import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
-import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut } from 'lucide-react';
+import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, Activity, WifiOff } from 'lucide-react';
 import Image from 'next/image';
+
+// SVG components for advanced visualizations
+const WaterTank = ({ percent }: { percent: number }) => (
+  <div className="relative w-48 h-80 border-4 border-blue-900 rounded-b-3xl overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.3)] bg-black/50 backdrop-blur-sm">
+    {/* Tank Background Grid */}
+    <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.2)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+    
+    {/* Water Fill */}
+    <motion.div 
+      initial={{ height: 0 }}
+      animate={{ height: `${Math.min(100, percent)}%` }}
+      transition={{ type: 'spring', bounce: 0.2, duration: 2 }}
+      className={`absolute bottom-0 w-full ${percent > 90 ? 'bg-red-500/80 shadow-[0_0_40px_rgba(239,68,68,0.8)]' : 'bg-blue-500/80 shadow-[0_0_40px_rgba(59,130,246,0.8)]'}`}
+    >
+      {/* Surface Waves */}
+      <div className="absolute top-0 w-[200%] h-4 -ml-[50%] animate-wave bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.4)_0%,_transparent_50%)]"></div>
+    </motion.div>
+    
+    {/* Overlay Data */}
+    <div className="absolute top-4 inset-x-0 text-center z-10 font-mono">
+      <span className="text-xs tracking-widest text-blue-300">RESERVOIR CAP</span>
+      <div className={`text-4xl font-black ${percent > 90 ? 'text-red-400 animate-pulse' : 'text-blue-400'}`}>
+        {percent}%
+      </div>
+      {percent > 90 && <div className="text-[10px] text-red-500 font-black tracking-widest mt-1 bg-black/50 py-1 uppercase">Spill Warning</div>}
+    </div>
+  </div>
+);
+
+const CommsGrid = ({ health }: { health: number }) => {
+  const isFailing = health < 40;
+  return (
+    <div className={`relative w-80 h-80 rounded-full border-2 ${isFailing ? 'border-red-900/50' : 'border-green-900/50'} flex items-center justify-center p-8`}>
+      {/* Radar Sweep */}
+      <motion.div 
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+        className="absolute inset-0 rounded-full border-r-2 border-green-500/50"
+        style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(74,222,128,0.1) 360deg)' }}
+      ></motion.div>
+
+      {/* Nodes */}
+      <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 z-10 overflow-visible">
+        <motion.path 
+          d="M 50 10 L 80 30 L 80 70 L 50 90 L 20 70 L 20 30 Z" 
+          fill="none" 
+          stroke={isFailing ? 'rgba(239,68,68,0.5)' : 'rgba(74,222,128,0.5)'}
+          strokeWidth="1"
+          animate={isFailing ? { pathLength: [0, 1, 0.5], opacity: [1, 0.2, 1] } : {}}
+          transition={{ repeat: Infinity, duration: 0.5 }}
+        />
+        {[
+          {cx: 50, cy: 10}, {cx: 80, cy: 30}, {cx: 80, cy: 70}, 
+          {cx: 50, cy: 90}, {cx: 20, cy: 70}, {cx: 20, cy: 30},
+          {cx: 50, cy: 50}
+        ].map((pt, i) => (
+          <motion.circle 
+            key={i} cx={pt.cx} cy={pt.cy} r={isFailing && i % 2 === 0 ? 3 : 2}
+            fill={isFailing && i % 2 === 0 ? '#ef4444' : '#4ade80'}
+            animate={isFailing ? { scale: [1, 1.5, 1], opacity: [1, 0.5, 1] } : {}}
+            transition={{ repeat: Infinity, duration: Math.random() * 0.5 + 0.2 }}
+          />
+        ))}
+      </svg>
+      
+      {/* Central Status */}
+      <div className="z-20 text-center bg-black/80 rounded-full p-4 backdrop-blur-md border border-white/10">
+        {isFailing ? <WifiOff size={24} className="text-red-500 animate-pulse mx-auto mb-1"/> : <Activity size={24} className="text-green-500 mx-auto mb-1"/>}
+        <span className={`text-xs font-mono font-bold tracking-widest ${isFailing ? 'text-red-500' : 'text-green-500'}`}>COMMS</span>
+      </div>
+    </div>
+  );
+};
 
 interface Props {
   initialState: GameState;
@@ -129,19 +202,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   return (
     <div className="fixed inset-0 overflow-hidden bg-black text-white selection:bg-blue-500/30">
       
-      {/* Background Map Layer */}
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/assets/map_normal.jpg" 
-          alt="Community Map" 
-          fill
-          className="object-cover opacity-30 transition-opacity duration-1000 scale-105 animate-slow-pan"
-          priority
-          unoptimized
-        />
-        
+      {/* Advanced UI Background Layer */}
+      <div className="absolute inset-0 z-0 bg-[#020617]">
         {/* Dynamic Holographic Grid Overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,10,30,0.1)_2px,transparent_2px),linear-gradient(90deg,rgba(0,10,30,0.1)_2px,transparent_2px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.5)_2px,transparent_2px),linear-gradient(90deg,rgba(15,23,42,0.5)_2px,transparent_2px)] bg-[size:40px_40px] pointer-events-none"></div>
+
+        {/* Central Dashboard Visualizers */}
+        <div className="absolute inset-0 flex items-center justify-center gap-32 pointer-events-none pb-20">
+          <WaterTank percent={waterPercent} />
+          <CommsGrid health={state.operations?.communication ?? 50} />
+        </div>
 
         {/* Dynamic Weather directly applied over the map */}
         <WeatherOverlay floodScore={state.scores.floodPreparedness} droughtScore={state.scores.droughtPreparedness} />
@@ -150,11 +220,11 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         <motion.div 
           animate={{ top: ['-10%', '110%'] }}
           transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
-          className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-400/50 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.8)] z-10 pointer-events-none"
+          className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.5)] z-10 pointer-events-none"
         ></motion.div>
 
         {/* Vignette for cinematic feel */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_10%,_#000000_100%)] opacity-90 pointer-events-none z-10"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_10%,_#000000_100%)] opacity-80 pointer-events-none z-10"></div>
       </div>
 
       {/* Graphical HUD (Top) */}
