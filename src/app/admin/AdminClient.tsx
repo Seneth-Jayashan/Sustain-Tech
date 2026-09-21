@@ -95,13 +95,14 @@ export default function AdminClient() {
               >
                 {/* Left: Team Info */}
                 <div className="flex flex-col gap-1 w-1/4">
-                  <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">{team.email}</span>
-                  <span className="text-2xl font-black text-white">{team.name}</span>
+                  <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">{team?.name}</span>
+                  <span className="text-xl font-black text-white">{session.currentUserId?.name || 'Unknown User'}</span>
+                  <span className="text-xs text-blue-400 font-mono">{session.currentUserId?.role}</span>
                   <div className="mt-2">
                     {isCompleted ? (
                       <span className="inline-block px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded text-xs font-black tracking-widest uppercase">Simulation Complete</span>
                     ) : (
-                      <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded text-xs font-black tracking-widest uppercase animate-pulse">Day {state.currentDay} / 10</span>
+                      <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded text-xs font-black tracking-widest uppercase animate-pulse">Day {state?.day || 0} / 10</span>
                     )}
                   </div>
                 </div>
@@ -111,19 +112,19 @@ export default function AdminClient() {
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-gray-500 text-xs font-mono">WATER</span>
                     <div className="flex items-center gap-2 text-blue-400 font-black text-xl">
-                      <Droplets size={20} /> {Math.round((state.waterStorage / state.waterCapacity) * 100)}%
+                      <Droplets size={20} /> {Math.round((((state.resources?.drinkingWater || 0) + (state.resources?.agriculturalWater || 0)) / (state.resources?.storageCapacity || 1)) * 100)}%
                     </div>
                   </div>
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-gray-500 text-xs font-mono">BUDGET</span>
                     <div className="flex items-center gap-2 text-green-400 font-black text-xl">
-                      <Coins size={20} /> {(state.budget / 1000).toFixed(0)}k
+                      <Coins size={20} /> {((state.resources?.emergencyBudget || 0) / 1000).toFixed(0)}k
                     </div>
                   </div>
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-gray-500 text-xs font-mono">INTEL / TRUST</span>
                     <div className="flex items-center gap-2 text-purple-400 font-black text-xl">
-                      {Math.round(state.variables.I)} / {Math.round(state.variables.C)}
+                      {Math.round(state.information?.informationQuality || 0)} / {Math.round(state.community?.communityTrust || 0)}
                     </div>
                   </div>
                 </div>
@@ -132,14 +133,14 @@ export default function AdminClient() {
                 <div className="flex flex-col items-end w-1/4">
                   <span className="text-gray-500 text-xs font-mono uppercase">CPS Score</span>
                   <span className={`text-4xl font-black ${isCompleted ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.8)]' : 'text-gray-300'}`}>
-                    {isCompleted ? session.finalResult.cps : '?'}
+                    {isCompleted ? session.finalResult?.cps : '?'}
                   </span>
                 </div>
                 
                 {/* Status bar */}
                 {!isCompleted && (
                   <div className="absolute bottom-0 left-0 h-1 bg-blue-500/30 w-full">
-                    <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${(state.currentDay / 10) * 100}%` }}></div>
+                    <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${((state.day || 0) / 10) * 100}%` }}></div>
                   </div>
                 )}
               </motion.div>

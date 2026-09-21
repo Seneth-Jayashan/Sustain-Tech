@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { GameState } from '@/game/types';
+import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
@@ -14,17 +14,17 @@ import Image from 'next/image';
 interface Props {
   initialState: GameState;
   teamName: string;
+  initialScenario: any;
 }
 
-export default function DashboardClient({ initialState, teamName }: Props) {
+export default function DashboardClient({ initialState, teamName, initialScenario }: Props) {
   const router = useRouter();
   const [state, setState] = useState<GameState>(initialState);
+  const [currentScenario, setCurrentScenario] = useState<any>(initialScenario);
   const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showBrief, setShowBrief] = useState(true);
-  
-  const currentScenario = SCENARIOS[state.currentBucket];
 
   // Trigger audio on new scenario
   useEffect(() => {
@@ -33,12 +33,42 @@ export default function DashboardClient({ initialState, teamName }: Props) {
     setShowBrief(true);
     
     if (voiceEnabled) {
-      const fullBriefing = `Day ${state.currentDay}. ${currentScenario.title}. ${currentScenario.situation}.`;
+      const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
       speakText(fullBriefing);
     }
     
     return () => stopSpeaking();
-  }, [state.currentBucket, currentScenario, state.currentDay, voiceEnabled]);
+  }, [state.bucket, currentScenario, state.day, voiceEnabled]);
+
+  // Anti-AI Integrity Listeners
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      fetch('/api/game/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType: 'RIGHT_CLICK_ATTEMPT' })
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        fetch('/api/game/telemetry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actionType: 'VISIBILITY_CHANGE', metadata: { state: 'hidden' } })
+        });
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const formatLKR = (amount: number) => `${(amount / 1000).toFixed(0)}k`;
 
@@ -71,6 +101,9 @@ export default function DashboardClient({ initialState, teamName }: Props) {
           router.push('/reflection');
         } else {
           setState(data.gameSession.state);
+          if (data.nextScenario) {
+            setCurrentScenario(data.nextScenario);
+          }
           setSelectedOrder([]);
         }
       } else {
@@ -91,7 +124,7 @@ export default function DashboardClient({ initialState, teamName }: Props) {
 
   if (!currentScenario) return <div className="fixed inset-0 flex items-center justify-center bg-black"><span className="animate-pulse text-2xl font-mono text-blue-500">INITIALIZING LINK...</span></div>;
 
-  const waterPercent = Math.round((state.waterStorage / state.waterCapacity) * 100);
+  const waterPercent = Math.round(((state.resources.drinkingWater + state.resources.agriculturalWater) / state.resources.storageCapacity) * 100);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-black text-white selection:bg-blue-500/30">
@@ -111,7 +144,7 @@ export default function DashboardClient({ initialState, teamName }: Props) {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,10,30,0.1)_2px,transparent_2px),linear-gradient(90deg,rgba(0,10,30,0.1)_2px,transparent_2px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
 
         {/* Dynamic Weather directly applied over the map */}
-        <WeatherOverlay floodScore={state.variables.F} droughtScore={state.variables.D} />
+        <WeatherOverlay floodScore={state.scores.floodPreparedness} droughtScore={state.scores.droughtPreparedness} />
         
         {/* Animated Radar Scanning Line */}
         <motion.div 
@@ -133,7 +166,7 @@ export default function DashboardClient({ initialState, teamName }: Props) {
       >
         <div className="flex gap-4 pointer-events-auto">
           <div className="flex flex-col items-center bg-black/60 backdrop-blur-md rounded-2xl p-4 border border-blue-900/50 shadow-2xl">
-            <span className="text-3xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">DAY {state.currentDay}</span>
+            <span className="text-3xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">DAY {state.day}</span>
             <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mt-1">Team {teamName}</span>
           </div>
 
@@ -163,18 +196,18 @@ export default function DashboardClient({ initialState, teamName }: Props) {
           {/* Budget */}
           <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl p-3 border border-green-900/30">
             <div className="bg-green-500/20 p-2 rounded-xl text-green-400"><Coins size={24} /></div>
-            <div className="font-black font-mono text-2xl text-green-400 min-w-[80px] text-right">{formatLKR(state.budget)}</div>
+            <div className="font-black font-mono text-2xl text-green-400 min-w-[80px] text-right">{formatLKR(state.resources.emergencyBudget)}</div>
           </div>
 
           {/* Intel & Trust (Small badges) */}
           <div className="flex flex-col gap-2">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border ${state.variables.I < 40 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border ${state.information.informationQuality < 40 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
               <RadioTower size={16} />
-              <span className="font-bold text-sm">LVL {Math.round(state.variables.I / 20)}</span>
+              <span className="font-bold text-sm">LVL {Math.round(state.information.informationQuality / 20)}</span>
             </div>
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border ${state.variables.C < 40 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-purple-500/10 border-purple-500/30 text-purple-400'}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border ${state.community.communityTrust < 40 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-purple-500/10 border-purple-500/30 text-purple-400'}`}>
               <Users size={16} />
-              <span className="font-bold text-sm">LVL {Math.round(state.variables.C / 20)}</span>
+              <span className="font-bold text-sm">LVL {Math.round(state.community.communityTrust / 20)}</span>
             </div>
           </div>
           
@@ -221,12 +254,12 @@ export default function DashboardClient({ initialState, teamName }: Props) {
                 <Typewriter text={currentScenario.situation} speed={30} />
               </div>
               
-              {currentScenario.events.length > 0 && (
+              {currentScenario.conditions && currentScenario.conditions.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-800">
                   <div className="text-xs text-blue-500 font-bold mb-2 uppercase">Detected Events:</div>
                   <ul className="text-xs font-mono text-gray-400 space-y-1">
-                    {currentScenario.events.map((ev, i) => (
-                      <li key={i}>• {ev}</li>
+                    {currentScenario.conditions.map((ev: any, i: number) => (
+                      <li key={i}>• {ev.field} {ev.operator} {ev.value}</li>
                     ))}
                   </ul>
                 </div>
@@ -278,7 +311,7 @@ export default function DashboardClient({ initialState, teamName }: Props) {
 
         {/* Horizontal Scrolling Card Track */}
         <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {currentScenario.actions.map((action) => {
+          {currentScenario.actions.map((action: any) => {
             const rankIndex = selectedOrder.indexOf(action.id);
             const isSelected = rankIndex !== -1;
             
