@@ -44,5 +44,5 @@ export async function createSession(userId: string, userName: string, teamId: st
 }
 
 export async function logout() {
-  (await cookies()).set('session', '', { expires: new Date(0), path: '/' });
+  (await cookies()).delete('session');
 }

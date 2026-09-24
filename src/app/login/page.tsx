@@ -31,7 +31,7 @@ export default function LoginPage() {
       if (data.role === 'admin') {
         router.push('/admin');
       } else {
-        router.push('/dashboard');
+        router.push('/intro');
       }
     } catch (err: any) {
       setError(err.message);

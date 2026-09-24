@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { GameState } from '@/game/state';
 import { FinalResult } from '@/game/types';
+import { LogOut } from 'lucide-react';
 
 interface Props {
   finalState: GameState;
@@ -22,15 +23,27 @@ interface Props {
       if (score >= 40) return 'text-yellow-400';
       return 'text-red-400';
     };
+
+    const handleLogout = async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    };
   
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8 }}
-        className="glass-panel p-8 md:p-12 rounded-2xl max-w-4xl w-full"
+        className="glass-panel p-8 md:p-12 rounded-2xl max-w-4xl w-full relative"
       >
-        <div className="text-center mb-12">
+        <button 
+          onClick={handleLogout}
+          className="absolute top-8 right-8 flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors font-mono text-sm"
+        >
+          <LogOut size={16} /> DISCONNECT
+        </button>
+
+        <div className="text-center mb-12 mt-4">
           <h1 className="text-sm tracking-[0.3em] uppercase text-gray-400 mb-4">Simulation Complete</h1>
           <h2 className="text-4xl md:text-5xl font-bold mb-2">Team {teamName}</h2>
           <div className="h-1 w-24 bg-[var(--color-sustain-accent)] mx-auto mt-6 rounded-full" />

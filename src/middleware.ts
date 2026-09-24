@@ -12,7 +12,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (session && isPublicRoute && pathname !== '/api/auth/login') {
+  // Do not redirect API routes to dashboard
+  if (session && isPublicRoute && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

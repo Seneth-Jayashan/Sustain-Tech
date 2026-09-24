@@ -16,9 +16,9 @@ const WaterTank = ({ percent }: { percent: number }) => (
   <div className="relative w-48 h-80 border-4 border-blue-900 rounded-b-3xl overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.3)] bg-black/50 backdrop-blur-sm">
     {/* Tank Background Grid */}
     <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.2)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-    
+
     {/* Water Fill */}
-    <motion.div 
+    <motion.div
       initial={{ height: 0 }}
       animate={{ height: `${Math.min(100, percent)}%` }}
       transition={{ type: 'spring', bounce: 0.2, duration: 2 }}
@@ -27,7 +27,7 @@ const WaterTank = ({ percent }: { percent: number }) => (
       {/* Surface Waves */}
       <div className="absolute top-0 w-[200%] h-4 -ml-[50%] animate-wave bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.4)_0%,_transparent_50%)]"></div>
     </motion.div>
-    
+
     {/* Overlay Data */}
     <div className="absolute top-4 inset-x-0 text-center z-10 font-mono">
       <span className="text-xs tracking-widest text-blue-300">RESERVOIR CAP</span>
@@ -44,7 +44,7 @@ const CommsGrid = ({ health }: { health: number }) => {
   return (
     <div className={`relative w-80 h-80 rounded-full border-2 ${isFailing ? 'border-red-900/50' : 'border-green-900/50'} flex items-center justify-center p-8`}>
       {/* Radar Sweep */}
-      <motion.div 
+      <motion.div
         animate={{ rotate: 360 }}
         transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
         className="absolute inset-0 rounded-full border-r-2 border-green-500/50"
@@ -53,20 +53,20 @@ const CommsGrid = ({ health }: { health: number }) => {
 
       {/* Nodes */}
       <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 z-10 overflow-visible">
-        <motion.path 
-          d="M 50 10 L 80 30 L 80 70 L 50 90 L 20 70 L 20 30 Z" 
-          fill="none" 
+        <motion.path
+          d="M 50 10 L 80 30 L 80 70 L 50 90 L 20 70 L 20 30 Z"
+          fill="none"
           stroke={isFailing ? 'rgba(239,68,68,0.5)' : 'rgba(74,222,128,0.5)'}
           strokeWidth="1"
           animate={isFailing ? { pathLength: [0, 1, 0.5], opacity: [1, 0.2, 1] } : {}}
           transition={{ repeat: Infinity, duration: 0.5 }}
         />
         {[
-          {cx: 50, cy: 10}, {cx: 80, cy: 30}, {cx: 80, cy: 70}, 
-          {cx: 50, cy: 90}, {cx: 20, cy: 70}, {cx: 20, cy: 30},
-          {cx: 50, cy: 50}
+          { cx: 50, cy: 10 }, { cx: 80, cy: 30 }, { cx: 80, cy: 70 },
+          { cx: 50, cy: 90 }, { cx: 20, cy: 70 }, { cx: 20, cy: 30 },
+          { cx: 50, cy: 50 }
         ].map((pt, i) => (
-          <motion.circle 
+          <motion.circle
             key={i} cx={pt.cx} cy={pt.cy} r={isFailing && i % 2 === 0 ? 3 : 2}
             fill={isFailing && i % 2 === 0 ? '#ef4444' : '#4ade80'}
             animate={isFailing ? { scale: [1, 1.5, 1], opacity: [1, 0.5, 1] } : {}}
@@ -74,10 +74,10 @@ const CommsGrid = ({ health }: { health: number }) => {
           />
         ))}
       </svg>
-      
+
       {/* Central Status */}
       <div className="z-20 text-center bg-black/80 rounded-full p-4 backdrop-blur-md border border-white/10">
-        {isFailing ? <WifiOff size={24} className="text-red-500 animate-pulse mx-auto mb-1"/> : <Activity size={24} className="text-green-500 mx-auto mb-1"/>}
+        {isFailing ? <WifiOff size={24} className="text-red-500 animate-pulse mx-auto mb-1" /> : <Activity size={24} className="text-green-500 mx-auto mb-1" />}
         <span className={`text-xs font-mono font-bold tracking-widest ${isFailing ? 'text-red-500' : 'text-green-500'}`}>COMMS</span>
       </div>
     </div>
@@ -104,12 +104,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     if (!currentScenario) return;
     playRadarPing();
     setShowBrief(true);
-    
+
     if (voiceEnabled) {
       const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
       speakText(fullBriefing);
     }
-    
+
     return () => stopSpeaking();
   }, [state.bucket, currentScenario, state.day, voiceEnabled]);
 
@@ -160,14 +160,14 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     if (selectedOrder.length !== 5) return;
     setSubmitting(true);
     stopSpeaking();
-    
+
     try {
       const res = await fetch('/api/game/decision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rankings: selectedOrder })
       });
-      
+
       const data = await res.json();
       if (data.success) {
         if (data.gameSession.status === 'COMPLETED') {
@@ -192,7 +192,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   if (!currentScenario) return <div className="fixed inset-0 flex items-center justify-center bg-black"><span className="animate-pulse text-2xl font-mono text-blue-500">INITIALIZING LINK...</span></div>;
@@ -201,7 +201,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-black text-white selection:bg-blue-500/30">
-      
+
       {/* Advanced UI Background Layer */}
       <div className="absolute inset-0 z-0 bg-[#020617]">
         {/* Dynamic Holographic Grid Overlay */}
@@ -215,9 +215,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
         {/* Dynamic Weather directly applied over the map */}
         <WeatherOverlay floodScore={state.scores.floodPreparedness} droughtScore={state.scores.droughtPreparedness} />
-        
+
         {/* Animated Radar Scanning Line */}
-        <motion.div 
+        <motion.div
           animate={{ top: ['-10%', '110%'] }}
           transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
           className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.5)] z-10 pointer-events-none"
@@ -228,7 +228,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       </div>
 
       {/* Graphical HUD (Top) */}
-      <motion.header 
+      <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", bounce: 0.4 }}
@@ -240,7 +240,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mt-1">Team {teamName}</span>
           </div>
 
-          <button 
+          <button
             onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); playUIBlip(); }}
             className={`flex items-center justify-center h-12 w-12 rounded-full border backdrop-blur-md transition-all ${voiceEnabled ? 'bg-blue-500/20 border-blue-400 text-blue-400' : 'bg-black/40 border-gray-700 text-gray-500 hover:border-gray-500'}`}
           >
@@ -269,20 +269,24 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             <div className="font-black font-mono text-2xl text-green-400 min-w-[80px] text-right">{formatLKR(state.resources.emergencyBudget)}</div>
           </div>
 
-          {/* Intel & Trust (Small badges) */}
+          {/* Intel & Trust & Transport (Small badges) */}
           <div className="flex flex-col gap-2">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border ${state.information.informationQuality < 40 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
-              <RadioTower size={16} />
-              <span className="font-bold text-sm">LVL {Math.round(state.information.informationQuality / 20)}</span>
+            <div className={`flex items-center justify-between w-40 px-3 py-1.5 rounded-lg backdrop-blur-md border ${state.information.informationQuality < 40 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
+              <div className="flex items-center gap-2"><RadioTower size={14} /><span className="text-[10px] font-black uppercase tracking-widest">COMMS</span></div>
+              <span className="font-bold text-sm">{Math.round(state.information.informationQuality)}%</span>
             </div>
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border ${state.community.communityTrust < 40 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-purple-500/10 border-purple-500/30 text-purple-400'}`}>
-              <Users size={16} />
-              <span className="font-bold text-sm">LVL {Math.round(state.community.communityTrust / 20)}</span>
+            <div className={`flex items-center justify-between w-40 px-3 py-1.5 rounded-lg backdrop-blur-md border ${state.community.communityTrust < 40 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-purple-500/10 border-purple-500/30 text-purple-400'}`}>
+              <div className="flex items-center gap-2"><Users size={14} /><span className="text-[10px] font-black uppercase tracking-widest">TRUST</span></div>
+              <span className="font-bold text-sm">{Math.round(state.community.communityTrust)}%</span>
+            </div>
+            <div className={`flex items-center justify-between w-40 px-3 py-1.5 rounded-lg backdrop-blur-md border ${(state.operations?.transportation ?? 100) < 40 ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`}>
+              <div className="flex items-center gap-2"><Activity size={14} /><span className="text-[10px] font-black uppercase tracking-widest">TRANSPORT</span></div>
+              <span className="font-bold text-sm">{Math.round(state.operations?.transportation ?? 100)}%</span>
             </div>
           </div>
-          
+
           {/* Logout Button */}
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center justify-center h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 backdrop-blur-md transition-all hover:bg-red-500/20 hover:border-red-400 ml-2"
             title="Disconnect"
@@ -295,7 +299,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       {/* RPG Dialogue Box (Bottom Left) */}
       <AnimatePresence>
         {showBrief && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 50, opacity: 0, scale: 0.9 }}
@@ -303,27 +307,27 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           >
             <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.6)] bg-black/80 flex-shrink-0 animate-pulse-glow">
               <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
-              
+
               {/* Static noise overlay on portrait */}
               <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay opacity-50 animate-scanline pointer-events-none"></div>
             </div>
-            
+
             <div className="relative bg-black/80 backdrop-blur-xl border border-blue-500/30 rounded-2xl rounded-bl-none p-6 shadow-2xl mb-4">
               {/* Dialogue Pointer Tail */}
               <div className="absolute -left-3 bottom-0 w-4 h-4 bg-black/80 border-l border-b border-blue-500/30 transform skew-x-[30deg]"></div>
-              
+
               <div className="flex justify-between items-start mb-3">
                 <h3 className="font-black text-blue-400 uppercase tracking-widest text-sm flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> INCOMING TRANSMISSION
                 </h3>
-                <button onClick={() => setShowBrief(false)} className="text-gray-500 hover:text-white"><AlertTriangle size={16}/></button>
+                <button onClick={() => setShowBrief(false)} className="text-gray-500 hover:text-white"><AlertTriangle size={16} /></button>
               </div>
-              
+
               <h2 className="text-xl font-bold mb-2 text-white">{currentScenario.title}</h2>
               <div className="text-gray-300 font-mono text-sm leading-relaxed min-h-[60px]">
                 <Typewriter text={currentScenario.situation} speed={30} />
               </div>
-              
+
               {currentScenario.conditions && currentScenario.conditions.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-800">
                   <div className="text-xs text-blue-500 font-bold mb-2 uppercase">Detected Events:</div>
@@ -340,7 +344,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       </AnimatePresence>
 
       {!showBrief && (
-        <button 
+        <button
           onClick={() => setShowBrief(true)}
           className="absolute bottom-[280px] left-8 z-40 bg-blue-500/20 border border-blue-500 text-blue-400 p-4 rounded-full backdrop-blur-md hover:bg-blue-500/40 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.5)]"
         >
@@ -349,7 +353,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       )}
 
       {/* Card Deck Action Matrix (Bottom) */}
-      <motion.div 
+      <motion.div
         initial={{ y: 300 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", bounce: 0, duration: 0.8 }}
@@ -360,7 +364,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             <h3 className="text-sm font-black uppercase tracking-widest text-gray-400">Directives <span className="text-white bg-white/20 px-2 py-0.5 rounded">{selectedOrder.length}/5</span></h3>
             {selectedOrder.length < 5 && <span className="text-xs text-blue-400 animate-pulse font-mono border border-blue-500/30 px-2 rounded-full">SELECT {5 - selectedOrder.length} MORE</span>}
           </div>
-          
+
           <AnimatePresence>
             {selectedOrder.length === 5 && (
               <motion.button
@@ -384,7 +388,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           {currentScenario.actions.map((action: any) => {
             const rankIndex = selectedOrder.indexOf(action.id);
             const isSelected = rankIndex !== -1;
-            
+
             return (
               <motion.button
                 key={action.id}
@@ -394,15 +398,14 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 whileHover={{ y: -15, scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => toggleSelection(action.id)}
-                className={`relative flex-shrink-0 w-[280px] h-[150px] rounded-2xl border text-left p-5 transition-all duration-300 snap-center group overflow-hidden ${
-                  isSelected 
-                    ? 'border-green-400 bg-green-900/60 backdrop-blur-xl shadow-[0_0_35px_rgba(74,222,128,0.4)] transform -translate-y-4' 
-                    : 'border-gray-700 bg-black/80 backdrop-blur-md hover:bg-blue-950/60 hover:border-blue-400/80 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-                }`}
+                className={`relative flex-shrink-0 w-[280px] h-[150px] rounded-2xl border text-left p-5 transition-all duration-300 snap-center group overflow-hidden ${isSelected
+                  ? 'border-green-400 bg-green-900/60 backdrop-blur-xl shadow-[0_0_35px_rgba(74,222,128,0.4)] transform -translate-y-4'
+                  : 'border-gray-700 bg-black/80 backdrop-blur-md hover:bg-blue-950/60 hover:border-blue-400/80 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+                  }`}
               >
                 {/* Dynamic animated glow behind card */}
                 {isSelected && <div className="absolute inset-0 bg-gradient-to-tr from-green-500/20 to-transparent rounded-2xl blur-xl -z-10 animate-pulse"></div>}
-                
+
                 {/* Tech lines on hover */}
                 <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
@@ -411,7 +414,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                     <AlertTriangle size={20} />
                   </div>
                   {isSelected && (
-                    <motion.div 
+                    <motion.div
                       initial={{ scale: 0, rotate: 180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       className="w-8 h-8 rounded-full bg-green-400 text-black flex items-center justify-center font-black shadow-[0_0_15px_rgba(74,222,128,0.8)]"

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
 import Team from '@/models/Team'; // Ensure it's imported so mongoose knows about it for populate
 import User from '@/models/User';
+import IntegrityLog from '@/models/IntegrityLog';
 import { getSession } from '@/lib/session';
 
 export async function GET() {
@@ -25,11 +26,21 @@ export async function GET() {
 
     // Filter out any admin sessions (just in case they tested it)
     const playerSessions = gameSessions.filter((s: any) => {
-      // If there is no currentUserId, we assume it's valid for now, or check if it's not admin
       return s.teamId && (!s.currentUserId || s.currentUserId.role !== 'admin');
     });
 
-    return NextResponse.json({ success: true, sessions: playerSessions });
+    const sessionIds = playerSessions.map(s => s._id);
+    const logs = await IntegrityLog.find({ gameSessionId: { $in: sessionIds } })
+      .populate('userId', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const sessionsWithLogs = playerSessions.map((s: any) => {
+      s.logs = logs.filter(l => l.gameSessionId.toString() === s._id.toString());
+      return s;
+    });
+
+    return NextResponse.json({ success: true, sessions: sessionsWithLogs });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
