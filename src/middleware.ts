@@ -12,31 +12,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Do not redirect API routes to dashboard
-  if (session && isPublicRoute && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  if (pathname.startsWith('/admin')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
+  let role = 'player';
+  if (session) {
     try {
-      // Decode JWT to check role
       const secretKey = process.env.SESSION_SECRET || 'fallback-secret-key-do-not-use-in-prod';
       const key = new TextEncoder().encode(secretKey);
       const { payload } = await jwtVerify(session, key, { algorithms: ['HS256'] });
-      
-      if (payload.role !== 'admin') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
+      role = payload.role as string;
     } catch (e) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      if (!isPublicRoute) {
+        if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
     }
+  }
+
+  // Route directing based on authentication and role
+  if (session && (pathname === '/login' || pathname === '/')) {
+    if (role === 'admin') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  // Admin routing protection
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+    if (role !== 'admin') {
+      if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  // Prevent admin from accessing the player dashboard
+  if (pathname.startsWith('/dashboard') && role === 'admin') {
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   return NextResponse.next();
