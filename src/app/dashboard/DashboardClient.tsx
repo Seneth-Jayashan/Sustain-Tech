@@ -1,40 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
 import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
-import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, Activity, WifiOff } from 'lucide-react';
+import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, Activity, WifiOff, ShieldAlert, Navigation, Terminal } from 'lucide-react';
 import Image from 'next/image';
 
-// SVG components for advanced visualizations
+// Advanced Visualizers
+
+const GlitchText = ({ text, className }: { text: string, className?: string }) => {
+  return (
+    <div className={`relative inline-block ${className}`}>
+      <span className="relative z-10">{text}</span>
+      <span className="absolute top-0 left-[2px] -ml-[2px] text-red-500 opacity-70 z-0 animate-pulse mix-blend-screen clip-text-glitch1">{text}</span>
+      <span className="absolute top-0 -left-[2px] -ml-[2px] text-blue-500 opacity-70 z-0 animate-pulse mix-blend-screen clip-text-glitch2">{text}</span>
+    </div>
+  );
+};
+
 const WaterTank = ({ percent }: { percent: number }) => (
-  <div className="relative w-48 h-80 border-4 border-blue-900 rounded-b-3xl overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.3)] bg-black/50 backdrop-blur-sm">
-    {/* Tank Background Grid */}
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.2)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-
-    {/* Water Fill */}
-    <motion.div
-      initial={{ height: 0 }}
-      animate={{ height: `${Math.min(100, percent)}%` }}
-      transition={{ type: 'spring', bounce: 0.2, duration: 2 }}
-      className={`absolute bottom-0 w-full ${percent > 90 ? 'bg-red-500/80 shadow-[0_0_40px_rgba(239,68,68,0.8)]' : 'bg-blue-500/80 shadow-[0_0_40px_rgba(59,130,246,0.8)]'}`}
-    >
-      {/* Surface Waves */}
-      <div className="absolute top-0 w-[200%] h-4 -ml-[50%] animate-wave bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.4)_0%,_transparent_50%)]"></div>
-    </motion.div>
-
-    {/* Overlay Data */}
-    <div className="absolute top-4 inset-x-0 text-center z-10 font-mono">
-      <span className="text-xs tracking-widest text-blue-300">RESERVOIR CAP</span>
-      <div className={`text-4xl font-black ${percent > 90 ? 'text-red-400 animate-pulse' : 'text-blue-400'}`}>
+  <div className="relative w-56 h-80 border border-slate-700/50 rounded-[40px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-end p-2">
+    {/* Grid Background */}
+    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+    
+    <div className="absolute top-6 w-full text-center z-20 font-mono">
+      <span className="text-[11px] tracking-[0.3em] text-slate-400 font-bold uppercase">Reservoir Cap</span>
+      <div className={`text-6xl font-black mt-1 tracking-tighter drop-shadow-lg ${percent > 90 ? 'text-red-400' : percent < 30 ? 'text-amber-400' : 'text-cyan-400'}`}>
         {percent}%
       </div>
-      {percent > 90 && <div className="text-[10px] text-red-500 font-black tracking-widest mt-1 bg-black/50 py-1 uppercase">Spill Warning</div>}
+      {percent > 90 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="text-[10px] text-red-100 font-black tracking-widest mt-2 bg-red-600/80 mx-10 py-1 rounded uppercase shadow-[0_0_15px_rgba(239,68,68,0.8)]">Critical Spill</motion.div>}
+      {percent < 30 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="text-[10px] text-amber-100 font-black tracking-widest mt-2 bg-amber-600/80 mx-10 py-1 rounded uppercase shadow-[0_0_15px_rgba(245,158,11,0.8)]">Low Level</motion.div>}
+    </div>
+
+    {/* The Water Liquid */}
+    <div className="w-full relative rounded-[32px] overflow-hidden border border-white/10 bg-slate-900/50" style={{ height: '70%' }}>
+      <motion.div
+        initial={{ height: 0 }}
+        animate={{ height: `${Math.min(100, percent)}%` }}
+        transition={{ type: 'spring', bounce: 0.2, duration: 2 }}
+        className={`absolute bottom-0 w-full rounded-b-[32px] overflow-hidden ${
+          percent > 90 ? 'bg-gradient-to-t from-red-600 to-red-400 shadow-[0_-10px_30px_rgba(239,68,68,0.5)]' 
+          : percent < 30 ? 'bg-gradient-to-t from-amber-600 to-amber-400 shadow-[0_-10px_30px_rgba(245,158,11,0.5)]'
+          : 'bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-[0_-10px_30px_rgba(6,182,212,0.5)]'
+        }`}
+      >
+        <div className="absolute top-0 w-[200%] h-4 -ml-[50%] animate-wave bg-white/20 mix-blend-overlay"></div>
+        <div className="absolute top-1 w-[200%] h-4 -ml-[25%] animate-wave bg-white/10 mix-blend-overlay" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
+      </motion.div>
     </div>
   </div>
 );
@@ -42,47 +59,125 @@ const WaterTank = ({ percent }: { percent: number }) => (
 const CommsGrid = ({ health }: { health: number }) => {
   const isFailing = health < 40;
   return (
-    <div className={`relative w-80 h-80 rounded-full border-2 ${isFailing ? 'border-red-900/50' : 'border-green-900/50'} flex items-center justify-center p-8`}>
-      {/* Radar Sweep */}
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
-        className="absolute inset-0 rounded-full border-r-2 border-green-500/50"
-        style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(74,222,128,0.1) 360deg)' }}
-      ></motion.div>
+    <div className="relative w-56 h-80 border border-slate-700/50 rounded-[40px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-between p-6">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
 
-      {/* Nodes */}
-      <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 z-10 overflow-visible">
-        <motion.path
-          d="M 50 10 L 80 30 L 80 70 L 50 90 L 20 70 L 20 30 Z"
-          fill="none"
-          stroke={isFailing ? 'rgba(239,68,68,0.5)' : 'rgba(74,222,128,0.5)'}
-          strokeWidth="1"
-          animate={isFailing ? { pathLength: [0, 1, 0.5], opacity: [1, 0.2, 1] } : {}}
-          transition={{ repeat: Infinity, duration: 0.5 }}
-        />
-        {[
-          { cx: 50, cy: 10 }, { cx: 80, cy: 30 }, { cx: 80, cy: 70 },
-          { cx: 50, cy: 90 }, { cx: 20, cy: 70 }, { cx: 20, cy: 30 },
-          { cx: 50, cy: 50 }
-        ].map((pt, i) => (
-          <motion.circle
-            key={i} cx={pt.cx} cy={pt.cy} r={isFailing && i % 2 === 0 ? 3 : 2}
-            fill={isFailing && i % 2 === 0 ? '#ef4444' : '#4ade80'}
-            animate={isFailing ? { scale: [1, 1.5, 1], opacity: [1, 0.5, 1] } : {}}
-            transition={{ repeat: Infinity, duration: Math.random() * 0.5 + 0.2 }}
-          />
+      <div className="text-center z-20 font-mono w-full">
+        <span className="text-[11px] tracking-[0.3em] text-slate-400 font-bold uppercase">Network Integrity</span>
+        <div className={`text-6xl font-black mt-1 tracking-tighter drop-shadow-lg ${isFailing ? 'text-red-400' : 'text-emerald-400'}`}>
+          {Math.round(health)}%
+        </div>
+      </div>
+      
+      <div className="relative w-32 h-32 flex items-center justify-center mt-4">
+        {/* Radar Sweep */}
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+          className={`absolute inset-0 rounded-full ${isFailing ? 'border-red-500/20' : 'border-emerald-500/20'} border`}
+          style={{ background: isFailing ? 'conic-gradient(from 0deg, transparent 0deg, rgba(239,68,68,0.4) 360deg)' : 'conic-gradient(from 0deg, transparent 0deg, rgba(16,185,129,0.4) 360deg)' }}
+        ></motion.div>
+        
+        {/* Rings */}
+        {[1, 2, 3].map((ring) => (
+          <div key={ring} className={`absolute rounded-full border ${isFailing ? 'border-red-500/30' : 'border-emerald-500/30'}`} style={{ width: `${ring * 33}%`, height: `${ring * 33}%` }}></div>
         ))}
-      </svg>
+        
+        {/* Center Icon */}
+        <div className={`z-20 p-3 rounded-full backdrop-blur-md ${isFailing ? 'bg-red-900/80 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-emerald-900/80 shadow-[0_0_20px_rgba(16,185,129,0.6)]'}`}>
+          {isFailing ? <WifiOff size={24} className="text-red-300 animate-pulse" /> : <RadioTower size={24} className="text-emerald-300" />}
+        </div>
+      </div>
 
-      {/* Central Status */}
-      <div className="z-20 text-center bg-black/80 rounded-full p-4 backdrop-blur-md border border-white/10">
-        {isFailing ? <WifiOff size={24} className="text-red-500 animate-pulse mx-auto mb-1" /> : <Activity size={24} className="text-green-500 mx-auto mb-1" />}
-        <span className={`text-xs font-mono font-bold tracking-widest ${isFailing ? 'text-red-500' : 'text-green-500'}`}>COMMS</span>
+      <div className={`w-full py-2 mt-4 rounded-lg text-center font-bold text-xs uppercase tracking-widest ${isFailing ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+        {isFailing ? 'Signal Lost' : 'Optimal'}
       </div>
     </div>
   );
 };
+
+// 3D Tilt Card Component
+const ActionCard = ({ action, isSelected, rankIndex, onClick }: any) => {
+  const cardRef = useRef<HTMLButtonElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  
+  const rotateX = useTransform(y, [-100, 100], [15, -15]);
+  const rotateY = useTransform(x, [-100, 100], [-15, 15]);
+
+  function handleMouse(event: React.MouseEvent<HTMLButtonElement>) {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (rect) {
+      x.set(event.clientX - rect.left - rect.width / 2);
+      y.set(event.clientY - rect.top - rect.height / 2);
+    }
+  }
+
+  function handleMouseLeave() {
+    x.set(0);
+    y.set(0);
+  }
+
+  return (
+    <motion.button
+      ref={cardRef}
+      onMouseMove={handleMouse}
+      onMouseLeave={handleMouseLeave}
+      layout
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileTap={{ scale: 0.95 }}
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      onClick={onClick}
+      className={`relative flex-shrink-0 w-[300px] h-[170px] rounded-2xl border text-left p-5 transition-colors duration-300 snap-center group overflow-hidden ${
+        isSelected
+          ? 'border-emerald-400 bg-emerald-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+          : 'border-slate-700 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800/80 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]'
+      }`}
+    >
+      {/* Dynamic Animated Glow */}
+      {isSelected && (
+        <motion.div 
+          animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+          transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+          className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 via-transparent to-emerald-400/10 rounded-2xl blur-xl -z-10 bg-[length:200%_200%]" 
+        />
+      )}
+
+      {/* Cyberpunk Tech Lines */}
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ transform: 'translateZ(20px)' }}></div>
+      <div className="absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ transform: 'translateZ(20px)' }}></div>
+
+      <div className="flex justify-between items-start mb-3" style={{ transform: 'translateZ(30px)' }}>
+        <div className={`p-2.5 rounded-xl backdrop-blur-md border ${isSelected ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'}`}>
+          <Terminal size={18} />
+        </div>
+        <AnimatePresence>
+          {isSelected && (
+            <motion.div
+              initial={{ scale: 0, rotate: 180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: -180 }}
+              className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
+            >
+              {rankIndex + 1}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <span className={`font-bold block leading-tight text-[13px] tracking-wide ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`} style={{ transform: 'translateZ(40px)' }}>
+        {action.title}
+      </span>
+      {action.description && (
+        <span className="text-[10px] font-mono text-slate-500 mt-2 block line-clamp-2 leading-relaxed" style={{ transform: 'translateZ(20px)' }}>
+          {action.description}
+        </span>
+      )}
+    </motion.button>
+  );
+};
+
 
 interface Props {
   initialState: GameState;
@@ -99,7 +194,6 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showBrief, setShowBrief] = useState(true);
 
-  // Trigger audio on new scenario
   useEffect(() => {
     if (!currentScenario) return;
     playRadarPing();
@@ -113,37 +207,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     return () => stopSpeaking();
   }, [state.bucket, currentScenario, state.day, voiceEnabled]);
 
-  // Anti-AI Integrity Listeners
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      fetch('/api/game/telemetry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actionType: 'RIGHT_CLICK_ATTEMPT' })
-      });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        fetch('/api/game/telemetry', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ actionType: 'VISIBILITY_CHANGE', metadata: { state: 'hidden' } })
-        });
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const formatLKR = (amount: number) => `${(amount / 1000).toFixed(0)}k`;
+  const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
   const toggleSelection = (actionId: string) => {
     playUIBlip();
@@ -173,19 +237,23 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         if (data.gameSession.status === 'COMPLETED') {
           router.push('/reflection');
         } else {
-          setState(data.gameSession.state);
-          if (data.nextScenario) {
-            setCurrentScenario(data.nextScenario);
-          }
-          setSelectedOrder([]);
+          // Play a transition effect here in a real app
+          setTimeout(() => {
+            setState(data.gameSession.state);
+            if (data.nextScenario) {
+              setCurrentScenario(data.nextScenario);
+            }
+            setSelectedOrder([]);
+            setSubmitting(false);
+          }, 1500);
         }
       } else {
         alert(data.error);
+        setSubmitting(false);
       }
     } catch (error) {
       console.error(error);
       alert('Failed to submit decision.');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -195,244 +263,314 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     window.location.href = '/login';
   };
 
-  if (!currentScenario) return <div className="fixed inset-0 flex items-center justify-center bg-black"><span className="animate-pulse text-2xl font-mono text-blue-500">INITIALIZING LINK...</span></div>;
+  if (!currentScenario) return <div className="fixed inset-0 flex items-center justify-center bg-[#020617]"><span className="animate-pulse text-3xl font-mono font-black text-cyan-500 tracking-[0.5em]">ESTABLISHING_UPLINK...</span></div>;
 
   const waterPercent = Math.round(((state.resources.drinkingWater + state.resources.agriculturalWater) / state.resources.storageCapacity) * 100);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black text-white selection:bg-blue-500/30">
-
-      {/* Advanced UI Background Layer */}
-      <div className="absolute inset-0 z-0 bg-[#020617]">
-        {/* Dynamic Holographic Grid Overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.5)_2px,transparent_2px),linear-gradient(90deg,rgba(15,23,42,0.5)_2px,transparent_2px)] bg-[size:40px_40px] pointer-events-none"></div>
-
-        {/* Central Dashboard Visualizers */}
-        <div className="absolute inset-0 flex items-center justify-center gap-32 pointer-events-none pb-20">
-          <WaterTank percent={waterPercent} />
-          <CommsGrid health={state.operations?.communication ?? 50} />
+    <div className="fixed inset-0 overflow-hidden text-slate-200 selection:bg-cyan-500/30 font-sans bg-black">
+      
+      {/* Animated Dynamic Background Layer */}
+      <motion.div 
+        animate={{ 
+          background: [
+            'radial-gradient(circle at 20% 30%, #0f172a 0%, #020617 100%)',
+            'radial-gradient(circle at 80% 70%, #064e3b 0%, #020617 100%)',
+            'radial-gradient(circle at 50% 50%, #4c1d95 0%, #020617 100%)',
+            'radial-gradient(circle at 20% 30%, #0f172a 0%, #020617 100%)',
+          ]
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        className="absolute inset-0 z-0"
+      >
+        {/* Holographic Hex Grid */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDAgTDIwIDIwIE0yMCAyMCBMNDAgMTAgTTIwIDIwIEwwIDEwIiBzdHJva2U9InJnYmEoNiwgMTgyLCAyMTIsIDAuMDgpIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-20"></div>
+        
+        {/* Floating Ambient Orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none mix-blend-screen opacity-60">
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full blur-3xl"
+              style={{
+                width: Math.random() * 300 + 200,
+                height: Math.random() * 300 + 200,
+                background: i % 2 === 0 ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              }}
+              initial={{
+                x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+                y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+              }}
+              animate={{
+                x: [null, Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000)],
+                y: [null, Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000)],
+                scale: [1, 1.2, 1]
+              }}
+              transition={{
+                duration: Math.random() * 20 + 30,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+            />
+          ))}
         </div>
 
-        {/* Dynamic Weather directly applied over the map */}
+        {/* Central Dashboard Visualizers */}
+        <div className="absolute inset-0 flex items-center justify-center gap-32 pointer-events-none pb-32">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            transition={{ type: 'spring', bounce: 0.4, duration: 1.5 }}
+            className="hover:scale-105 transition-transform duration-500"
+          >
+            <WaterTank percent={waterPercent} />
+          </motion.div>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            transition={{ type: 'spring', bounce: 0.4, duration: 1.5, delay: 0.2 }}
+            className="hover:scale-105 transition-transform duration-500"
+          >
+            <CommsGrid health={state.operations?.communication ?? 50} />
+          </motion.div>
+        </div>
+
         <WeatherOverlay floodScore={state.scores.floodPreparedness} droughtScore={state.scores.droughtPreparedness} />
 
-        {/* Animated Radar Scanning Line */}
-        <motion.div
-          animate={{ top: ['-10%', '110%'] }}
-          transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
-          className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.5)] z-10 pointer-events-none"
-        ></motion.div>
+        {/* Cinematic Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_rgba(2,6,23,0.95)_100%)] pointer-events-none z-10"></div>
+      </motion.div>
 
-        {/* Vignette for cinematic feel */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_10%,_#000000_100%)] opacity-80 pointer-events-none z-10"></div>
-      </div>
-
-      {/* Graphical HUD (Top) */}
+      {/* Top HUD */}
       <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", bounce: 0.4 }}
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", bounce: 0.3, damping: 20 }}
         className="absolute top-0 inset-x-0 z-50 p-6 flex justify-between items-start pointer-events-none"
       >
-        <div className="flex gap-4 pointer-events-auto">
-          <div className="flex flex-col items-center bg-black/60 backdrop-blur-md rounded-2xl p-4 border border-blue-900/50 shadow-2xl">
-            <span className="text-3xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">DAY {state.day}</span>
-            <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mt-1">Team {teamName}</span>
+        <div className="flex gap-4 pointer-events-auto items-center">
+          <div className="flex flex-col items-center bg-slate-900/80 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <GlitchText text={`DAY ${state.day}`} className="text-4xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400" />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold mt-1">Sustain-Tech</span>
           </div>
 
           <button
             onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); playUIBlip(); }}
-            className={`flex items-center justify-center h-12 w-12 rounded-full border backdrop-blur-md transition-all ${voiceEnabled ? 'bg-blue-500/20 border-blue-400 text-blue-400' : 'bg-black/40 border-gray-700 text-gray-500 hover:border-gray-500'}`}
+            className={`flex items-center justify-center h-12 w-12 rounded-2xl border backdrop-blur-xl transition-all shadow-lg ${voiceEnabled ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'}`}
           >
             {voiceEnabled ? '🔊' : '🔈'}
           </button>
         </div>
 
-        {/* Resource Gauges */}
+        {/* Stats Matrix */}
         <div className="flex gap-4 pointer-events-auto">
-          {/* Water */}
-          <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl p-3 border border-blue-900/30">
-            <div className="bg-blue-500/20 p-2 rounded-xl text-blue-400"><Droplets size={24} /></div>
-            <div className="w-32">
-              <div className="h-3 bg-gray-900 rounded-full overflow-hidden shadow-inner">
-                <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${waterPercent}%` }} />
-              </div>
-              <div className="flex justify-between text-xs font-bold font-mono text-gray-400 mt-1">
-                <span>0</span><span>{waterPercent}%</span><span>100</span>
-              </div>
+          {/* Budget Display - Highly styled */}
+          <div className="flex items-center gap-4 bg-slate-900/80 backdrop-blur-xl rounded-2xl p-3 border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/20 blur-2xl rounded-full"></div>
+            <div className="bg-emerald-500/20 p-2.5 rounded-xl text-emerald-400 border border-emerald-500/30"><Coins size={22} /></div>
+            <div className="flex flex-col items-end pr-2">
+              <span className="text-[10px] font-mono text-emerald-500/80 font-bold tracking-widest uppercase">Budget</span>
+              <div className="font-black font-mono text-2xl text-emerald-400 tracking-tight drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]">LKR {formatLKR(state.resources.emergencyBudget)}</div>
             </div>
           </div>
 
-          {/* Budget */}
-          <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-2xl p-3 border border-green-900/30">
-            <div className="bg-green-500/20 p-2 rounded-xl text-green-400"><Coins size={24} /></div>
-            <div className="font-black font-mono text-2xl text-green-400 min-w-[80px] text-right">{formatLKR(state.resources.emergencyBudget)}</div>
-          </div>
-
-          {/* Intel & Trust & Transport (Small badges) */}
+          {/* Quick Metrics */}
           <div className="flex flex-col gap-2">
-            <div className={`flex items-center justify-between w-40 px-3 py-1.5 rounded-lg backdrop-blur-md border ${state.information.informationQuality < 40 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400'}`}>
-              <div className="flex items-center gap-2"><RadioTower size={14} /><span className="text-[10px] font-black uppercase tracking-widest">COMMS</span></div>
-              <span className="font-bold text-sm">{Math.round(state.information.informationQuality)}%</span>
-            </div>
-            <div className={`flex items-center justify-between w-40 px-3 py-1.5 rounded-lg backdrop-blur-md border ${state.community.communityTrust < 40 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-purple-500/10 border-purple-500/30 text-purple-400'}`}>
-              <div className="flex items-center gap-2"><Users size={14} /><span className="text-[10px] font-black uppercase tracking-widest">TRUST</span></div>
-              <span className="font-bold text-sm">{Math.round(state.community.communityTrust)}%</span>
-            </div>
-            <div className={`flex items-center justify-between w-40 px-3 py-1.5 rounded-lg backdrop-blur-md border ${(state.operations?.transportation ?? 100) < 40 ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`}>
-              <div className="flex items-center gap-2"><Activity size={14} /><span className="text-[10px] font-black uppercase tracking-widest">TRANSPORT</span></div>
-              <span className="font-bold text-sm">{Math.round(state.operations?.transportation ?? 100)}%</span>
-            </div>
+            {[
+              { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, color: 'cyan' },
+              { label: 'TRUST', val: state.community.communityTrust, icon: Users, color: 'purple' },
+              { label: 'TRANS', val: state.operations?.transportation ?? 100, icon: Navigation, color: 'amber' }
+            ].map((metric, idx) => (
+              <motion.div 
+                key={metric.label}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className={`flex items-center justify-between w-44 px-3 py-1.5 rounded-xl backdrop-blur-xl border bg-slate-900/80 shadow-lg border-${metric.color}-500/30 text-${metric.color}-400`}
+              >
+                <div className="flex items-center gap-2">
+                  <metric.icon size={14} className={`text-${metric.color}-400/80`} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em]">{metric.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }} 
+                      animate={{ width: `${metric.val}%` }} 
+                      className={`h-full bg-${metric.color}-500 shadow-[0_0_10px_currentColor]`} 
+                    />
+                  </div>
+                  <span className="font-bold text-xs font-mono">{Math.round(metric.val)}%</span>
+                </div>
+              </motion.div>
+            ))}
           </div>
 
-          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 backdrop-blur-md transition-all hover:bg-red-500/20 hover:border-red-400 ml-2"
-            title="Disconnect"
+            className="flex items-center justify-center h-12 w-12 rounded-2xl bg-slate-900/80 border border-red-500/30 text-red-400 backdrop-blur-xl transition-all hover:bg-red-950/80 hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] ml-2"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
           </button>
         </div>
       </motion.header>
 
-      {/* RPG Dialogue Box (Bottom Left) */}
+      {/* Narrative HUD - Come & Going Advisor */}
       <AnimatePresence>
         {showBrief && (
           <motion.div
-            initial={{ y: 100, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 50, opacity: 0, scale: 0.9 }}
-            className="absolute bottom-[280px] left-8 z-40 max-w-2xl flex gap-6 items-end"
+            initial={{ x: -400, opacity: 0, rotateY: 30 }}
+            animate={{ x: 0, opacity: 1, rotateY: 0 }}
+            exit={{ x: -400, opacity: 0, rotateY: 30 }}
+            transition={{ type: "spring", damping: 20, stiffness: 100 }}
+            className="absolute top-[140px] left-8 z-40 max-w-xl perspective-[1000px]"
           >
-            <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.6)] bg-black/80 flex-shrink-0 animate-pulse-glow">
-              <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
-
-              {/* Static noise overlay on portrait */}
-              <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay opacity-50 animate-scanline pointer-events-none"></div>
-            </div>
-
-            <div className="relative bg-black/80 backdrop-blur-xl border border-blue-500/30 rounded-2xl rounded-bl-none p-6 shadow-2xl mb-4">
-              {/* Dialogue Pointer Tail */}
-              <div className="absolute -left-3 bottom-0 w-4 h-4 bg-black/80 border-l border-b border-blue-500/30 transform skew-x-[30deg]"></div>
-
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-black text-blue-400 uppercase tracking-widest text-sm flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> INCOMING TRANSMISSION
-                </h3>
-                <button onClick={() => setShowBrief(false)} className="text-gray-500 hover:text-white"><AlertTriangle size={16} /></button>
-              </div>
-
-              <h2 className="text-xl font-bold mb-2 text-white">{currentScenario.title}</h2>
-              <div className="text-gray-300 font-mono text-sm leading-relaxed min-h-[60px]">
-                <Typewriter text={currentScenario.situation} speed={30} />
-              </div>
-
-              {currentScenario.conditions && currentScenario.conditions.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-800">
-                  <div className="text-xs text-blue-500 font-bold mb-2 uppercase">Detected Events:</div>
-                  <ul className="text-xs font-mono text-gray-400 space-y-1">
-                    {currentScenario.conditions.map((ev: any, i: number) => (
-                      <li key={i}>• {ev.field} {ev.operator} {ev.value}</li>
-                    ))}
-                  </ul>
+            <div className="relative flex flex-col gap-4">
+              {/* Advisor Avatar Pop-in */}
+              <motion.div 
+                initial={{ y: 50, opacity: 0 }} 
+                animate={{ y: 0, opacity: 1 }} 
+                transition={{ delay: 0.3, type: "spring" }}
+                className="flex items-end gap-4"
+              >
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-black z-20">
+                  <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
+                  <div className="absolute inset-0 bg-cyan-500/10 mix-blend-overlay"></div>
                 </div>
-              )}
+                <div className="bg-cyan-950/80 border border-cyan-500/50 px-4 py-2 rounded-t-xl rounded-br-xl backdrop-blur-md mb-2 shadow-lg">
+                  <span className="text-cyan-400 font-black tracking-widest text-xs uppercase flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    Priority Message
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Message Box */}
+              <motion.div 
+                className="relative bg-slate-900/90 backdrop-blur-2xl border border-slate-700 rounded-3xl p-6 shadow-2xl overflow-hidden ml-8 z-10"
+              >
+                <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl rounded-full"></div>
+                
+                <div className="flex justify-between items-start mb-2">
+                  <h2 className="text-xl font-black text-white tracking-tight">{currentScenario.title}</h2>
+                  <button onClick={() => setShowBrief(false)} className="text-slate-500 hover:text-white transition-colors bg-slate-800 p-2 rounded-full hover:bg-red-500/20 hover:text-red-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </div>
+
+                <div className="text-slate-300 font-sans text-sm leading-relaxed min-h-[60px]">
+                  <Typewriter text={currentScenario.situation} speed={25} />
+                </div>
+
+                {currentScenario.conditions && currentScenario.conditions.length > 0 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="mt-4 pt-4 border-t border-slate-800">
+                    <div className="flex flex-wrap gap-2">
+                      {currentScenario.conditions.map((ev: any, i: number) => (
+                        <span key={i} className="text-[10px] font-mono text-cyan-200 bg-cyan-950/50 px-2 py-1 rounded border border-cyan-800/50 flex items-center gap-1">
+                          <ShieldAlert size={10} className="text-cyan-400" />
+                          {ev.field} {ev.operator} {ev.value}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {!showBrief && (
-        <button
+        <motion.button
+          initial={{ scale: 0, x: -50 }}
+          animate={{ scale: 1, x: 0 }}
+          whileHover={{ scale: 1.1 }}
           onClick={() => setShowBrief(true)}
-          className="absolute bottom-[280px] left-8 z-40 bg-blue-500/20 border border-blue-500 text-blue-400 p-4 rounded-full backdrop-blur-md hover:bg-blue-500/40 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+          className="absolute top-[160px] left-8 z-40 bg-slate-900/80 border border-slate-700 text-cyan-400 p-3 rounded-full backdrop-blur-xl hover:bg-slate-800 transition-all shadow-lg flex items-center gap-3 pr-4 group"
         >
-          <Info size={24} />
-        </button>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-cyan-500/50">
+            <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover grayscale group-hover:grayscale-0 transition-all" unoptimized />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-widest group-hover:text-white transition-colors">Call Advisor</span>
+        </motion.button>
       )}
 
-      {/* Card Deck Action Matrix (Bottom) */}
+      {/* Submission Overlay HUD */}
+      <AnimatePresence>
+        {submitting && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center font-mono"
+          >
+            <div className="relative w-64 h-64 flex items-center justify-center">
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 4, ease: "linear" }} className="absolute inset-0 rounded-full border-t-2 border-r-2 border-cyan-500 opacity-50"></motion.div>
+              <motion.div animate={{ rotate: -360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }} className="absolute inset-4 rounded-full border-b-2 border-l-2 border-emerald-500 opacity-50"></motion.div>
+              <span className="text-2xl font-black text-white tracking-[0.2em] animate-pulse">EXECUTING</span>
+            </div>
+            <p className="mt-8 text-cyan-400 tracking-[0.3em] text-sm">TRANSMITTING DIRECTIVES TO FIELD UNITS...</p>
+            <motion.div className="w-96 h-1 bg-slate-800 mt-4 rounded-full overflow-hidden">
+              <motion.div initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 1.5, ease: "easeInOut" }} className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,1)]"></motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dynamic Action Deck (Bottom) */}
       <motion.div
-        initial={{ y: 300 }}
+        initial={{ y: 400 }}
         animate={{ y: 0 }}
-        transition={{ type: "spring", bounce: 0, duration: 0.8 }}
-        className="absolute bottom-0 inset-x-0 h-[260px] bg-gradient-to-t from-black via-black/90 to-transparent z-50 flex flex-col justify-end pb-8 px-8"
+        transition={{ type: "spring", bounce: 0, duration: 1 }}
+        className="absolute bottom-0 inset-x-0 h-[300px] bg-gradient-to-t from-[#020617] via-[#020617]/90 to-transparent z-50 flex flex-col justify-end pb-8 px-10"
       >
-        <div className="flex items-end justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <h3 className="text-sm font-black uppercase tracking-widest text-gray-400">Directives <span className="text-white bg-white/20 px-2 py-0.5 rounded">{selectedOrder.length}/5</span></h3>
-            {selectedOrder.length < 5 && <span className="text-xs text-blue-400 animate-pulse font-mono border border-blue-500/30 px-2 rounded-full">SELECT {5 - selectedOrder.length} MORE</span>}
+        <div className="flex items-end justify-between mb-6">
+          <div className="flex items-center gap-5">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-3">
+              Strategic Directives
+              <span className="text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 shadow-inner">{selectedOrder.length}/5</span>
+            </h3>
+            {selectedOrder.length < 5 && (
+              <span className="text-xs text-cyan-400 animate-pulse font-mono border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 rounded-full tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                AWAITING {5 - selectedOrder.length} INPUTS
+              </span>
+            )}
           </div>
 
           <AnimatePresence>
             {selectedOrder.length === 5 && (
               <motion.button
-                initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                initial={{ opacity: 0, scale: 0.8, x: 50 }}
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                whileHover={{ scale: 1.05, boxShadow: "0px 0px 30px rgba(74,222,128,0.4)" }}
+                whileHover={{ scale: 1.05, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
                 whileTap={{ scale: 0.95 }}
                 disabled={submitting}
                 onClick={handleSubmit}
-                className="bg-green-500 text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest flex items-center gap-3 hover:bg-green-400 transition-colors shadow-[0_0_20px_rgba(74,222,128,0.3)]"
+                className="bg-emerald-500 text-[#020617] px-10 py-4 rounded-xl font-black uppercase tracking-[0.3em] flex items-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group"
               >
-                {submitting ? 'Executing...' : 'Engage'} <Send size={18} />
+                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                {submitting ? 'EXECUTING' : 'AUTHORIZE'} <Send size={20} />
               </motion.button>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Horizontal Scrolling Card Track */}
-        <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {currentScenario.actions.map((action: any) => {
+        {/* Cinematic Card Track */}
+        <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar relative" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {currentScenario.actions.map((action: any, index: number) => {
             const rankIndex = selectedOrder.indexOf(action.id);
             const isSelected = rankIndex !== -1;
-
+            
             return (
-              <motion.button
-                key={action.id}
-                layout
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -15, scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => toggleSelection(action.id)}
-                className={`relative flex-shrink-0 w-[280px] h-[150px] rounded-2xl border text-left p-5 transition-all duration-300 snap-center group overflow-hidden ${isSelected
-                  ? 'border-green-400 bg-green-900/60 backdrop-blur-xl shadow-[0_0_35px_rgba(74,222,128,0.4)] transform -translate-y-4'
-                  : 'border-gray-700 bg-black/80 backdrop-blur-md hover:bg-blue-950/60 hover:border-blue-400/80 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-                  }`}
-              >
-                {/* Dynamic animated glow behind card */}
-                {isSelected && <div className="absolute inset-0 bg-gradient-to-tr from-green-500/20 to-transparent rounded-2xl blur-xl -z-10 animate-pulse"></div>}
-
-                {/* Tech lines on hover */}
-                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                <div className="flex justify-between items-start mb-2">
-                  <div className={`p-2 rounded-lg ${isSelected ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
-                    <AlertTriangle size={20} />
-                  </div>
-                  {isSelected && (
-                    <motion.div
-                      initial={{ scale: 0, rotate: 180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      className="w-8 h-8 rounded-full bg-green-400 text-black flex items-center justify-center font-black shadow-[0_0_15px_rgba(74,222,128,0.8)]"
-                    >
-                      {rankIndex + 1}
-                    </motion.div>
-                  )}
-                </div>
-
-                <span className={`font-bold block leading-tight text-sm ${isSelected ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
-                  {action.title}
-                </span>
-                {action.description && (
-                  <span className="text-[10px] font-mono text-gray-500 mt-2 block line-clamp-2 leading-relaxed">
-                    {action.description}
-                  </span>
-                )}
-              </motion.button>
+              <ActionCard 
+                key={action.id} 
+                action={action} 
+                isSelected={isSelected} 
+                rankIndex={rankIndex} 
+                onClick={() => toggleSelection(action.id)} 
+              />
             );
           })}
         </div>

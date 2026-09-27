@@ -112,7 +112,7 @@ export function getInitialGameState(sessionId: string, seed: string): GameState 
       temperature: 30,
     },
     resources: {
-      emergencyBudget: 500000,
+      emergencyBudget: 500,
       drinkingWater: 100,
       agriculturalWater: 100,
       emergencySupplies: 100,

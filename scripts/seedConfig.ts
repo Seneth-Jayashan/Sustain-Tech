@@ -18,50 +18,48 @@ async function main() {
   await Scenario.deleteMany({});
   await Event.deleteMany({});
 
-  // Scaled down impact values to prevent CPS from hitting 100 artificially.
-  // Values are now generally 1-5 instead of 10-30.
   const actions = [
-    // BUCKET 1 (Day 0)
-    { actionId: '1A', title: 'Inspect local water sources', description: '(wells, tank, stream)', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 3, emergencyBudget: -500, communityTrust: 1, informationQuality: 5 }, contextMultipliers: [] },
-    { actionId: '1B', title: 'Purchase emergency drinking-water supplies', description: 'Direct drought hedge, but costly', baseImpacts: { floodPreparedness: 0, droughtPreparedness: 5, emergencyBudget: -2000, communityTrust: 2, informationQuality: 0 }, contextMultipliers: [] },
-    { actionId: '1C', title: 'Clean and clear drainage channels', description: 'Direct flood hedge, but costly', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 0, emergencyBudget: -1500, communityTrust: 1, informationQuality: 0 }, contextMultipliers: [] },
-    { actionId: '1D', title: 'Inform the community about the uncertain forecast', description: 'Cheap; raises trust and awareness', baseImpacts: { floodPreparedness: 1, droughtPreparedness: 1, emergencyBudget: -200, communityTrust: 5, informationQuality: 3 }, contextMultipliers: [] },
-    { actionId: '1E', title: 'Wait for a more accurate forecast', description: 'Saves budget now, costs decision quality', baseImpacts: { floodPreparedness: -1, droughtPreparedness: -1, emergencyBudget: 0, communityTrust: -2, decisionQuality: -3 }, contextMultipliers: [] },
+    // S1_START (Day 0)
+    { actionId: '1A', title: 'Inspect water sources and identify vulnerable communities', description: 'Primary anchor: A preliminary information/needs check is a low-regret action.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 3, emergencyBudget: -10, communityTrust: 2, informationQuality: 5 }, contextMultipliers: [] },
+    { actionId: '1B', title: 'Purchase a large emergency stock of bottled water immediately', description: 'Useful but over-commits budget early.', baseImpacts: { floodPreparedness: 0, droughtPreparedness: 5, emergencyBudget: -100, communityTrust: 2, informationQuality: 0 }, contextMultipliers: [] },
+    { actionId: '1C', title: 'Clear priority drainage channels in flood-prone communities', description: 'Defensible preventive action.', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 0, emergencyBudget: -50, communityTrust: 1, informationQuality: 0 }, contextMultipliers: [] },
+    { actionId: '1D', title: 'Communicate uncertainty and preparedness guidance to communities', description: 'Secondary scoring anchor.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -5, communityTrust: 5, informationQuality: 3 }, contextMultipliers: [] },
+    { actionId: '1E', title: 'Wait for a more certain forecast before acting', description: 'Intentionally weak choice; loses lead time.', baseImpacts: { floodPreparedness: -2, droughtPreparedness: -2, emergencyBudget: 0, communityTrust: -2, decisionQuality: -5 }, contextMultipliers: [] },
 
-    // BUCKET 2 (Day 2)
-    { actionId: '2A', title: 'Depend mainly on social media reports', description: 'Fast but unverified', baseImpacts: { floodPreparedness: 0, droughtPreparedness: 0, informationQuality: -3, communityTrust: -1, decisionQuality: -2 }, contextMultipliers: [] },
-    { actionId: '2B', title: 'Combine official forecasts with local observations', description: 'Data-fusion approach', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -500, informationQuality: 4, communityTrust: 1 }, contextMultipliers: [] },
-    { actionId: '2C', title: 'Immediately spend most of the emergency budget', description: 'Overreacts before evidence justifies it', baseImpacts: { floodPreparedness: 3, droughtPreparedness: 3, emergencyBudget: -2500, informationQuality: 0, communityTrust: -1 }, contextMultipliers: [] },
-    { actionId: '2D', title: 'Ignore the warning until rainfall actually begins', description: 'Cheap now, costly in lost lead time', baseImpacts: { floodPreparedness: -2, droughtPreparedness: -2, emergencyBudget: 0, informationQuality: -1, communityTrust: -1 }, contextMultipliers: [] },
-    { actionId: '2E', title: 'Establish a local monitoring team', description: 'Best long-run information investment', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -1000, informationQuality: 5, communityTrust: 2 }, contextMultipliers: [] },
+    // S2_DUAL (Day 2)
+    { actionId: '2A', title: 'Depend mainly on social-media reports because they arrive fastest', description: 'Weak information strategy.', baseImpacts: { informationQuality: -5, communityTrust: -2, decisionQuality: -4 }, contextMultipliers: [] },
+    { actionId: '2B', title: 'Combine official forecasts, river/reservoir observations and verified local reports', description: 'Primary scoring anchor: Data-fusion approach.', baseImpacts: { floodPreparedness: 3, droughtPreparedness: 3, emergencyBudget: -15, informationQuality: 6, communityTrust: 2 }, contextMultipliers: [] },
+    { actionId: '2C', title: 'Spend most of the emergency budget immediately on both hazards', description: 'Overreactive under uncertainty.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 4, emergencyBudget: -200, informationQuality: 0, decisionQuality: -2 }, contextMultipliers: [] },
+    { actionId: '2D', title: 'Wait until flooding becomes severe before activating response measures', description: 'Weak choice; sacrifices lead time.', baseImpacts: { floodPreparedness: -5, droughtPreparedness: -2, emergencyBudget: 0, informationQuality: -2, communityTrust: -3 }, contextMultipliers: [] },
+    { actionId: '2E', title: 'Establish a district-level monitoring network involving local authorities and community observers', description: 'Secondary scoring anchor.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -25, informationQuality: 5, communityTrust: 4 }, contextMultipliers: [] },
 
-    // BUCKET 3 (Day 4) - Calculation Focus
-    { actionId: '3A', title: 'Allocate LKR 40M to Kelani Evacuation, LKR 50M to Dry Zone Bowsers, LKR 10M Meds', description: 'Exact 100M budget match. Balanced approach.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 5, emergencyBudget: -10000, communityTrust: 3, decisionQuality: 4 }, contextMultipliers: [] },
-    { actionId: '3B', title: 'Allocate LKR 60M to Kelani Evacuation, LKR 40M to Dry Zone Bowsers', description: 'Leaves zero budget for medical supplies.', baseImpacts: { floodPreparedness: 6, droughtPreparedness: 4, emergencyBudget: -10000, communityTrust: 1, decisionQuality: 1 }, contextMultipliers: [] },
-    { actionId: '3C', title: 'Allocate LKR 80M to Dry Zone Bowsers, LKR 20M to Kelani Evacuation', description: 'Ignores acute flood threat for drought.', baseImpacts: { floodPreparedness: 1, droughtPreparedness: 8, emergencyBudget: -10000, communityTrust: 1, decisionQuality: 1 }, contextMultipliers: [] },
-    { actionId: '3D', title: 'Withhold LKR 30M in reserve, splitting 70M evenly', description: 'Safe but leaves current needs underfunded.', baseImpacts: { floodPreparedness: 3, droughtPreparedness: 3, emergencyBudget: -7000, communityTrust: 0, decisionQuality: 3 }, contextMultipliers: [] },
-    { actionId: '3E', title: 'Request emergency foreign aid and overspend', description: 'High political cost, high delay.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -12000, communityTrust: -3, decisionQuality: -2 }, contextMultipliers: [] },
+    // S3_CALC (Day 4)
+    { actionId: '3A', title: 'Allocate LKR 40M evacuation + LKR 30M water + LKR 30M medical', description: 'Primary scoring anchor: Exposes the 20M water trade-off while meeting immediate needs.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 3, emergencyBudget: -100, communityTrust: 3, decisionQuality: 5, healthRisk: -3 }, contextMultipliers: [] },
+    { actionId: '3B', title: 'Allocate LKR 60M evacuation + LKR 40M water + LKR 0M medical', description: 'Weak/imbalanced: Deliberate high-risk trade-off leaving no medical allocation.', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 4, emergencyBudget: -100, communityTrust: -1, decisionQuality: -3, healthRisk: 5 }, contextMultipliers: [] },
+    { actionId: '3C', title: 'Allocate LKR 40M evacuation + LKR 50M water + LKR 10M medical', description: 'Defensible alternative if health needs are lower than stated.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 5, emergencyBudget: -100, communityTrust: 2, decisionQuality: 2, healthRisk: 2 }, contextMultipliers: [] },
+    { actionId: '3D', title: 'Allocate LKR 30M evacuation + LKR 40M water + LKR 30M medical', description: 'Secondary defensible choice if access/medical risk is emphasized.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 4, emergencyBudget: -100, communityTrust: 1, decisionQuality: 3, healthRisk: -3 }, contextMultipliers: [] },
+    { actionId: '3E', title: 'Release the full LKR 120M despite having only LKR 100M', description: 'Invalid under game rules.', baseImpacts: { emergencyBudget: -120, communityTrust: -5, decisionQuality: -10 }, contextMultipliers: [] },
 
-    // BUCKET 4 (Day 6) - Logistics Calculation
-    { actionId: '4A', title: 'Deploy 50 trucks: 30 for flood rescue, 20 for water delivery', description: 'Matches capacity limit exactly (50).', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 3, emergencyBudget: -2000, communityTrust: 3, transportation: -5 }, contextMultipliers: [] },
-    { actionId: '4B', title: 'Deploy all 50 trucks for flood rescue', description: 'Ignores drought completely.', baseImpacts: { floodPreparedness: 7, droughtPreparedness: -2, emergencyBudget: -2000, communityTrust: 0, transportation: -5 }, contextMultipliers: [] },
-    { actionId: '4C', title: 'Deploy all 50 trucks for water delivery', description: 'Ignores flood rescue completely.', baseImpacts: { floodPreparedness: -2, droughtPreparedness: 7, emergencyBudget: -2000, communityTrust: 0, transportation: -5 }, contextMultipliers: [] },
-    { actionId: '4D', title: 'Overload 60 trucks by bypassing maintenance', description: 'Risk of breakdowns during operations.', baseImpacts: { floodPreparedness: 6, droughtPreparedness: 4, emergencyBudget: -1500, communityTrust: -1, decisionQuality: -4, transportation: -6 }, contextMultipliers: [] },
-    { actionId: '4E', title: 'Wait for military transport assistance (48hr delay)', description: 'Saves civilian trucks but costs time.', baseImpacts: { floodPreparedness: -2, droughtPreparedness: -1, emergencyBudget: 0, communityTrust: -3, decisionQuality: 2, transportation: 0 }, contextMultipliers: [] },
+    // S4_LOGISTICS (Day 6)
+    { actionId: '4A', title: 'Deploy 30 trucks for flood rescue and 20 for water delivery', description: 'Primary scoring anchor.', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 3, emergencyBudget: -20, communityTrust: 4, transportation: -5, decisionQuality: 5 }, contextMultipliers: [] },
+    { actionId: '4B', title: 'Deploy all 50 trucks for flood rescue', description: 'Hazard-specialist but imbalanced.', baseImpacts: { floodPreparedness: 8, droughtPreparedness: -5, emergencyBudget: -20, communityTrust: -2, transportation: -5, decisionQuality: -2 }, contextMultipliers: [] },
+    { actionId: '4C', title: 'Deploy all 50 trucks for water delivery', description: 'Hazard-specialist but imbalanced.', baseImpacts: { floodPreparedness: -5, droughtPreparedness: 8, emergencyBudget: -20, communityTrust: -2, transportation: -5, decisionQuality: -2 }, contextMultipliers: [] },
+    { actionId: '4D', title: 'Attempt to deploy 60 trucks by using vehicles that have not completed maintenance', description: 'Invalid/unsafe over-capacity option.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -15, communityTrust: -4, decisionQuality: -10, transportation: -15 }, contextMultipliers: [] },
+    { actionId: '4E', title: 'Hold the trucks and wait for external transport assistance', description: 'Weak under immediate threat.', baseImpacts: { floodPreparedness: -4, droughtPreparedness: -3, emergencyBudget: 0, communityTrust: -4, decisionQuality: -5 }, contextMultipliers: [] },
 
-    // BUCKET 5 (Day 8)
-    { actionId: '5A', title: 'Mandatory evacuation of Kelani riverbanks', description: 'High political friction, saves lives.', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 0, emergencyBudget: -1500, communityTrust: -1, decisionQuality: 3 }, contextMultipliers: [] },
-    { actionId: '5B', title: 'Airdrop water supplies to isolated dry zone villages', description: 'Extremely expensive but fast.', baseImpacts: { floodPreparedness: 0, droughtPreparedness: 5, emergencyBudget: -4000, communityTrust: 2, decisionQuality: 1 }, contextMultipliers: [] },
-    { actionId: '5C', title: 'Establish localized triage centers for both zones', description: 'Balanced response.', baseImpacts: { floodPreparedness: 3, droughtPreparedness: 3, emergencyBudget: -2000, communityTrust: 3, decisionQuality: 3 }, contextMultipliers: [] },
-    { actionId: '5D', title: 'Only evacuate those who volunteer', description: 'Low friction, high risk to life.', baseImpacts: { floodPreparedness: 1, droughtPreparedness: 0, emergencyBudget: -500, communityTrust: 2, decisionQuality: -3 }, contextMultipliers: [] },
-    { actionId: '5E', title: 'Halt all non-essential government services to divert funds', description: 'Massive disruption, high funds.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 4, emergencyBudget: +5000, communityTrust: -4, decisionQuality: -2 }, contextMultipliers: [] },
+    // S5_DISASTER (Day 8)
+    { actionId: '5A', title: 'Order evacuation of people in identified high-risk flood and landslide zones', description: 'Primary scoring anchor: Life safety.', baseImpacts: { floodPreparedness: 6, emergencyBudget: -40, communityTrust: 3, decisionQuality: 5, healthRisk: -5 }, contextMultipliers: [] },
+    { actionId: '5B', title: 'Use aircraft to airdrop drinking water to every affected dry-zone community', description: 'Conditional / situational (inefficient universal application).', baseImpacts: { droughtPreparedness: 5, emergencyBudget: -150, communityTrust: 2, decisionQuality: -2, transportation: -10 }, contextMultipliers: [] },
+    { actionId: '5C', title: 'Establish emergency coordination and triage points serving both hazard zones', description: 'Secondary scoring anchor.', baseImpacts: { floodPreparedness: 3, droughtPreparedness: 3, emergencyBudget: -30, communityTrust: 5, decisionQuality: 4, healthRisk: -4, communications: 5 }, contextMultipliers: [] },
+    { actionId: '5D', title: 'Evacuate only residents who volunteer', description: 'Weak under identified high risk.', baseImpacts: { floodPreparedness: -3, emergencyBudget: -10, communityTrust: 0, decisionQuality: -6, healthRisk: 5 }, contextMultipliers: [] },
+    { actionId: '5E', title: 'Suspend non-essential government expenditure and redirect available funds to emergency response', description: 'Secondary/conditional strategic trade-off.', baseImpacts: { emergencyBudget: 200, communityTrust: -3, decisionQuality: 2, communications: -5 }, contextMultipliers: [] },
 
-    // BUCKET 6 (Day 10)
-    { actionId: '6A', title: 'Launch post-disaster recovery fund', description: 'Financial cleanup.', baseImpacts: { floodPreparedness: 2, droughtPreparedness: 2, emergencyBudget: -5000, communityTrust: 5, decisionQuality: 3 }, contextMultipliers: [] },
-    { actionId: '6B', title: 'Deploy army for debris clearing and well rehabilitation', description: 'Infrastructure focus.', baseImpacts: { floodPreparedness: 3, droughtPreparedness: 3, emergencyBudget: -1000, communityTrust: 3, decisionQuality: 3 }, contextMultipliers: [] },
-    { actionId: '6C', title: 'Focus on disease prevention (Dengue/Cholera outbreak)', description: 'Medical focus.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 4, emergencyBudget: -1500, communityTrust: 4, decisionQuality: 4 }, contextMultipliers: [] },
-    { actionId: '6D', title: 'Ration remaining food and water strictly', description: 'Harsh but ensures survival.', baseImpacts: { floodPreparedness: 1, droughtPreparedness: 2, emergencyBudget: 0, communityTrust: -3, decisionQuality: 2 }, contextMultipliers: [] },
-    { actionId: '6E', title: 'Declare national mourning and request international aid', description: 'Acceptance of loss.', baseImpacts: { floodPreparedness: 1, droughtPreparedness: 1, emergencyBudget: +10000, communityTrust: 1, decisionQuality: 1 }, contextMultipliers: [] },
+    // S6_AFTERMATH (Day 10)
+    { actionId: '6A', title: 'Conduct a rapid multi-sector damage and needs assessment, then prioritize WASH, health, transport and shelter recovery', description: 'Primary scoring anchor.', baseImpacts: { floodPreparedness: 4, droughtPreparedness: 4, emergencyBudget: -50, communityTrust: 6, decisionQuality: 6, informationQuality: 8 }, contextMultipliers: [] },
+    { actionId: '6B', title: 'Restore critical roads, clear debris and rehabilitate damaged water infrastructure', description: 'Strong operational follow-up.', baseImpacts: { floodPreparedness: 5, droughtPreparedness: 3, emergencyBudget: -80, communityTrust: 5, decisionQuality: 4, transportation: 15 }, contextMultipliers: [] },
+    { actionId: '6C', title: 'Strengthen disease surveillance, safe water, sanitation and emergency health services', description: 'Strong secondary action.', baseImpacts: { healthRisk: -10, emergencyBudget: -40, communityTrust: 5, decisionQuality: 4 }, contextMultipliers: [] },
+    { actionId: '6D', title: 'Strictly ration all remaining food and water without reassessing community needs', description: 'Weak unless triggered by scarcity state.', baseImpacts: { foodSecurity: 2, emergencyBudget: 0, communityTrust: -5, decisionQuality: -3 }, contextMultipliers: [] },
+    { actionId: '6E', title: 'Request external assistance and coordinate donor/partner support against a documented needs list', description: 'Strong secondary action.', baseImpacts: { emergencyBudget: 300, communityTrust: 3, decisionQuality: 5 }, contextMultipliers: [] },
   ];
 
   await Action.insertMany(actions);
@@ -70,32 +68,32 @@ async function main() {
   const scenarios = [
     {
       scenarioId: 'S1_START',
-      title: 'Day 0: Pre-Monsoon Anomalies (November 2026 Context)',
-      situation: 'The Department of Meteorology has detected an unprecedented unseasonal depression forming in the Bay of Bengal for late 2026. Meanwhile, the dry zone reservoirs are at a historic low for November. You have LKR 500M in your emergency budget.',
+      title: 'Day 0: Early Warning and Uncertainty',
+      situation: 'A developing low-pressure system over the Bay of Bengal may produce heavy rainfall over parts of Sri Lanka during the coming days. Forecast confidence is moderate. At the same time, some dry-zone communities report continuing water stress after a prolonged dry period. You have a fictional emergency allocation of LKR 500 million. What should you do first?',
       priority: 100,
       conditions: [{ field: 'bucket', operator: '===', value: 1 }],
       availableActionIds: ['1A', '1B', '1C', '1D', '1E']
     },
     {
       scenarioId: 'S2_DUAL',
-      title: 'Day 2: The Divergence',
-      situation: 'Rainfall in the Eastern province has exceeded 150mm in 24 hours. Simultaneously, Polonnaruwa and Anuradhapura report dropping reservoir levels due to unseasonal heat domes. You must allocate early resources carefully.',
+      title: 'Day 2: The Compound Hazard',
+      situation: 'Rainfall in one part of the country has reached approximately 150 mm in 24 hours, creating localized flooding. At the same time, dry-zone communities report continuing water shortages. Which information and response strategy should you adopt?',
       priority: 100,
       conditions: [{ field: 'bucket', operator: '===', value: 2 }],
       availableActionIds: ['2A', '2B', '2C', '2D', '2E']
     },
     {
       scenarioId: 'S3_CALC',
-      title: 'Day 4: Resource Allocation Mathematics',
-      situation: 'CRITICAL CALCULATION: You must release LKR 100M from the emergency budget today. The Kelani river basin evacuation requires exactly 40M. Dry zone drinking water bowsers require 50M. Emergency medical supplies require 30M. Total requested: 120M. Total available: 100M. How do you allocate?',
+      title: 'Day 4: The LKR 100 Million Constraint',
+      situation: 'Three immediate requirements are identified: LKR 40M for Kelani-area evacuation support, LKR 50M for dry-zone drinking-water response, and LKR 30M for emergency medical supplies. Total identified requirements are LKR 120M, but the fictional allocation available this round is only LKR 100M. You cannot fully fund all three. How do you allocate the available funds?',
       priority: 100,
       conditions: [{ field: 'bucket', operator: '===', value: 3 }],
       availableActionIds: ['3A', '3B', '3C', '3D', '3E']
     },
     {
       scenarioId: 'S4_LOGISTICS',
-      title: 'Day 6: Logistics Constraint',
-      situation: 'CRITICAL CALCULATION: The Kelani River has reached spill level at Nagalagam Street. In the North Central province, 50,000 families have no drinking water. You have exactly 50 heavy-duty trucks available nationwide. Flood rescue needs 30 trucks. Water delivery needs 20 trucks. How do you deploy them?',
+      title: 'Day 6: Fifty Trucks, Two Emergencies',
+      situation: 'The Kelani basin is experiencing serious flooding while dry-zone communities require emergency drinking water. You have exactly 50 heavy-duty trucks nationwide. The flood-rescue plan needs 30 trucks and the water-delivery plan needs 20 trucks. How should the trucks be deployed?',
       priority: 100,
       conditions: [{ field: 'bucket', operator: '===', value: 4 }],
       availableActionIds: ['4A', '4B', '4C', '4D', '4E']
@@ -103,15 +101,15 @@ async function main() {
     {
       scenarioId: 'S5_DISASTER',
       title: 'Day 8: The Breaking Point',
-      situation: 'Landslides reported in Kalutara and Ratnapura districts. Simultaneously, minor tanks in the dry zone have completely dried up. High winds have toppled cellular towers, threatening a communications blackout. The system is overwhelmed.',
+      situation: 'Heavy rain has triggered landslides in parts of Ratnapura and Kalutara. At the same time, several dry-zone communities have severe drinking-water shortages, roads are difficult to access, and parts of the telecommunications network have failed. What should be prioritized?',
       priority: 100,
       conditions: [{ field: 'bucket', operator: '===', value: 5 }],
       availableActionIds: ['5A', '5B', '5C', '5D', '5E']
     },
     {
       scenarioId: 'S6_AFTERMATH',
-      title: 'Day 10: The Aftermath',
-      situation: 'The immediate weather system is passing, but the destruction is vast. Over 600,000 people are affected by floods, and 1.2 million by drought. It is time to consolidate the recovery effort and face the final assessment.',
+      title: 'Day 10: From Emergency Response to Recovery',
+      situation: 'The immediate weather threat is weakening. Initial assessments show damaged roads and bridges, contaminated or unsafe domestic water sources, damaged water-supply systems, disrupted communications, displaced households, and increased public-health risk. What should the administration do next?',
       priority: 100,
       conditions: [{ field: 'bucket', operator: '===', value: 6 }],
       availableActionIds: ['6A', '6B', '6C', '6D', '6E']
@@ -130,18 +128,19 @@ async function main() {
       conditions: [{ field: 'bucket', operator: '===', value: 4 }],
       effects: [
         { field: 'risks.floodRisk', delta: 30 },
-        { field: 'operations.transportation', delta: -20 }
+        { field: 'operations.transportation', delta: -20 },
+        { field: 'risks.healthRisk', delta: 10 }
       ]
     },
     {
-      eventId: 'MAHA_FAILURE',
+      eventId: 'CROP_FAILURE',
       type: 'HAZARD',
-      description: 'Total failure of the Maha season harvest confirmed.',
+      description: 'Crop-damage and food-security disruption confirmed.',
       probability: 1.0,
       conditions: [{ field: 'bucket', operator: '===', value: 5 }],
       effects: [
-        { field: 'risks.droughtRisk', delta: 30 },
-        { field: 'community.foodSecurity', delta: -20 }
+        { field: 'risks.droughtRisk', delta: 20 },
+        { field: 'operations.foodSecurity', delta: -30 }
       ]
     }
   ];

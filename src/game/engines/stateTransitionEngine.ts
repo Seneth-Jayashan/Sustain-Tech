@@ -17,10 +17,16 @@ export async function processDecision(
   // In a real system, you'd map these strictly. For this PoC, we apply them to resources/scores
   if (delta.floodPreparedness) newState.scores.floodPreparedness = Math.max(0, Math.min(100, newState.scores.floodPreparedness + delta.floodPreparedness));
   if (delta.droughtPreparedness) newState.scores.droughtPreparedness = Math.max(0, Math.min(100, newState.scores.droughtPreparedness + delta.droughtPreparedness));
-  if (delta.emergencyBudget) newState.resources.emergencyBudget = Math.max(0, newState.resources.emergencyBudget + delta.emergencyBudget);
-  if (delta.drinkingWater) newState.resources.drinkingWater = Math.max(0, newState.resources.drinkingWater + delta.drinkingWater);
-  if (delta.communityTrust) newState.community.communityTrust = Math.max(0, Math.min(100, newState.community.communityTrust + delta.communityTrust));
+  if (delta.emergencyBudget) newState.resources.emergencyBudget = newState.resources.emergencyBudget + delta.emergencyBudget;
+  if (delta.drinkingWater) newState.resources.drinkingWater = Math.max(0, Math.min(newState.resources.storageCapacity, newState.resources.drinkingWater + delta.drinkingWater));
+  if (delta.waterSecurity) newState.resources.drinkingWater = Math.max(0, Math.min(newState.resources.storageCapacity, newState.resources.drinkingWater + delta.waterSecurity));
+  if (delta.healthRisk) newState.risks.healthRisk = Math.max(0, Math.min(100, newState.risks.healthRisk + delta.healthRisk));
+  if (delta.foodSecurity) newState.operations.foodSecurity = Math.max(0, Math.min(100, newState.operations.foodSecurity + delta.foodSecurity));
   if (delta.transportation) newState.operations.transportation = Math.max(0, Math.min(100, newState.operations.transportation + delta.transportation));
+  if (delta.communications) newState.operations.communication = Math.max(0, Math.min(100, newState.operations.communication + delta.communications));
+  if (delta.communityTrust) newState.community.communityTrust = Math.max(0, Math.min(100, newState.community.communityTrust + delta.communityTrust));
+  if (delta.informationQuality) newState.information.informationQuality = Math.max(0, Math.min(100, newState.information.informationQuality + delta.informationQuality));
+  if (delta.decisionQuality) newState.scores.decisionQuality = Math.max(0, Math.min(100, newState.scores.decisionQuality + delta.decisionQuality));
 
   // 3. Save Decision to History
   newState.decisionHistory.push({

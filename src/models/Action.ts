@@ -9,9 +9,14 @@ export interface IAction extends Document {
     droughtPreparedness?: number;
     emergencyBudget?: number;
     drinkingWater?: number;
-    communityTrust?: number;
+    waterSecurity?: number;
     healthRisk?: number;
+    foodSecurity?: number;
     transportation?: number;
+    communications?: number;
+    communityTrust?: number;
+    informationQuality?: number;
+    decisionQuality?: number;
   };
   contextMultipliers: Array<{
     field: string;
