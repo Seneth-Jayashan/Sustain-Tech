@@ -1,3 +1,5 @@
+import { DynamicEventTrigger } from './types';
+
 export interface EnvironmentState {
   rainfall: number;
   riverLevel: number;
@@ -11,8 +13,8 @@ export interface EnvironmentState {
 }
 
 export interface ResourceState {
-  emergencyBudget: number;
-  drinkingWater: number;
+  emergencyBudget: number; // in LKR Millions
+  drinkingWater: number;   // 0 - 100%
   agriculturalWater: number;
   emergencySupplies: number;
   transportCapacity: number;
@@ -82,19 +84,22 @@ export interface GameState {
   risks: RiskState;
   information: InformationState;
   scores: ScoreState;
+  activeDynamicEvents?: DynamicEventTrigger[];
   
-  // Historical decisions to allow replay/audit
   decisionHistory: Array<{
     bucket: number;
     day: number;
     userId: string;
-    rankings: string[];
+    rankings?: string[];
+    allocations?: Record<string, number>;
+    executedActionIds?: string[];
+    triggeredEvents?: string[];
     timestamp: Date;
   }>;
 }
 
-// Initial default state factory
-export function getInitialGameState(sessionId: string, seed: string): GameState {
+// Initial default state factory matching 10 Days to Decide parameters
+export function getInitialGameState(sessionId: string = 'default', seed: string = 'seed'): GameState {
   return {
     sessionId,
     seed,
@@ -103,23 +108,23 @@ export function getInitialGameState(sessionId: string, seed: string): GameState 
     environment: {
       rainfall: 50,
       riverLevel: 50,
-      groundwaterLevel: 60,
-      reservoirLevel: 70,
+      groundwaterLevel: 50,
+      reservoirLevel: 50,
       rainfallProbability: 30,
-      floodProbability: 10,
-      droughtProbability: 10,
+      floodProbability: 20,
+      droughtProbability: 40,
       forecastConfidence: 50,
       temperature: 30,
     },
     resources: {
-      emergencyBudget: 500,
-      drinkingWater: 100,
-      agriculturalWater: 100,
-      emergencySupplies: 100,
+      emergencyBudget: 500, // LKR 500 Million starting emergency allocation
+      drinkingWater: 50,
+      agriculturalWater: 50,
+      emergencySupplies: 50,
       transportCapacity: 100,
-      storageCapacity: 5000,
+      storageCapacity: 100,
       fuel: 100,
-      medicalSupplies: 100,
+      medicalSupplies: 50,
     },
     community: {
       population: 10000,
@@ -127,34 +132,34 @@ export function getInitialGameState(sessionId: string, seed: string): GameState 
       householdsSupported: 0,
       communityTrust: 50,
       publicCompliance: 50,
-      panicLevel: 10,
+      panicLevel: 20,
       waterDemand: 50,
     },
     operations: {
-      transportation: 100,
-      sanitation: 100,
-      health: 100,
-      communication: 100,
-      foodSecurity: 100,
-      publicSecurity: 100,
-      rescueCapacity: 100,
+      transportation: 80,
+      sanitation: 50,
+      health: 60,
+      communication: 50,
+      foodSecurity: 60,
+      publicSecurity: 70,
+      rescueCapacity: 70,
     },
     risks: {
-      floodRisk: 10,
-      droughtRisk: 10,
-      waterContaminationRisk: 10,
-      landslideRisk: 10,
-      foodSecurityRisk: 10,
-      healthRisk: 10,
-      infrastructureRisk: 10,
-      accessRisk: 10,
+      floodRisk: 30,
+      droughtRisk: 40,
+      waterContaminationRisk: 20,
+      landslideRisk: 20,
+      foodSecurityRisk: 30,
+      healthRisk: 25,
+      infrastructureRisk: 25,
+      accessRisk: 20,
     },
     information: {
       informationQuality: 50,
       forecastConfidence: 50,
       officialInformationAvailable: 50,
       localObservationQuality: 50,
-      conflictingReports: 10,
+      conflictingReports: 20,
       monitoringCoverage: 50,
     },
     scores: {

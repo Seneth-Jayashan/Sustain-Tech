@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
 import { getSession } from '@/lib/session';
-import { getInitialState } from '@/game/engine';
+import { getInitialGameState } from '@/game/state';
 
 export async function GET() {
   try {
@@ -18,9 +19,10 @@ export async function GET() {
     
     if (!gameSession) {
       // Create new game session if none is active
-      const initialState = getInitialState();
+      const initialState = getInitialGameState(session.teamId, crypto.randomUUID());
       gameSession = await GameSession.create({
         teamId: session.teamId,
+        currentUserId: session.userId,
         state: initialState,
       });
     }

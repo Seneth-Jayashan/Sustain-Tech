@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAction extends Document {
   actionId: string; // e.g. "C"
+  scenarioId?: string; // Scenario this action belongs to
   title: string;
   description: string;
   baseImpacts: {
@@ -28,6 +29,7 @@ export interface IAction extends Document {
 
 const ActionSchema: Schema = new Schema({
   actionId: { type: String, required: true, unique: true },
+  scenarioId: { type: String },
   title: { type: String, required: true },
   description: { type: String },
   baseImpacts: { type: Schema.Types.Mixed, default: {} },

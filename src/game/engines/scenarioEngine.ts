@@ -1,43 +1,54 @@
 import { GameState } from '../state';
+import { SCENARIOS, BucketScenario } from '../scenario';
 import Scenario, { IScenario } from '@/models/Scenario';
+import Action from '@/models/Action';
 
-function evaluateCondition(state: any, condition: any): boolean {
-  const keys = condition.field.split('.');
-  let value = state;
-  for (const k of keys) {
-    if (value === undefined) return false;
-    value = value[k];
-  }
+export async function determineNextScenario(state: GameState): Promise<any> {
+  const currentBucket = state.bucket || 1;
+  const staticScenario = SCENARIOS[currentBucket] || SCENARIOS[1];
 
-  switch (condition.operator) {
-    case '>': return value > condition.value;
-    case '<': return value < condition.value;
-    case '===': return value === condition.value;
-    default: return false;
-  }
-}
+  try {
+    // Attempt to find configured scenario in MongoDB
+    const dbScenario = await Scenario.findOne({
+      $or: [
+        { scenarioId: staticScenario.scenarioId },
+        { priority: 100 - (currentBucket - 1) * 10 },
+        { 'conditions.value': currentBucket }
+      ]
+    }).lean();
 
-export async function determineNextScenario(state: GameState): Promise<IScenario> {
-  const scenarios = await Scenario.find({}).sort({ priority: -1 }).lean();
-
-  for (const scen of scenarios) {
-    let allMet = true;
-    if (scen.conditions && scen.conditions.length > 0) {
-      for (const cond of scen.conditions) {
-        if (!evaluateCondition(state, cond)) {
-          allMet = false;
-          break;
+    if (dbScenario) {
+      const scen: any = { ...dbScenario };
+      if (scen.availableActionIds && scen.availableActionIds.length > 0) {
+        const dbActions = await Action.find({ actionId: { $in: scen.availableActionIds } }).lean();
+        if (dbActions.length > 0) {
+          // Preserve order of availableActionIds
+          scen.actions = scen.availableActionIds.map((id: string) => {
+            const found = dbActions.find((a: any) => a.actionId === id);
+            return {
+              id,
+              title: found?.title || id,
+              description: found?.description || ''
+            };
+          });
+          return scen;
         }
       }
     }
-    
-    if (allMet) {
-      return scen as unknown as IScenario;
-    }
+  } catch (err) {
+    console.warn('Could not query scenario from DB, falling back to static scenario:', err);
   }
 
-  // Fallback if nothing matches
-  const defaultScen = await Scenario.findOne({ scenarioId: 'S1_DEFAULT' }).lean();
-  if (!defaultScen) throw new Error("No scenarios matched and S1_DEFAULT is missing");
-  return defaultScen as unknown as IScenario;
+  // Fallback directly to authoritative static scenario
+  return {
+    scenarioId: staticScenario.scenarioId,
+    title: staticScenario.title,
+    situation: staticScenario.situation,
+    events: staticScenario.events,
+    actions: staticScenario.actions.map(a => ({
+      id: a.id,
+      title: a.title,
+      description: a.description
+    }))
+  };
 }

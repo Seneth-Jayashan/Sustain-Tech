@@ -93,30 +93,47 @@ async function main() {
     if (u.role === 'player' && u.teamName !== 'Team 1') {
       const existingSession = await GameSession.findOne({ teamId: createdTeams[u.teamName]._id });
       if (!existingSession) {
-        const state = getInitialState();
+        const state = getInitialState(createdTeams[u.teamName]._id.toString(), 'seed');
         
         // Mutate state to look like they are mid-game
         if (u.teamName === 'Team Alpha') {
-          state.currentDay = 5;
-          state.budget = 60000;
-          state.variables.C = 85;
+          state.bucket = 4;
+          state.day = 6;
+          state.resources.emergencyBudget = 320;
+          state.community.communityTrust = 75;
+          state.scores.communityTrust = 75;
+          state.scores.floodPreparedness = 68;
+          state.scores.droughtPreparedness = 62;
+          state.information.informationQuality = 70;
+          state.scores.informationQuality = 70;
           await GameSession.create({ teamId: createdTeams[u.teamName]._id, currentUserId: user._id, status: 'ACTIVE', state });
         } else if (u.teamName === 'Team Beta') {
-          state.currentDay = 8;
-          state.budget = 20000;
-          state.variables.C = 60;
+          state.bucket = 7;
+          state.day = 10;
+          state.resources.emergencyBudget = 180;
+          state.community.communityTrust = 65;
+          state.scores.communityTrust = 65;
+          state.scores.floodPreparedness = 76;
+          state.scores.droughtPreparedness = 72;
+          state.information.informationQuality = 68;
+          state.scores.informationQuality = 68;
           await GameSession.create({ 
             teamId: createdTeams[u.teamName]._id, 
             currentUserId: user._id,
             status: 'COMPLETED', 
             state, 
-            finalResult: { cps: 82, pathway: 'Flood', rating: 'Good' } 
+            finalResult: { cps: 74.5, pathway: 'Flood', rating: 'Good' } 
           });
         } else if (u.teamName === 'Team Gamma') {
-          state.currentBucket = 2;
-          state.currentDay = 2;
-          state.budget = 420000;
-          state.variables.C = 30; // low trust
+          state.bucket = 2;
+          state.day = 2;
+          state.resources.emergencyBudget = 485;
+          state.community.communityTrust = 40; // low trust
+          state.scores.communityTrust = 40;
+          state.scores.floodPreparedness = 45;
+          state.scores.droughtPreparedness = 42;
+          state.information.informationQuality = 35;
+          state.scores.informationQuality = 35;
           await GameSession.create({ teamId: createdTeams[u.teamName]._id, currentUserId: user._id, status: 'ACTIVE', state });
         }
         console.log(`Created mock telemetry for ${u.teamName}`);

@@ -46,3 +46,34 @@ export async function GET() {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Session ID is required' }, { status: 400 });
+    }
+
+    if (id === 'all') {
+      await GameSession.deleteMany({});
+      await IntegrityLog.deleteMany({});
+      return NextResponse.json({ success: true, message: 'All game sessions deleted successfully' });
+    }
+
+    await GameSession.findByIdAndDelete(id);
+    await IntegrityLog.deleteMany({ gameSessionId: id });
+
+    return NextResponse.json({ success: true, message: 'Game session deleted successfully' });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+  }
+}

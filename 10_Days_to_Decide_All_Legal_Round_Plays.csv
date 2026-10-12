@@ -1,0 +1,625 @@
+﻿Bucket,Day,Round_Title,Permutation_No,1st_ID,2nd_ID,3rd_ID,4th_ID,5th_ID,Sequence_IDs,Validity,Flood_Impact,Drought_Impact,Budget_Impact_LKR_M,Trust_Impact,Info_Impact
+1,Day 0,Early warning and uncertainty,1,1A,1D,1C,1B,1E,1A > 1D > 1C > 1B > 1E,VALID,17.6,14.2,-86.0,15.4,20.0
+1,Day 0,Early warning and uncertainty,2,1A,1D,1C,1E,1B,1A > 1D > 1C > 1E > 1B,VALID,15.6,11.2,-62.0,13.0,19.0
+1,Day 0,Early warning and uncertainty,3,1A,1D,1B,1C,1E,1A > 1D > 1B > 1C > 1E,VALID,15.2,16.2,-102.0,15.4,19.6
+1,Day 0,Early warning and uncertainty,4,1A,1D,1B,1E,1C,1A > 1D > 1B > 1E > 1C,VALID,10.8,15.2,-94.0,13.0,18.2
+1,Day 0,Early warning and uncertainty,5,1A,1D,1E,1C,1B,1A > 1D > 1E > 1C > 1B,VALID,11.2,10.2,-54.0,10.6,17.6
+1,Day 0,Early warning and uncertainty,6,1A,1D,1E,1B,1C,1A > 1D > 1E > 1B > 1C,VALID,8.8,12.2,-70.0,10.6,17.2
+1,Day 0,Early warning and uncertainty,7,1A,1C,1D,1B,1E,1A > 1C > 1D > 1B > 1E,VALID,18.4,13.4,-93.0,14.2,19.2
+1,Day 0,Early warning and uncertainty,8,1A,1C,1D,1E,1B,1A > 1C > 1D > 1E > 1B,VALID,16.4,10.4,-69.0,11.8,18.2
+1,Day 0,Early warning and uncertainty,9,1A,1C,1B,1D,1E,1A > 1C > 1B > 1D > 1E,VALID,16.8,14.6,-116.0,13.0,18.0
+1,Day 0,Early warning and uncertainty,10,1A,1C,1B,1E,1D,1A > 1C > 1B > 1E > 1D,VALID,13.2,12.8,-115.0,9.4,15.8
+1,Day 0,Early warning and uncertainty,11,1A,1C,1E,1D,1B,1A > 1C > 1E > 1D > 1B,VALID,12.8,8.6,-68.0,8.2,16.0
+1,Day 0,Early warning and uncertainty,12,1A,1C,1E,1B,1D,1A > 1C > 1E > 1B > 1D,VALID,11.2,9.8,-91.0,7.0,14.8
+1,Day 0,Early warning and uncertainty,13,1A,1B,1D,1C,1E,1A > 1B > 1D > 1C > 1E,VALID,13.6,17.4,-125.0,14.2,18.4
+1,Day 0,Early warning and uncertainty,14,1A,1B,1D,1E,1C,1A > 1B > 1D > 1E > 1C,VALID,9.2,16.4,-117.0,11.8,17.0
+1,Day 0,Early warning and uncertainty,15,1A,1B,1C,1D,1E,1A > 1B > 1C > 1D > 1E,VALID,14.4,16.6,-132.0,13.0,17.6
+1,Day 0,Early warning and uncertainty,16,1A,1B,1C,1E,1D,1A > 1B > 1C > 1E > 1D,VALID,10.8,14.8,-131.0,9.4,15.4
+1,Day 0,Early warning and uncertainty,17,1A,1B,1E,1D,1C,1A > 1B > 1E > 1D > 1C,VALID,5.6,14.6,-116.0,8.2,14.8
+1,Day 0,Early warning and uncertainty,18,1A,1B,1E,1C,1D,1A > 1B > 1E > 1C > 1D,VALID,6.4,13.8,-123.0,7.0,14.0
+1,Day 0,Early warning and uncertainty,19,1A,1E,1D,1C,1B,1A > 1E > 1D > 1C > 1B,VALID,7.6,8.4,-53.0,7.0,15.4
+1,Day 0,Early warning and uncertainty,20,1A,1E,1D,1B,1C,1A > 1E > 1D > 1B > 1C,VALID,5.2,10.4,-69.0,7.0,15.0
+1,Day 0,Early warning and uncertainty,21,1A,1E,1C,1D,1B,1A > 1E > 1C > 1D > 1B,VALID,8.4,7.6,-60.0,5.8,14.6
+1,Day 0,Early warning and uncertainty,22,1A,1E,1C,1B,1D,1A > 1E > 1C > 1B > 1D,VALID,6.8,8.8,-83.0,4.6,13.4
+1,Day 0,Early warning and uncertainty,23,1A,1E,1B,1D,1C,1A > 1E > 1B > 1D > 1C,VALID,3.6,11.6,-92.0,5.8,13.8
+1,Day 0,Early warning and uncertainty,24,1A,1E,1B,1C,1D,1A > 1E > 1B > 1C > 1D,VALID,4.4,10.8,-99.0,4.6,13.0
+1,Day 0,Early warning and uncertainty,25,1D,1A,1C,1B,1E,1D > 1A > 1C > 1B > 1E,VALID,18.0,13.4,-85.0,16.4,18.2
+1,Day 0,Early warning and uncertainty,26,1D,1A,1C,1E,1B,1D > 1A > 1C > 1E > 1B,VALID,16.0,10.4,-61.0,14.0,17.2
+1,Day 0,Early warning and uncertainty,27,1D,1A,1B,1C,1E,1D > 1A > 1B > 1C > 1E,VALID,15.6,15.4,-101.0,16.4,17.8
+1,Day 0,Early warning and uncertainty,28,1D,1A,1B,1E,1C,1D > 1A > 1B > 1E > 1C,VALID,11.2,14.4,-93.0,14.0,16.4
+1,Day 0,Early warning and uncertainty,29,1D,1A,1E,1C,1B,1D > 1A > 1E > 1C > 1B,VALID,11.6,9.4,-53.0,11.6,15.8
+1,Day 0,Early warning and uncertainty,30,1D,1A,1E,1B,1C,1D > 1A > 1E > 1B > 1C,VALID,9.2,11.4,-69.0,11.6,15.4
+1,Day 0,Early warning and uncertainty,31,1D,1C,1A,1B,1E,1D > 1C > 1A > 1B > 1E,VALID,19.2,11.8,-91.0,16.2,15.6
+1,Day 0,Early warning and uncertainty,32,1D,1C,1A,1E,1B,1D > 1C > 1A > 1E > 1B,VALID,17.2,8.8,-67.0,13.8,14.6
+1,Day 0,Early warning and uncertainty,33,1D,1C,1B,1A,1E,1D > 1C > 1B > 1A > 1E,VALID,18.0,12.2,-113.0,16.0,12.6
+1,Day 0,Early warning and uncertainty,34,1D,1C,1B,1E,1A,1D > 1C > 1B > 1E > 1A,VALID,14.8,9.6,-111.0,13.4,8.6
+1,Day 0,Early warning and uncertainty,35,1D,1C,1E,1A,1B,1D > 1C > 1E > 1A > 1B,VALID,14.0,6.2,-65.0,11.2,10.6
+1,Day 0,Early warning and uncertainty,36,1D,1C,1E,1B,1A,1D > 1C > 1E > 1B > 1A,VALID,12.8,6.6,-87.0,11.0,7.6
+1,Day 0,Early warning and uncertainty,37,1D,1B,1A,1C,1E,1D > 1B > 1A > 1C > 1E,VALID,14.4,15.8,-123.0,16.2,14.8
+1,Day 0,Early warning and uncertainty,38,1D,1B,1A,1E,1C,1D > 1B > 1A > 1E > 1C,VALID,10.0,14.8,-115.0,13.8,13.4
+1,Day 0,Early warning and uncertainty,39,1D,1B,1C,1A,1E,1D > 1B > 1C > 1A > 1E,VALID,15.6,14.2,-129.0,16.0,12.2
+1,Day 0,Early warning and uncertainty,40,1D,1B,1C,1E,1A,1D > 1B > 1C > 1E > 1A,VALID,12.4,11.6,-127.0,13.4,8.2
+1,Day 0,Early warning and uncertainty,41,1D,1B,1E,1A,1C,1D > 1B > 1E > 1A > 1C,VALID,6.8,12.2,-113.0,11.2,9.4
+1,Day 0,Early warning and uncertainty,42,1D,1B,1E,1C,1A,1D > 1B > 1E > 1C > 1A,VALID,8.0,10.6,-119.0,11.0,6.8
+1,Day 0,Early warning and uncertainty,43,1D,1E,1A,1C,1B,1D > 1E > 1A > 1C > 1B,VALID,8.4,6.8,-51.0,9.0,11.8
+1,Day 0,Early warning and uncertainty,44,1D,1E,1A,1B,1C,1D > 1E > 1A > 1B > 1C,VALID,6.0,8.8,-67.0,9.0,11.4
+1,Day 0,Early warning and uncertainty,45,1D,1E,1C,1A,1B,1D > 1E > 1C > 1A > 1B,VALID,9.6,5.2,-57.0,8.8,9.2
+1,Day 0,Early warning and uncertainty,46,1D,1E,1C,1B,1A,1D > 1E > 1C > 1B > 1A,VALID,8.4,5.6,-79.0,8.6,6.2
+1,Day 0,Early warning and uncertainty,47,1D,1E,1B,1A,1C,1D > 1E > 1B > 1A > 1C,VALID,4.8,9.2,-89.0,8.8,8.4
+1,Day 0,Early warning and uncertainty,48,1D,1E,1B,1C,1A,1D > 1E > 1B > 1C > 1A,VALID,6.0,7.6,-95.0,8.6,5.8
+1,Day 0,Early warning and uncertainty,49,1C,1A,1D,1B,1E,1C > 1A > 1D > 1B > 1E,VALID,19.6,11.8,-99.0,14.0,16.6
+1,Day 0,Early warning and uncertainty,50,1C,1A,1D,1E,1B,1C > 1A > 1D > 1E > 1B,VALID,17.6,8.8,-75.0,11.6,15.6
+1,Day 0,Early warning and uncertainty,51,1C,1A,1B,1D,1E,1C > 1A > 1B > 1D > 1E,VALID,18.0,13.0,-122.0,12.8,15.4
+1,Day 0,Early warning and uncertainty,52,1C,1A,1B,1E,1D,1C > 1A > 1B > 1E > 1D,VALID,14.4,11.2,-121.0,9.2,13.2
+1,Day 0,Early warning and uncertainty,53,1C,1A,1E,1D,1B,1C > 1A > 1E > 1D > 1B,VALID,14.0,7.0,-74.0,8.0,13.4
+1,Day 0,Early warning and uncertainty,54,1C,1A,1E,1B,1D,1C > 1A > 1E > 1B > 1D,VALID,12.4,8.2,-97.0,6.8,12.2
+1,Day 0,Early warning and uncertainty,55,1C,1D,1A,1B,1E,1C > 1D > 1A > 1B > 1E,VALID,20.0,11.0,-98.0,15.0,14.8
+1,Day 0,Early warning and uncertainty,56,1C,1D,1A,1E,1B,1C > 1D > 1A > 1E > 1B,VALID,18.0,8.0,-74.0,12.6,13.8
+1,Day 0,Early warning and uncertainty,57,1C,1D,1B,1A,1E,1C > 1D > 1B > 1A > 1E,VALID,18.8,11.4,-120.0,14.8,11.8
+1,Day 0,Early warning and uncertainty,58,1C,1D,1B,1E,1A,1C > 1D > 1B > 1E > 1A,VALID,15.6,8.8,-118.0,12.2,7.8
+1,Day 0,Early warning and uncertainty,59,1C,1D,1E,1A,1B,1C > 1D > 1E > 1A > 1B,VALID,14.8,5.4,-72.0,10.0,9.8
+1,Day 0,Early warning and uncertainty,60,1C,1D,1E,1B,1A,1C > 1D > 1E > 1B > 1A,VALID,13.6,5.8,-94.0,9.8,6.8
+1,Day 0,Early warning and uncertainty,61,1C,1B,1A,1D,1E,1C > 1B > 1A > 1D > 1E,VALID,16.8,13.4,-144.0,12.6,12.4
+1,Day 0,Early warning and uncertainty,62,1C,1B,1A,1E,1D,1C > 1B > 1A > 1E > 1D,VALID,13.2,11.6,-143.0,9.0,10.2
+1,Day 0,Early warning and uncertainty,63,1C,1B,1D,1A,1E,1C > 1B > 1D > 1A > 1E,VALID,17.2,12.6,-143.0,13.6,10.6
+1,Day 0,Early warning and uncertainty,64,1C,1B,1D,1E,1A,1C > 1B > 1D > 1E > 1A,VALID,14.0,10.0,-141.0,11.0,6.6
+1,Day 0,Early warning and uncertainty,65,1C,1B,1E,1A,1D,1C > 1B > 1E > 1A > 1D,VALID,10.0,9.0,-141.0,6.4,6.2
+1,Day 0,Early warning and uncertainty,66,1C,1B,1E,1D,1A,1C > 1B > 1E > 1D > 1A,VALID,10.4,8.2,-140.0,7.4,4.4
+1,Day 0,Early warning and uncertainty,67,1C,1E,1A,1D,1B,1C > 1E > 1A > 1D > 1B,VALID,10.8,4.4,-72.0,5.4,9.4
+1,Day 0,Early warning and uncertainty,68,1C,1E,1A,1B,1D,1C > 1E > 1A > 1B > 1D,VALID,9.2,5.6,-95.0,4.2,8.2
+1,Day 0,Early warning and uncertainty,69,1C,1E,1D,1A,1B,1C > 1E > 1D > 1A > 1B,VALID,11.2,3.6,-71.0,6.4,7.6
+1,Day 0,Early warning and uncertainty,70,1C,1E,1D,1B,1A,1C > 1E > 1D > 1B > 1A,VALID,10.0,4.0,-93.0,6.2,4.6
+1,Day 0,Early warning and uncertainty,71,1C,1E,1B,1A,1D,1C > 1E > 1B > 1A > 1D,VALID,8.0,6.0,-117.0,4.0,5.2
+1,Day 0,Early warning and uncertainty,72,1C,1E,1B,1D,1A,1C > 1E > 1B > 1D > 1A,VALID,8.4,5.2,-116.0,5.0,3.4
+1,Day 0,Early warning and uncertainty,73,1B,1A,1D,1C,1E,1B > 1A > 1D > 1C > 1E,VALID,12.4,17.8,-147.0,14.0,15.4
+1,Day 0,Early warning and uncertainty,74,1B,1A,1D,1E,1C,1B > 1A > 1D > 1E > 1C,VALID,8.0,16.8,-139.0,11.6,14.0
+1,Day 0,Early warning and uncertainty,75,1B,1A,1C,1D,1E,1B > 1A > 1C > 1D > 1E,VALID,13.2,17.0,-154.0,12.8,14.6
+1,Day 0,Early warning and uncertainty,76,1B,1A,1C,1E,1D,1B > 1A > 1C > 1E > 1D,VALID,9.6,15.2,-153.0,9.2,12.4
+1,Day 0,Early warning and uncertainty,77,1B,1A,1E,1D,1C,1B > 1A > 1E > 1D > 1C,VALID,4.4,15.0,-138.0,8.0,11.8
+1,Day 0,Early warning and uncertainty,78,1B,1A,1E,1C,1D,1B > 1A > 1E > 1C > 1D,VALID,5.2,14.2,-145.0,6.8,11.0
+1,Day 0,Early warning and uncertainty,79,1B,1D,1A,1C,1E,1B > 1D > 1A > 1C > 1E,VALID,12.8,17.0,-146.0,15.0,13.6
+1,Day 0,Early warning and uncertainty,80,1B,1D,1A,1E,1C,1B > 1D > 1A > 1E > 1C,VALID,8.4,16.0,-138.0,12.6,12.2
+1,Day 0,Early warning and uncertainty,81,1B,1D,1C,1A,1E,1B > 1D > 1C > 1A > 1E,VALID,14.0,15.4,-152.0,14.8,11.0
+1,Day 0,Early warning and uncertainty,82,1B,1D,1C,1E,1A,1B > 1D > 1C > 1E > 1A,VALID,10.8,12.8,-150.0,12.2,7.0
+1,Day 0,Early warning and uncertainty,83,1B,1D,1E,1A,1C,1B > 1D > 1E > 1A > 1C,VALID,5.2,13.4,-136.0,10.0,8.2
+1,Day 0,Early warning and uncertainty,84,1B,1D,1E,1C,1A,1B > 1D > 1E > 1C > 1A,VALID,6.4,11.8,-142.0,9.8,5.6
+1,Day 0,Early warning and uncertainty,85,1B,1C,1A,1D,1E,1B > 1C > 1A > 1D > 1E,VALID,14.4,15.4,-160.0,12.6,12.0
+1,Day 0,Early warning and uncertainty,86,1B,1C,1A,1E,1D,1B > 1C > 1A > 1E > 1D,VALID,10.8,13.6,-159.0,9.0,9.8
+1,Day 0,Early warning and uncertainty,87,1B,1C,1D,1A,1E,1B > 1C > 1D > 1A > 1E,VALID,14.8,14.6,-159.0,13.6,10.2
+1,Day 0,Early warning and uncertainty,88,1B,1C,1D,1E,1A,1B > 1C > 1D > 1E > 1A,VALID,11.6,12.0,-157.0,11.0,6.2
+1,Day 0,Early warning and uncertainty,89,1B,1C,1E,1A,1D,1B > 1C > 1E > 1A > 1D,VALID,7.6,11.0,-157.0,6.4,5.8
+1,Day 0,Early warning and uncertainty,90,1B,1C,1E,1D,1A,1B > 1C > 1E > 1D > 1A,VALID,8.0,10.2,-156.0,7.4,4.0
+1,Day 0,Early warning and uncertainty,91,1B,1E,1A,1D,1C,1B > 1E > 1A > 1D > 1C,VALID,1.2,12.4,-136.0,5.4,7.8
+1,Day 0,Early warning and uncertainty,92,1B,1E,1A,1C,1D,1B > 1E > 1A > 1C > 1D,VALID,2.0,11.6,-143.0,4.2,7.0
+1,Day 0,Early warning and uncertainty,93,1B,1E,1D,1A,1C,1B > 1E > 1D > 1A > 1C,VALID,1.6,11.6,-135.0,6.4,6.0
+1,Day 0,Early warning and uncertainty,94,1B,1E,1D,1C,1A,1B > 1E > 1D > 1C > 1A,VALID,2.8,10.0,-141.0,6.2,3.4
+1,Day 0,Early warning and uncertainty,95,1B,1E,1C,1A,1D,1B > 1E > 1C > 1A > 1D,VALID,3.2,10.0,-149.0,4.0,4.4
+1,Day 0,Early warning and uncertainty,96,1B,1E,1C,1D,1A,1B > 1E > 1C > 1D > 1A,VALID,3.6,9.2,-148.0,5.0,2.6
+1,Day 0,Early warning and uncertainty,97,1E,1A,1D,1C,1B,1E > 1A > 1D > 1C > 1B,VALID,4.4,5.8,-51.0,4.4,11.4
+1,Day 0,Early warning and uncertainty,98,1E,1A,1D,1B,1C,1E > 1A > 1D > 1B > 1C,VALID,2.0,7.8,-67.0,4.4,11.0
+1,Day 0,Early warning and uncertainty,99,1E,1A,1C,1D,1B,1E > 1A > 1C > 1D > 1B,VALID,5.2,5.0,-58.0,3.2,10.6
+1,Day 0,Early warning and uncertainty,100,1E,1A,1C,1B,1D,1E > 1A > 1C > 1B > 1D,VALID,3.6,6.2,-81.0,2.0,9.4
+1,Day 0,Early warning and uncertainty,101,1E,1A,1B,1D,1C,1E > 1A > 1B > 1D > 1C,VALID,0.4,9.0,-90.0,3.2,9.8
+1,Day 0,Early warning and uncertainty,102,1E,1A,1B,1C,1D,1E > 1A > 1B > 1C > 1D,VALID,1.2,8.2,-97.0,2.0,9.0
+1,Day 0,Early warning and uncertainty,103,1E,1D,1A,1C,1B,1E > 1D > 1A > 1C > 1B,VALID,4.8,5.0,-50.0,5.4,9.6
+1,Day 0,Early warning and uncertainty,104,1E,1D,1A,1B,1C,1E > 1D > 1A > 1B > 1C,VALID,2.4,7.0,-66.0,5.4,9.2
+1,Day 0,Early warning and uncertainty,105,1E,1D,1C,1A,1B,1E > 1D > 1C > 1A > 1B,VALID,6.0,3.4,-56.0,5.2,7.0
+1,Day 0,Early warning and uncertainty,106,1E,1D,1C,1B,1A,1E > 1D > 1C > 1B > 1A,VALID,4.8,3.8,-78.0,5.0,4.0
+1,Day 0,Early warning and uncertainty,107,1E,1D,1B,1A,1C,1E > 1D > 1B > 1A > 1C,VALID,1.2,7.4,-88.0,5.2,6.2
+1,Day 0,Early warning and uncertainty,108,1E,1D,1B,1C,1A,1E > 1D > 1B > 1C > 1A,VALID,2.4,5.8,-94.0,5.0,3.6
+1,Day 0,Early warning and uncertainty,109,1E,1C,1A,1D,1B,1E > 1C > 1A > 1D > 1B,VALID,6.4,3.4,-64.0,3.0,8.0
+1,Day 0,Early warning and uncertainty,110,1E,1C,1A,1B,1D,1E > 1C > 1A > 1B > 1D,VALID,4.8,4.6,-87.0,1.8,6.8
+1,Day 0,Early warning and uncertainty,111,1E,1C,1D,1A,1B,1E > 1C > 1D > 1A > 1B,VALID,6.8,2.6,-63.0,4.0,6.2
+1,Day 0,Early warning and uncertainty,112,1E,1C,1D,1B,1A,1E > 1C > 1D > 1B > 1A,VALID,5.6,3.0,-85.0,3.8,3.2
+1,Day 0,Early warning and uncertainty,113,1E,1C,1B,1A,1D,1E > 1C > 1B > 1A > 1D,VALID,3.6,5.0,-109.0,1.6,3.8
+1,Day 0,Early warning and uncertainty,114,1E,1C,1B,1D,1A,1E > 1C > 1B > 1D > 1A,VALID,4.0,4.2,-108.0,2.6,2.0
+1,Day 0,Early warning and uncertainty,115,1E,1B,1A,1D,1C,1E > 1B > 1A > 1D > 1C,VALID,-0.8,9.4,-112.0,3.0,6.8
+1,Day 0,Early warning and uncertainty,116,1E,1B,1A,1C,1D,1E > 1B > 1A > 1C > 1D,VALID,0.0,8.6,-119.0,1.8,6.0
+1,Day 0,Early warning and uncertainty,117,1E,1B,1D,1A,1C,1E > 1B > 1D > 1A > 1C,VALID,-0.4,8.6,-111.0,4.0,5.0
+1,Day 0,Early warning and uncertainty,118,1E,1B,1D,1C,1A,1E > 1B > 1D > 1C > 1A,VALID,0.8,7.0,-117.0,3.8,2.4
+1,Day 0,Early warning and uncertainty,119,1E,1B,1C,1A,1D,1E > 1B > 1C > 1A > 1D,VALID,1.2,7.0,-125.0,1.6,3.4
+1,Day 0,Early warning and uncertainty,120,1E,1B,1C,1D,1A,1E > 1B > 1C > 1D > 1A,VALID,1.6,6.2,-124.0,2.6,1.6
+2,Day 2,Compound hazard,1,2B,2E,2C,2A,2D,2B > 2E > 2C > 2A > 2D,VALID,23.2,17.2,-204.8,10.8,16.2
+2,Day 2,Compound hazard,2,2B,2E,2C,2D,2A,2B > 2E > 2C > 2D > 2A,VALID,20.4,16.4,-204.4,10.0,17.8
+2,Day 2,Compound hazard,3,2B,2E,2A,2C,2D,2B > 2E > 2A > 2C > 2D,VALID,22.0,16.0,-145.2,9.2,14.2
+2,Day 2,Compound hazard,4,2B,2E,2A,2D,2C,2B > 2E > 2A > 2D > 2C,VALID,18.0,14.0,-85.2,6.8,13.8
+2,Day 2,Compound hazard,5,2B,2E,2D,2C,2A,2B > 2E > 2D > 2C > 2A,VALID,16.4,14.4,-144.4,7.6,17.4
+2,Day 2,Compound hazard,6,2B,2E,2D,2A,2C,2B > 2E > 2D > 2A > 2C,VALID,15.2,13.2,-84.8,6.0,15.4
+2,Day 2,Compound hazard,7,2B,2C,2E,2A,2D,2B > 2C > 2E > 2A > 2D,VALID,22.8,16.8,-260.8,9.2,13.8
+2,Day 2,Compound hazard,8,2B,2C,2E,2D,2A,2B > 2C > 2E > 2D > 2A,VALID,20.0,16.0,-260.4,8.4,15.4
+2,Day 2,Compound hazard,9,2B,2C,2A,2E,2D,2B > 2C > 2A > 2E > 2D,VALID,21.2,15.2,-257.2,6.0,9.4
+2,Day 2,Compound hazard,10,2B,2C,2A,2D,2E,2B > 2C > 2A > 2D > 2E,VALID,16.8,12.8,-253.2,2.0,6.6
+2,Day 2,Compound hazard,11,2B,2C,2D,2E,2A,2B > 2C > 2D > 2E > 2A,VALID,15.6,13.6,-256.4,4.4,12.6
+2,Day 2,Compound hazard,12,2B,2C,2D,2A,2E,2B > 2C > 2D > 2A > 2E,VALID,14.0,12.0,-252.8,1.2,8.2
+2,Day 2,Compound hazard,13,2B,2A,2E,2C,2D,2B > 2A > 2E > 2C > 2D,VALID,20.4,14.4,-141.6,6.0,9.8
+2,Day 2,Compound hazard,14,2B,2A,2E,2D,2C,2B > 2A > 2E > 2D > 2C,VALID,16.4,12.4,-81.6,3.6,9.4
+2,Day 2,Compound hazard,15,2B,2A,2C,2E,2D,2B > 2A > 2C > 2E > 2D,VALID,20.0,14.0,-197.6,4.4,7.4
+2,Day 2,Compound hazard,16,2B,2A,2C,2D,2E,2B > 2A > 2C > 2D > 2E,VALID,15.6,11.6,-193.6,0.4,4.6
+2,Day 2,Compound hazard,17,2B,2A,2D,2E,2C,2B > 2A > 2D > 2E > 2C,VALID,12.0,10.0,-77.6,-0.4,6.6
+2,Day 2,Compound hazard,18,2B,2A,2D,2C,2E,2B > 2A > 2D > 2C > 2E,VALID,11.6,9.6,-133.6,-2.0,4.2
+2,Day 2,Compound hazard,19,2B,2D,2E,2C,2A,2B > 2D > 2E > 2C > 2A,VALID,12.0,12.0,-140.4,3.6,14.6
+2,Day 2,Compound hazard,20,2B,2D,2E,2A,2C,2B > 2D > 2E > 2A > 2C,VALID,10.8,10.8,-80.8,2.0,12.6
+2,Day 2,Compound hazard,21,2B,2D,2C,2E,2A,2B > 2D > 2C > 2E > 2A,VALID,11.6,11.6,-196.4,2.0,12.2
+2,Day 2,Compound hazard,22,2B,2D,2C,2A,2E,2B > 2D > 2C > 2A > 2E,VALID,10.0,10.0,-192.8,-1.2,7.8
+2,Day 2,Compound hazard,23,2B,2D,2A,2E,2C,2B > 2D > 2A > 2E > 2C,VALID,9.2,9.2,-77.2,-1.2,8.2
+2,Day 2,Compound hazard,24,2B,2D,2A,2C,2E,2B > 2D > 2A > 2C > 2E,VALID,8.8,8.8,-133.2,-2.8,5.8
+2,Day 2,Compound hazard,25,2E,2B,2C,2A,2D,2E > 2B > 2C > 2A > 2D,VALID,22.8,17.2,-207.2,11.6,15.2
+2,Day 2,Compound hazard,26,2E,2B,2C,2D,2A,2E > 2B > 2C > 2D > 2A,VALID,20.0,16.4,-206.8,10.8,16.8
+2,Day 2,Compound hazard,27,2E,2B,2A,2C,2D,2E > 2B > 2A > 2C > 2D,VALID,21.6,16.0,-147.6,10.0,13.2
+2,Day 2,Compound hazard,28,2E,2B,2A,2D,2C,2E > 2B > 2A > 2D > 2C,VALID,17.6,14.0,-87.6,7.6,12.8
+2,Day 2,Compound hazard,29,2E,2B,2D,2C,2A,2E > 2B > 2D > 2C > 2A,VALID,16.0,14.4,-146.8,8.4,16.4
+2,Day 2,Compound hazard,30,2E,2B,2D,2A,2C,2E > 2B > 2D > 2A > 2C,VALID,14.8,13.2,-87.2,6.8,14.4
+2,Day 2,Compound hazard,31,2E,2C,2B,2A,2D,2E > 2C > 2B > 2A > 2D,VALID,22.0,16.8,-265.6,10.8,11.8
+2,Day 2,Compound hazard,32,2E,2C,2B,2D,2A,2E > 2C > 2B > 2D > 2A,VALID,19.2,16.0,-265.2,10.0,13.4
+2,Day 2,Compound hazard,33,2E,2C,2A,2B,2D,2E > 2C > 2A > 2B > 2D,VALID,20.0,15.2,-264.4,8.4,6.4
+2,Day 2,Compound hazard,34,2E,2C,2A,2D,2B,2E > 2C > 2A > 2D > 2B,VALID,15.2,12.8,-262.8,5.2,2.6
+2,Day 2,Compound hazard,35,2E,2C,2D,2B,2A,2E > 2C > 2D > 2B > 2A,VALID,14.4,13.6,-263.6,6.8,9.6
+2,Day 2,Compound hazard,36,2E,2C,2D,2A,2B,2E > 2C > 2D > 2A > 2B,VALID,12.4,12.0,-262.4,4.4,4.2
+2,Day 2,Compound hazard,37,2E,2A,2B,2C,2D,2E > 2A > 2B > 2C > 2D,VALID,19.6,14.4,-146.4,7.6,7.8
+2,Day 2,Compound hazard,38,2E,2A,2B,2D,2C,2E > 2A > 2B > 2D > 2C,VALID,15.6,12.4,-86.4,5.2,7.4
+2,Day 2,Compound hazard,39,2E,2A,2C,2B,2D,2E > 2A > 2C > 2B > 2D,VALID,18.8,14.0,-204.8,6.8,4.4
+2,Day 2,Compound hazard,40,2E,2A,2C,2D,2B,2E > 2A > 2C > 2D > 2B,VALID,14.0,11.6,-203.2,3.6,0.6
+2,Day 2,Compound hazard,41,2E,2A,2D,2B,2C,2E > 2A > 2D > 2B > 2C,VALID,10.8,10.0,-84.8,2.0,3.6
+2,Day 2,Compound hazard,42,2E,2A,2D,2C,2B,2E > 2A > 2D > 2C > 2B,VALID,10.0,9.6,-143.2,1.2,0.2
+2,Day 2,Compound hazard,43,2E,2D,2B,2C,2A,2E > 2D > 2B > 2C > 2A,VALID,11.2,12.0,-145.2,5.2,12.6
+2,Day 2,Compound hazard,44,2E,2D,2B,2A,2C,2E > 2D > 2B > 2A > 2C,VALID,10.0,10.8,-85.6,3.6,10.6
+2,Day 2,Compound hazard,45,2E,2D,2C,2B,2A,2E > 2D > 2C > 2B > 2A,VALID,10.4,11.6,-203.6,4.4,9.2
+2,Day 2,Compound hazard,46,2E,2D,2C,2A,2B,2E > 2D > 2C > 2A > 2B,VALID,8.4,10.0,-202.4,2.0,3.8
+2,Day 2,Compound hazard,47,2E,2D,2A,2B,2C,2E > 2D > 2A > 2B > 2C,VALID,8.0,9.2,-84.4,1.2,5.2
+2,Day 2,Compound hazard,48,2E,2D,2A,2C,2B,2E > 2D > 2A > 2C > 2B,VALID,7.2,8.8,-142.8,0.4,1.8
+2,Day 2,Compound hazard,49,2C,2B,2E,2A,2D,2C > 2B > 2E > 2A > 2D,VALID,22.0,16.4,-319.2,8.4,10.4
+2,Day 2,Compound hazard,50,2C,2B,2E,2D,2A,2C > 2B > 2E > 2D > 2A,VALID,19.2,15.6,-318.8,7.6,12.0
+2,Day 2,Compound hazard,51,2C,2B,2A,2E,2D,2C > 2B > 2A > 2E > 2D,VALID,20.4,14.8,-315.6,5.2,6.0
+2,Day 2,Compound hazard,52,2C,2B,2A,2D,2E,2C > 2B > 2A > 2D > 2E,VALID,16.0,12.4,-311.6,1.2,3.2
+2,Day 2,Compound hazard,53,2C,2B,2D,2E,2A,2C > 2B > 2D > 2E > 2A,VALID,14.8,13.2,-314.8,3.6,9.2
+2,Day 2,Compound hazard,54,2C,2B,2D,2A,2E,2C > 2B > 2D > 2A > 2E,VALID,13.2,11.6,-311.2,0.4,4.8
+2,Day 2,Compound hazard,55,2C,2E,2B,2A,2D,2C > 2E > 2B > 2A > 2D,VALID,21.6,16.4,-321.6,9.2,9.4
+2,Day 2,Compound hazard,56,2C,2E,2B,2D,2A,2C > 2E > 2B > 2D > 2A,VALID,18.8,15.6,-321.2,8.4,11.0
+2,Day 2,Compound hazard,57,2C,2E,2A,2B,2D,2C > 2E > 2A > 2B > 2D,VALID,19.6,14.8,-320.4,6.8,4.0
+2,Day 2,Compound hazard,58,2C,2E,2A,2D,2B,2C > 2E > 2A > 2D > 2B,VALID,14.8,12.4,-318.8,3.6,0.2
+2,Day 2,Compound hazard,59,2C,2E,2D,2B,2A,2C > 2E > 2D > 2B > 2A,VALID,14.0,13.2,-319.6,5.2,7.2
+2,Day 2,Compound hazard,60,2C,2E,2D,2A,2B,2C > 2E > 2D > 2A > 2B,VALID,12.0,11.6,-318.4,2.8,1.8
+2,Day 2,Compound hazard,61,2C,2A,2B,2E,2D,2C > 2A > 2B > 2E > 2D,VALID,18.4,13.2,-314.4,2.8,0.6
+2,Day 2,Compound hazard,62,2C,2A,2B,2D,2E,2C > 2A > 2B > 2D > 2E,VALID,14.0,10.8,-310.4,-1.2,-2.2
+2,Day 2,Compound hazard,63,2C,2A,2E,2B,2D,2C > 2A > 2E > 2B > 2D,VALID,18.0,13.2,-316.8,3.6,-0.4
+2,Day 2,Compound hazard,64,2C,2A,2E,2D,2B,2C > 2A > 2E > 2D > 2B,VALID,13.2,10.8,-315.2,0.4,-4.2
+2,Day 2,Compound hazard,65,2C,2A,2D,2B,2E,2C > 2A > 2D > 2B > 2E,VALID,9.2,8.4,-308.8,-4.4,-6.0
+2,Day 2,Compound hazard,66,2C,2A,2D,2E,2B,2C > 2A > 2D > 2E > 2B,VALID,8.8,8.4,-311.2,-3.6,-7.0
+2,Day 2,Compound hazard,67,2C,2D,2B,2E,2A,2C > 2D > 2B > 2E > 2A,VALID,10.0,10.8,-313.2,0.4,5.4
+2,Day 2,Compound hazard,68,2C,2D,2B,2A,2E,2C > 2D > 2B > 2A > 2E,VALID,8.4,9.2,-309.6,-2.8,1.0
+2,Day 2,Compound hazard,69,2C,2D,2E,2B,2A,2C > 2D > 2E > 2B > 2A,VALID,9.6,10.8,-315.6,1.2,4.4
+2,Day 2,Compound hazard,70,2C,2D,2E,2A,2B,2C > 2D > 2E > 2A > 2B,VALID,7.6,9.2,-314.4,-1.2,-1.0
+2,Day 2,Compound hazard,71,2C,2D,2A,2B,2E,2C > 2D > 2A > 2B > 2E,VALID,6.4,7.6,-308.4,-5.2,-4.4
+2,Day 2,Compound hazard,72,2C,2D,2A,2E,2B,2C > 2D > 2A > 2E > 2B,VALID,6.0,7.6,-310.8,-4.4,-5.4
+2,Day 2,Compound hazard,73,2A,2B,2E,2C,2D,2A > 2B > 2E > 2C > 2D,VALID,18.4,12.8,-140.4,3.6,4.4
+2,Day 2,Compound hazard,74,2A,2B,2E,2D,2C,2A > 2B > 2E > 2D > 2C,VALID,14.4,10.8,-80.4,1.2,4.0
+2,Day 2,Compound hazard,75,2A,2B,2C,2E,2D,2A > 2B > 2C > 2E > 2D,VALID,18.0,12.4,-196.4,2.0,2.0
+2,Day 2,Compound hazard,76,2A,2B,2C,2D,2E,2A > 2B > 2C > 2D > 2E,VALID,13.6,10.0,-192.4,-2.0,-0.8
+2,Day 2,Compound hazard,77,2A,2B,2D,2E,2C,2A > 2B > 2D > 2E > 2C,VALID,10.0,8.4,-76.4,-2.8,1.2
+2,Day 2,Compound hazard,78,2A,2B,2D,2C,2E,2A > 2B > 2D > 2C > 2E,VALID,9.6,8.0,-132.4,-4.4,-1.2
+2,Day 2,Compound hazard,79,2A,2E,2B,2C,2D,2A > 2E > 2B > 2C > 2D,VALID,18.0,12.8,-142.8,4.4,3.4
+2,Day 2,Compound hazard,80,2A,2E,2B,2D,2C,2A > 2E > 2B > 2D > 2C,VALID,14.0,10.8,-82.8,2.0,3.0
+2,Day 2,Compound hazard,81,2A,2E,2C,2B,2D,2A > 2E > 2C > 2B > 2D,VALID,17.2,12.4,-201.2,3.6,-0.0
+2,Day 2,Compound hazard,82,2A,2E,2C,2D,2B,2A > 2E > 2C > 2D > 2B,VALID,12.4,10.0,-199.6,0.4,-3.8
+2,Day 2,Compound hazard,83,2A,2E,2D,2B,2C,2A > 2E > 2D > 2B > 2C,VALID,9.2,8.4,-81.2,-1.2,-0.8
+2,Day 2,Compound hazard,84,2A,2E,2D,2C,2B,2A > 2E > 2D > 2C > 2B,VALID,8.4,8.0,-139.6,-2.0,-4.2
+2,Day 2,Compound hazard,85,2A,2C,2B,2E,2D,2A > 2C > 2B > 2E > 2D,VALID,17.2,12.0,-254.8,1.2,-1.4
+2,Day 2,Compound hazard,86,2A,2C,2B,2D,2E,2A > 2C > 2B > 2D > 2E,VALID,12.8,9.6,-250.8,-2.8,-4.2
+2,Day 2,Compound hazard,87,2A,2C,2E,2B,2D,2A > 2C > 2E > 2B > 2D,VALID,16.8,12.0,-257.2,2.0,-2.4
+2,Day 2,Compound hazard,88,2A,2C,2E,2D,2B,2A > 2C > 2E > 2D > 2B,VALID,12.0,9.6,-255.6,-1.2,-6.2
+2,Day 2,Compound hazard,89,2A,2C,2D,2B,2E,2A > 2C > 2D > 2B > 2E,VALID,8.0,7.2,-249.2,-6.0,-8.0
+2,Day 2,Compound hazard,90,2A,2C,2D,2E,2B,2A > 2C > 2D > 2E > 2B,VALID,7.6,7.2,-251.6,-5.2,-9.0
+2,Day 2,Compound hazard,91,2A,2D,2B,2E,2C,2A > 2D > 2B > 2E > 2C,VALID,5.2,6.0,-74.8,-6.0,-2.6
+2,Day 2,Compound hazard,92,2A,2D,2B,2C,2E,2A > 2D > 2B > 2C > 2E,VALID,4.8,5.6,-130.8,-7.6,-5.0
+2,Day 2,Compound hazard,93,2A,2D,2E,2B,2C,2A > 2D > 2E > 2B > 2C,VALID,4.8,6.0,-77.2,-5.2,-3.6
+2,Day 2,Compound hazard,94,2A,2D,2E,2C,2B,2A > 2D > 2E > 2C > 2B,VALID,4.0,5.6,-135.6,-6.0,-7.0
+2,Day 2,Compound hazard,95,2A,2D,2C,2B,2E,2A > 2D > 2C > 2B > 2E,VALID,4.0,5.2,-189.2,-8.4,-8.4
+2,Day 2,Compound hazard,96,2A,2D,2C,2E,2B,2A > 2D > 2C > 2E > 2B,VALID,3.6,5.2,-191.6,-7.6,-9.4
+2,Day 2,Compound hazard,97,2D,2B,2E,2C,2A,2D > 2B > 2E > 2C > 2A,VALID,7.2,9.6,-138.8,0.4,10.8
+2,Day 2,Compound hazard,98,2D,2B,2E,2A,2C,2D > 2B > 2E > 2A > 2C,VALID,6.0,8.4,-79.2,-1.2,8.8
+2,Day 2,Compound hazard,99,2D,2B,2C,2E,2A,2D > 2B > 2C > 2E > 2A,VALID,6.8,9.2,-194.8,-1.2,8.4
+2,Day 2,Compound hazard,100,2D,2B,2C,2A,2E,2D > 2B > 2C > 2A > 2E,VALID,5.2,7.6,-191.2,-4.4,4.0
+2,Day 2,Compound hazard,101,2D,2B,2A,2E,2C,2D > 2B > 2A > 2E > 2C,VALID,4.4,6.8,-75.6,-4.4,4.4
+2,Day 2,Compound hazard,102,2D,2B,2A,2C,2E,2D > 2B > 2A > 2C > 2E,VALID,4.0,6.4,-131.6,-6.0,2.0
+2,Day 2,Compound hazard,103,2D,2E,2B,2C,2A,2D > 2E > 2B > 2C > 2A,VALID,6.8,9.6,-141.2,1.2,9.8
+2,Day 2,Compound hazard,104,2D,2E,2B,2A,2C,2D > 2E > 2B > 2A > 2C,VALID,5.6,8.4,-81.6,-0.4,7.8
+2,Day 2,Compound hazard,105,2D,2E,2C,2B,2A,2D > 2E > 2C > 2B > 2A,VALID,6.0,9.2,-199.6,0.4,6.4
+2,Day 2,Compound hazard,106,2D,2E,2C,2A,2B,2D > 2E > 2C > 2A > 2B,VALID,4.0,7.6,-198.4,-2.0,1.0
+2,Day 2,Compound hazard,107,2D,2E,2A,2B,2C,2D > 2E > 2A > 2B > 2C,VALID,3.6,6.8,-80.4,-2.8,2.4
+2,Day 2,Compound hazard,108,2D,2E,2A,2C,2B,2D > 2E > 2A > 2C > 2B,VALID,2.8,6.4,-138.8,-3.6,-1.0
+2,Day 2,Compound hazard,109,2D,2C,2B,2E,2A,2D > 2C > 2B > 2E > 2A,VALID,6.0,8.8,-253.2,-2.0,5.0
+2,Day 2,Compound hazard,110,2D,2C,2B,2A,2E,2D > 2C > 2B > 2A > 2E,VALID,4.4,7.2,-249.6,-5.2,0.6
+2,Day 2,Compound hazard,111,2D,2C,2E,2B,2A,2D > 2C > 2E > 2B > 2A,VALID,5.6,8.8,-255.6,-1.2,4.0
+2,Day 2,Compound hazard,112,2D,2C,2E,2A,2B,2D > 2C > 2E > 2A > 2B,VALID,3.6,7.2,-254.4,-3.6,-1.4
+2,Day 2,Compound hazard,113,2D,2C,2A,2B,2E,2D > 2C > 2A > 2B > 2E,VALID,2.4,5.6,-248.4,-7.6,-4.8
+2,Day 2,Compound hazard,114,2D,2C,2A,2E,2B,2D > 2C > 2A > 2E > 2B,VALID,2.0,5.6,-250.8,-6.8,-5.8
+2,Day 2,Compound hazard,115,2D,2A,2B,2E,2C,2D > 2A > 2B > 2E > 2C,VALID,2.4,5.2,-74.4,-6.8,-1.0
+2,Day 2,Compound hazard,116,2D,2A,2B,2C,2E,2D > 2A > 2B > 2C > 2E,VALID,2.0,4.8,-130.4,-8.4,-3.4
+2,Day 2,Compound hazard,117,2D,2A,2E,2B,2C,2D > 2A > 2E > 2B > 2C,VALID,2.0,5.2,-76.8,-6.0,-2.0
+2,Day 2,Compound hazard,118,2D,2A,2E,2C,2B,2D > 2A > 2E > 2C > 2B,VALID,1.2,4.8,-135.2,-6.8,-5.4
+2,Day 2,Compound hazard,119,2D,2A,2C,2B,2E,2D > 2A > 2C > 2B > 2E,VALID,1.2,4.4,-188.8,-9.2,-6.8
+2,Day 2,Compound hazard,120,2D,2A,2C,2E,2B,2D > 2A > 2C > 2E > 2B,VALID,0.8,4.4,-191.2,-8.4,-7.8
+3,Day 4,LKR 100M allocation against LKR 120M needs,1,3A,3D,3C,3B,,3A > 3D > 3C > 3B,VALID,27.2,16.0,-280.0,11.2,5.2
+3,Day 4,LKR 100M allocation against LKR 120M needs,2,3A,3D,3B,3C,,3A > 3D > 3B > 3C,VALID,27.6,15.6,-280.0,9.6,5.0
+3,Day 4,LKR 100M allocation against LKR 120M needs,3,3A,3C,3D,3B,,3A > 3C > 3D > 3B,VALID,27.6,16.4,-280.0,9.2,5.0
+3,Day 4,LKR 100M allocation against LKR 120M needs,4,3A,3C,3B,3D,,3A > 3C > 3B > 3D,VALID,28.4,16.4,-280.0,5.6,4.6
+3,Day 4,LKR 100M allocation against LKR 120M needs,5,3A,3B,3D,3C,,3A > 3B > 3D > 3C,VALID,28.4,15.6,-280.0,6.0,4.6
+3,Day 4,LKR 100M allocation against LKR 120M needs,6,3A,3B,3C,3D,,3A > 3B > 3C > 3D,VALID,28.8,16.0,-280.0,4.0,4.4
+3,Day 4,LKR 100M allocation against LKR 120M needs,7,3D,3A,3C,3B,,3D > 3A > 3C > 3B,VALID,26.8,16.4,-280.0,10.8,5.0
+3,Day 4,LKR 100M allocation against LKR 120M needs,8,3D,3A,3B,3C,,3D > 3A > 3B > 3C,VALID,27.2,16.0,-280.0,9.2,4.8
+3,Day 4,LKR 100M allocation against LKR 120M needs,9,3D,3C,3A,3B,,3D > 3C > 3A > 3B,VALID,26.8,17.2,-280.0,8.4,4.6
+3,Day 4,LKR 100M allocation against LKR 120M needs,10,3D,3C,3B,3A,,3D > 3C > 3B > 3A,VALID,27.2,17.6,-280.0,4.4,4.0
+3,Day 4,LKR 100M allocation against LKR 120M needs,11,3D,3B,3A,3C,,3D > 3B > 3A > 3C,VALID,27.6,16.4,-280.0,5.2,4.2
+3,Day 4,LKR 100M allocation against LKR 120M needs,12,3D,3B,3C,3A,,3D > 3B > 3C > 3A,VALID,27.6,17.2,-280.0,2.8,3.8
+3,Day 4,LKR 100M allocation against LKR 120M needs,13,3C,3A,3D,3B,,3C > 3A > 3D > 3B,VALID,27.6,17.2,-280.0,6.8,4.6
+3,Day 4,LKR 100M allocation against LKR 120M needs,14,3C,3A,3B,3D,,3C > 3A > 3B > 3D,VALID,28.4,17.2,-280.0,3.2,4.2
+3,Day 4,LKR 100M allocation against LKR 120M needs,15,3C,3D,3A,3B,,3C > 3D > 3A > 3B,VALID,27.2,17.6,-280.0,6.4,4.4
+3,Day 4,LKR 100M allocation against LKR 120M needs,16,3C,3D,3B,3A,,3C > 3D > 3B > 3A,VALID,27.6,18.0,-280.0,2.4,3.8
+3,Day 4,LKR 100M allocation against LKR 120M needs,17,3C,3B,3A,3D,,3C > 3B > 3A > 3D,VALID,28.8,17.6,-280.0,-0.8,3.6
+3,Day 4,LKR 100M allocation against LKR 120M needs,18,3C,3B,3D,3A,,3C > 3B > 3D > 3A,VALID,28.4,18.0,-280.0,-1.2,3.4
+3,Day 4,LKR 100M allocation against LKR 120M needs,19,3B,3A,3D,3C,,3B > 3A > 3D > 3C,VALID,28.8,16.0,-280.0,2.0,4.0
+3,Day 4,LKR 100M allocation against LKR 120M needs,20,3B,3A,3C,3D,,3B > 3A > 3C > 3D,VALID,29.2,16.4,-280.0,0.0,3.8
+3,Day 4,LKR 100M allocation against LKR 120M needs,21,3B,3D,3A,3C,,3B > 3D > 3A > 3C,VALID,28.4,16.4,-280.0,1.6,3.8
+3,Day 4,LKR 100M allocation against LKR 120M needs,22,3B,3D,3C,3A,,3B > 3D > 3C > 3A,VALID,28.4,17.2,-280.0,-0.8,3.4
+3,Day 4,LKR 100M allocation against LKR 120M needs,23,3B,3C,3A,3D,,3B > 3C > 3A > 3D,VALID,29.2,17.2,-280.0,-2.4,3.4
+3,Day 4,LKR 100M allocation against LKR 120M needs,24,3B,3C,3D,3A,,3B > 3C > 3D > 3A,VALID,28.8,17.6,-280.0,-2.8,3.2
+4,Day 6,"Trucks, rescue vehicles and boats",1,4A,4B,4C,4D,4E,4A > 4B > 4C > 4D > 4E,VALID,33.6,16.8,-168.0,11.2,4.2
+4,Day 6,"Trucks, rescue vehicles and boats",2,4A,4B,4C,4E,4D,4A > 4B > 4C > 4E > 4D,VALID,28.4,17.2,-156.0,10.2,3.8
+4,Day 6,"Trucks, rescue vehicles and boats",3,4A,4B,4D,4C,4E,4A > 4B > 4D > 4C > 4E,VALID,36.0,13.6,-168.0,9.8,4.2
+4,Day 6,"Trucks, rescue vehicles and boats",4,4A,4B,4D,4E,4C,4A > 4B > 4D > 4E > 4C,VALID,33.2,10.8,-156.0,7.4,3.8
+4,Day 6,"Trucks, rescue vehicles and boats",5,4A,4B,4E,4C,4D,4A > 4B > 4E > 4C > 4D,VALID,25.6,14.4,-144.0,7.8,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",6,4A,4B,4E,4D,4C,4A > 4B > 4E > 4D > 4C,VALID,28.0,11.2,-144.0,6.4,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",7,4A,4C,4B,4D,4E,4A > 4C > 4B > 4D > 4E,VALID,32.2,15.8,-168.0,10.6,3.8
+4,Day 6,"Trucks, rescue vehicles and boats",8,4A,4C,4B,4E,4D,4A > 4C > 4B > 4E > 4D,VALID,27.0,16.2,-156.0,9.6,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",9,4A,4C,4D,4B,4E,4A > 4C > 4D > 4B > 4E,VALID,33.2,11.6,-168.0,8.6,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",10,4A,4C,4D,4E,4B,4A > 4C > 4D > 4E > 4B,VALID,29.0,7.8,-156.0,5.6,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",11,4A,4C,4E,4B,4D,4A > 4C > 4E > 4B > 4D,VALID,22.8,12.4,-144.0,6.6,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",12,4A,4C,4E,4D,4B,4A > 4C > 4E > 4D > 4B,VALID,23.8,8.2,-144.0,4.6,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",13,4A,4D,4B,4C,4E,4A > 4D > 4B > 4C > 4E,VALID,37.0,9.4,-168.0,7.8,3.8
+4,Day 6,"Trucks, rescue vehicles and boats",14,4A,4D,4B,4E,4C,4A > 4D > 4B > 4E > 4C,VALID,34.2,6.6,-156.0,5.4,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",15,4A,4D,4C,4B,4E,4A > 4D > 4C > 4B > 4E,VALID,35.6,8.4,-168.0,7.2,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",16,4A,4D,4C,4E,4B,4A > 4D > 4C > 4E > 4B,VALID,31.4,4.6,-156.0,4.2,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",17,4A,4D,4E,4B,4C,4A > 4D > 4E > 4B > 4C,VALID,30.0,2.8,-144.0,2.4,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",18,4A,4D,4E,4C,4B,4A > 4D > 4E > 4C > 4B,VALID,28.6,1.8,-144.0,1.8,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",19,4A,4E,4B,4C,4D,4A > 4E > 4B > 4C > 4D,VALID,21.4,10.6,-132.0,4.8,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",20,4A,4E,4B,4D,4C,4A > 4E > 4B > 4D > 4C,VALID,23.8,7.4,-132.0,3.4,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",21,4A,4E,4C,4B,4D,4A > 4E > 4C > 4B > 4D,VALID,20.0,9.6,-132.0,4.2,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",22,4A,4E,4C,4D,4B,4A > 4E > 4C > 4D > 4B,VALID,21.0,5.4,-132.0,2.2,1.8
+4,Day 6,"Trucks, rescue vehicles and boats",23,4A,4E,4D,4B,4C,4A > 4E > 4D > 4B > 4C,VALID,24.8,3.2,-132.0,1.4,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",24,4A,4E,4D,4C,4B,4A > 4E > 4D > 4C > 4B,VALID,23.4,2.2,-132.0,0.8,1.8
+4,Day 6,"Trucks, rescue vehicles and boats",25,4B,4A,4C,4D,4E,4B > 4A > 4C > 4D > 4E,VALID,33.4,17.0,-168.0,10.2,4.0
+4,Day 6,"Trucks, rescue vehicles and boats",26,4B,4A,4C,4E,4D,4B > 4A > 4C > 4E > 4D,VALID,28.2,17.4,-156.0,9.2,3.6
+4,Day 6,"Trucks, rescue vehicles and boats",27,4B,4A,4D,4C,4E,4B > 4A > 4D > 4C > 4E,VALID,35.8,13.8,-168.0,8.8,4.0
+4,Day 6,"Trucks, rescue vehicles and boats",28,4B,4A,4D,4E,4C,4B > 4A > 4D > 4E > 4C,VALID,33.0,11.0,-156.0,6.4,3.6
+4,Day 6,"Trucks, rescue vehicles and boats",29,4B,4A,4E,4C,4D,4B > 4A > 4E > 4C > 4D,VALID,25.4,14.6,-144.0,6.8,3.2
+4,Day 6,"Trucks, rescue vehicles and boats",30,4B,4A,4E,4D,4C,4B > 4A > 4E > 4D > 4C,VALID,27.8,11.4,-144.0,5.4,3.2
+4,Day 6,"Trucks, rescue vehicles and boats",31,4B,4C,4A,4D,4E,4B > 4C > 4A > 4D > 4E,VALID,31.8,16.2,-168.0,8.6,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",32,4B,4C,4A,4E,4D,4B > 4C > 4A > 4E > 4D,VALID,26.6,16.6,-156.0,7.6,3.0
+4,Day 6,"Trucks, rescue vehicles and boats",33,4B,4C,4D,4A,4E,4B > 4C > 4D > 4A > 4E,VALID,32.6,12.2,-168.0,5.6,2.8
+4,Day 6,"Trucks, rescue vehicles and boats",34,4B,4C,4D,4E,4A,4B > 4C > 4D > 4E > 4A,VALID,28.2,8.6,-156.0,1.6,1.8
+4,Day 6,"Trucks, rescue vehicles and boats",35,4B,4C,4E,4A,4D,4B > 4C > 4E > 4A > 4D,VALID,22.2,13.0,-144.0,3.6,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",36,4B,4C,4E,4D,4A,4B > 4C > 4E > 4D > 4A,VALID,23.0,9.0,-144.0,0.6,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",37,4B,4D,4A,4C,4E,4B > 4D > 4A > 4C > 4E,VALID,36.6,9.8,-168.0,5.8,3.4
+4,Day 6,"Trucks, rescue vehicles and boats",38,4B,4D,4A,4E,4C,4B > 4D > 4A > 4E > 4C,VALID,33.8,7.0,-156.0,3.4,3.0
+4,Day 6,"Trucks, rescue vehicles and boats",39,4B,4D,4C,4A,4E,4B > 4D > 4C > 4A > 4E,VALID,35.0,9.0,-168.0,4.2,2.8
+4,Day 6,"Trucks, rescue vehicles and boats",40,4B,4D,4C,4E,4A,4B > 4D > 4C > 4E > 4A,VALID,30.6,5.4,-156.0,0.2,1.8
+4,Day 6,"Trucks, rescue vehicles and boats",41,4B,4D,4E,4A,4C,4B > 4D > 4E > 4A > 4C,VALID,29.4,3.4,-144.0,-0.6,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",42,4B,4D,4E,4C,4A,4B > 4D > 4E > 4C > 4A,VALID,27.8,2.6,-144.0,-2.2,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",43,4B,4E,4A,4C,4D,4B > 4E > 4A > 4C > 4D,VALID,21.0,11.0,-132.0,2.8,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",44,4B,4E,4A,4D,4C,4B > 4E > 4A > 4D > 4C,VALID,23.4,7.8,-132.0,1.4,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",45,4B,4E,4C,4A,4D,4B > 4E > 4C > 4A > 4D,VALID,19.4,10.2,-132.0,1.2,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",46,4B,4E,4C,4D,4A,4B > 4E > 4C > 4D > 4A,VALID,20.2,6.2,-132.0,-1.8,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",47,4B,4E,4D,4A,4C,4B > 4E > 4D > 4A > 4C,VALID,24.2,3.8,-132.0,-1.6,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",48,4B,4E,4D,4C,4A,4B > 4E > 4D > 4C > 4A,VALID,22.6,3.0,-132.0,-3.2,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",49,4C,4A,4B,4D,4E,4C > 4A > 4B > 4D > 4E,VALID,30.6,15.0,-168.0,9.0,3.2
+4,Day 6,"Trucks, rescue vehicles and boats",50,4C,4A,4B,4E,4D,4C > 4A > 4B > 4E > 4D,VALID,25.4,15.4,-156.0,8.0,2.8
+4,Day 6,"Trucks, rescue vehicles and boats",51,4C,4A,4D,4B,4E,4C > 4A > 4D > 4B > 4E,VALID,31.6,10.8,-168.0,7.0,2.8
+4,Day 6,"Trucks, rescue vehicles and boats",52,4C,4A,4D,4E,4B,4C > 4A > 4D > 4E > 4B,VALID,27.4,7.0,-156.0,4.0,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",53,4C,4A,4E,4B,4D,4C > 4A > 4E > 4B > 4D,VALID,21.2,11.6,-144.0,5.0,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",54,4C,4A,4E,4D,4B,4C > 4A > 4E > 4D > 4B,VALID,22.2,7.4,-144.0,3.0,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",55,4C,4B,4A,4D,4E,4C > 4B > 4A > 4D > 4E,VALID,30.4,15.2,-168.0,8.0,3.0
+4,Day 6,"Trucks, rescue vehicles and boats",56,4C,4B,4A,4E,4D,4C > 4B > 4A > 4E > 4D,VALID,25.2,15.6,-156.0,7.0,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",57,4C,4B,4D,4A,4E,4C > 4B > 4D > 4A > 4E,VALID,31.2,11.2,-168.0,5.0,2.4
+4,Day 6,"Trucks, rescue vehicles and boats",58,4C,4B,4D,4E,4A,4C > 4B > 4D > 4E > 4A,VALID,26.8,7.6,-156.0,1.0,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",59,4C,4B,4E,4A,4D,4C > 4B > 4E > 4A > 4D,VALID,20.8,12.0,-144.0,3.0,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",60,4C,4B,4E,4D,4A,4C > 4B > 4E > 4D > 4A,VALID,21.6,8.0,-144.0,0.0,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",61,4C,4D,4A,4B,4E,4C > 4D > 4A > 4B > 4E,VALID,32.4,6.8,-168.0,4.0,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",62,4C,4D,4A,4E,4B,4C > 4D > 4A > 4E > 4B,VALID,28.2,3.0,-156.0,1.0,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",63,4C,4D,4B,4A,4E,4C > 4D > 4B > 4A > 4E,VALID,32.2,7.0,-168.0,3.0,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",64,4C,4D,4B,4E,4A,4C > 4D > 4B > 4E > 4A,VALID,27.8,3.4,-156.0,-1.0,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",65,4C,4D,4E,4A,4B,4C > 4D > 4E > 4A > 4B,VALID,23.8,-0.6,-144.0,-3.0,0.4
+4,Day 6,"Trucks, rescue vehicles and boats",66,4C,4D,4E,4B,4A,4C > 4D > 4E > 4B > 4A,VALID,23.6,-0.4,-144.0,-4.0,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",67,4C,4E,4A,4B,4D,4C > 4E > 4A > 4B > 4D,VALID,16.8,8.0,-132.0,1.0,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",68,4C,4E,4A,4D,4B,4C > 4E > 4A > 4D > 4B,VALID,17.8,3.8,-132.0,-1.0,0.6
+4,Day 6,"Trucks, rescue vehicles and boats",69,4C,4E,4B,4A,4D,4C > 4E > 4B > 4A > 4D,VALID,16.6,8.2,-132.0,0.0,0.8
+4,Day 6,"Trucks, rescue vehicles and boats",70,4C,4E,4B,4D,4A,4C > 4E > 4B > 4D > 4A,VALID,17.4,4.2,-132.0,-3.0,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",71,4C,4E,4D,4A,4B,4C > 4E > 4D > 4A > 4B,VALID,18.6,-0.2,-132.0,-4.0,0.0
+4,Day 6,"Trucks, rescue vehicles and boats",72,4C,4E,4D,4B,4A,4C > 4E > 4D > 4B > 4A,VALID,18.4,0.0,-132.0,-5.0,-0.2
+4,Day 6,"Trucks, rescue vehicles and boats",73,4D,4A,4B,4C,4E,4D > 4A > 4B > 4C > 4E,VALID,37.8,5.4,-168.0,4.8,3.2
+4,Day 6,"Trucks, rescue vehicles and boats",74,4D,4A,4B,4E,4C,4D > 4A > 4B > 4E > 4C,VALID,35.0,2.6,-156.0,2.4,2.8
+4,Day 6,"Trucks, rescue vehicles and boats",75,4D,4A,4C,4B,4E,4D > 4A > 4C > 4B > 4E,VALID,36.4,4.4,-168.0,4.2,2.8
+4,Day 6,"Trucks, rescue vehicles and boats",76,4D,4A,4C,4E,4B,4D > 4A > 4C > 4E > 4B,VALID,32.2,0.6,-156.0,1.2,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",77,4D,4A,4E,4B,4C,4D > 4A > 4E > 4B > 4C,VALID,30.8,-1.2,-144.0,-0.6,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",78,4D,4A,4E,4C,4B,4D > 4A > 4E > 4C > 4B,VALID,29.4,-2.2,-144.0,-1.2,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",79,4D,4B,4A,4C,4E,4D > 4B > 4A > 4C > 4E,VALID,37.6,5.6,-168.0,3.8,3.0
+4,Day 6,"Trucks, rescue vehicles and boats",80,4D,4B,4A,4E,4C,4D > 4B > 4A > 4E > 4C,VALID,34.8,2.8,-156.0,1.4,2.6
+4,Day 6,"Trucks, rescue vehicles and boats",81,4D,4B,4C,4A,4E,4D > 4B > 4C > 4A > 4E,VALID,36.0,4.8,-168.0,2.2,2.4
+4,Day 6,"Trucks, rescue vehicles and boats",82,4D,4B,4C,4E,4A,4D > 4B > 4C > 4E > 4A,VALID,31.6,1.2,-156.0,-1.8,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",83,4D,4B,4E,4A,4C,4D > 4B > 4E > 4A > 4C,VALID,30.4,-0.8,-144.0,-2.6,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",84,4D,4B,4E,4C,4A,4D > 4B > 4E > 4C > 4A,VALID,28.8,-1.6,-144.0,-4.2,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",85,4D,4C,4A,4B,4E,4D > 4C > 4A > 4B > 4E,VALID,34.8,3.6,-168.0,2.6,2.2
+4,Day 6,"Trucks, rescue vehicles and boats",86,4D,4C,4A,4E,4B,4D > 4C > 4A > 4E > 4B,VALID,30.6,-0.2,-156.0,-0.4,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",87,4D,4C,4B,4A,4E,4D > 4C > 4B > 4A > 4E,VALID,34.6,3.8,-168.0,1.6,2.0
+4,Day 6,"Trucks, rescue vehicles and boats",88,4D,4C,4B,4E,4A,4D > 4C > 4B > 4E > 4A,VALID,30.2,0.2,-156.0,-2.4,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",89,4D,4C,4E,4A,4B,4D > 4C > 4E > 4A > 4B,VALID,26.2,-3.8,-144.0,-4.4,0.4
+4,Day 6,"Trucks, rescue vehicles and boats",90,4D,4C,4E,4B,4A,4D > 4C > 4E > 4B > 4A,VALID,26.0,-3.6,-144.0,-5.4,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",91,4D,4E,4A,4B,4C,4D > 4E > 4A > 4B > 4C,VALID,26.4,-4.8,-132.0,-4.6,1.0
+4,Day 6,"Trucks, rescue vehicles and boats",92,4D,4E,4A,4C,4B,4D > 4E > 4A > 4C > 4B,VALID,25.0,-5.8,-132.0,-5.2,0.6
+4,Day 6,"Trucks, rescue vehicles and boats",93,4D,4E,4B,4A,4C,4D > 4E > 4B > 4A > 4C,VALID,26.2,-4.6,-132.0,-5.6,0.8
+4,Day 6,"Trucks, rescue vehicles and boats",94,4D,4E,4B,4C,4A,4D > 4E > 4B > 4C > 4A,VALID,24.6,-5.4,-132.0,-7.2,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",95,4D,4E,4C,4A,4B,4D > 4E > 4C > 4A > 4B,VALID,23.4,-6.6,-132.0,-6.8,0.0
+4,Day 6,"Trucks, rescue vehicles and boats",96,4D,4E,4C,4B,4A,4D > 4E > 4C > 4B > 4A,VALID,23.2,-6.4,-132.0,-7.8,-0.2
+4,Day 6,"Trucks, rescue vehicles and boats",97,4E,4A,4B,4C,4D,4E > 4A > 4B > 4C > 4D,VALID,17.0,7.0,-120.0,0.8,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",98,4E,4A,4B,4D,4C,4E > 4A > 4B > 4D > 4C,VALID,19.4,3.8,-120.0,-0.6,1.6
+4,Day 6,"Trucks, rescue vehicles and boats",99,4E,4A,4C,4B,4D,4E > 4A > 4C > 4B > 4D,VALID,15.6,6.0,-120.0,0.2,1.2
+4,Day 6,"Trucks, rescue vehicles and boats",100,4E,4A,4C,4D,4B,4E > 4A > 4C > 4D > 4B,VALID,16.6,1.8,-120.0,-1.8,0.8
+4,Day 6,"Trucks, rescue vehicles and boats",101,4E,4A,4D,4B,4C,4E > 4A > 4D > 4B > 4C,VALID,20.4,-0.4,-120.0,-2.6,1.2
+4,Day 6,"Trucks, rescue vehicles and boats",102,4E,4A,4D,4C,4B,4E > 4A > 4D > 4C > 4B,VALID,19.0,-1.4,-120.0,-3.2,0.8
+4,Day 6,"Trucks, rescue vehicles and boats",103,4E,4B,4A,4C,4D,4E > 4B > 4A > 4C > 4D,VALID,16.8,7.2,-120.0,-0.2,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",104,4E,4B,4A,4D,4C,4E > 4B > 4A > 4D > 4C,VALID,19.2,4.0,-120.0,-1.6,1.4
+4,Day 6,"Trucks, rescue vehicles and boats",105,4E,4B,4C,4A,4D,4E > 4B > 4C > 4A > 4D,VALID,15.2,6.4,-120.0,-1.8,0.8
+4,Day 6,"Trucks, rescue vehicles and boats",106,4E,4B,4C,4D,4A,4E > 4B > 4C > 4D > 4A,VALID,16.0,2.4,-120.0,-4.8,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",107,4E,4B,4D,4A,4C,4E > 4B > 4D > 4A > 4C,VALID,20.0,0.0,-120.0,-4.6,0.8
+4,Day 6,"Trucks, rescue vehicles and boats",108,4E,4B,4D,4C,4A,4E > 4B > 4D > 4C > 4A,VALID,18.4,-0.8,-120.0,-6.2,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",109,4E,4C,4A,4B,4D,4E > 4C > 4A > 4B > 4D,VALID,14.0,5.2,-120.0,-1.4,0.6
+4,Day 6,"Trucks, rescue vehicles and boats",110,4E,4C,4A,4D,4B,4E > 4C > 4A > 4D > 4B,VALID,15.0,1.0,-120.0,-3.4,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",111,4E,4C,4B,4A,4D,4E > 4C > 4B > 4A > 4D,VALID,13.8,5.4,-120.0,-2.4,0.4
+4,Day 6,"Trucks, rescue vehicles and boats",112,4E,4C,4B,4D,4A,4E > 4C > 4B > 4D > 4A,VALID,14.6,1.4,-120.0,-5.4,-0.2
+4,Day 6,"Trucks, rescue vehicles and boats",113,4E,4C,4D,4A,4B,4E > 4C > 4D > 4A > 4B,VALID,15.8,-3.0,-120.0,-6.4,-0.4
+4,Day 6,"Trucks, rescue vehicles and boats",114,4E,4C,4D,4B,4A,4E > 4C > 4D > 4B > 4A,VALID,15.6,-2.8,-120.0,-7.4,-0.6
+4,Day 6,"Trucks, rescue vehicles and boats",115,4E,4D,4A,4B,4C,4E > 4D > 4A > 4B > 4C,VALID,21.2,-4.4,-120.0,-5.6,0.6
+4,Day 6,"Trucks, rescue vehicles and boats",116,4E,4D,4A,4C,4B,4E > 4D > 4A > 4C > 4B,VALID,19.8,-5.4,-120.0,-6.2,0.2
+4,Day 6,"Trucks, rescue vehicles and boats",117,4E,4D,4B,4A,4C,4E > 4D > 4B > 4A > 4C,VALID,21.0,-4.2,-120.0,-6.6,0.4
+4,Day 6,"Trucks, rescue vehicles and boats",118,4E,4D,4B,4C,4A,4E > 4D > 4B > 4C > 4A,VALID,19.4,-5.0,-120.0,-8.2,-0.2
+4,Day 6,"Trucks, rescue vehicles and boats",119,4E,4D,4C,4A,4B,4E > 4D > 4C > 4A > 4B,VALID,18.2,-6.2,-120.0,-7.8,-0.4
+4,Day 6,"Trucks, rescue vehicles and boats",120,4E,4D,4C,4B,4A,4E > 4D > 4C > 4B > 4A,VALID,18.0,-6.0,-120.0,-8.8,-0.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",1,5A,5C,5E,5B,5D,5A > 5C > 5E > 5B > 5D,VALID,25.8,10.2,-68.0,16.4,11.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",2,5A,5C,5E,5D,5B,5A > 5C > 5E > 5D > 5B,VALID,22.8,9.0,-48.0,14.4,10.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",3,5A,5C,5B,5E,5D,5A > 5C > 5B > 5E > 5D,VALID,24.6,10.4,-100.0,17.2,10.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",4,5A,5C,5B,5D,5E,5A > 5C > 5B > 5D > 5E,VALID,20.4,9.4,-112.0,16.0,10.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",5,5A,5C,5D,5E,5B,5A > 5C > 5D > 5E > 5B,VALID,18.6,8.0,-60.0,13.2,10.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",6,5A,5C,5D,5B,5E,5A > 5C > 5D > 5B > 5E,VALID,17.4,8.2,-92.0,14.0,9.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",7,5A,5E,5C,5B,5D,5A > 5E > 5C > 5B > 5D,VALID,25.2,10.0,-50.0,14.4,10.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",8,5A,5E,5C,5D,5B,5A > 5E > 5C > 5D > 5B,VALID,22.2,8.8,-30.0,12.4,9.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",9,5A,5E,5B,5C,5D,5A > 5E > 5B > 5C > 5D,VALID,23.4,10.0,-64.0,13.2,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",10,5A,5E,5B,5D,5C,5A > 5E > 5B > 5D > 5C,VALID,18.6,8.8,-58.0,10.0,6.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",11,5A,5E,5D,5C,5B,5A > 5E > 5D > 5C > 5B,VALID,17.4,7.6,-24.0,9.2,7.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",12,5A,5E,5D,5B,5C,5A > 5E > 5D > 5B > 5C,VALID,15.6,7.6,-38.0,8.0,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",13,5A,5B,5C,5E,5D,5A > 5B > 5C > 5E > 5D,VALID,22.8,10.4,-114.0,16.0,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",14,5A,5B,5C,5D,5E,5A > 5B > 5C > 5D > 5E,VALID,18.6,9.4,-126.0,14.8,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",15,5A,5B,5E,5C,5D,5A > 5B > 5E > 5C > 5D,VALID,22.2,10.2,-96.0,14.0,8.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",16,5A,5B,5E,5D,5C,5A > 5B > 5E > 5D > 5C,VALID,17.4,9.0,-90.0,10.8,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",17,5A,5B,5D,5C,5E,5A > 5B > 5D > 5C > 5E,VALID,13.8,8.2,-120.0,11.6,6.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",18,5A,5B,5D,5E,5C,5A > 5B > 5D > 5E > 5C,VALID,13.2,8.0,-102.0,9.6,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",19,5A,5D,5C,5E,5B,5A > 5D > 5C > 5E > 5B,VALID,13.8,6.8,-54.0,10.0,8.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",20,5A,5D,5C,5B,5E,5A > 5D > 5C > 5B > 5E,VALID,12.6,7.0,-86.0,10.8,7.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",21,5A,5D,5E,5C,5B,5A > 5D > 5E > 5C > 5B,VALID,13.2,6.6,-36.0,8.0,6.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",22,5A,5D,5E,5B,5C,5A > 5D > 5E > 5B > 5C,VALID,11.4,6.6,-50.0,6.8,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",23,5A,5D,5B,5C,5E,5A > 5D > 5B > 5C > 5E,VALID,10.8,7.0,-100.0,9.6,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",24,5A,5D,5B,5E,5C,5A > 5D > 5B > 5E > 5C,VALID,10.2,6.8,-82.0,7.6,4.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",25,5C,5A,5E,5B,5D,5C > 5A > 5E > 5B > 5D,VALID,24.0,11.4,-66.0,15.6,12.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",26,5C,5A,5E,5D,5B,5C > 5A > 5E > 5D > 5B,VALID,21.0,10.2,-46.0,13.6,11.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",27,5C,5A,5B,5E,5D,5C > 5A > 5B > 5E > 5D,VALID,22.8,11.6,-98.0,16.4,11.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",28,5C,5A,5B,5D,5E,5C > 5A > 5B > 5D > 5E,VALID,18.6,10.6,-110.0,15.2,10.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",29,5C,5A,5D,5E,5B,5C > 5A > 5D > 5E > 5B,VALID,16.8,9.2,-58.0,12.4,10.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",30,5C,5A,5D,5B,5E,5C > 5A > 5D > 5B > 5E,VALID,15.6,9.4,-90.0,13.2,10.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",31,5C,5E,5A,5B,5D,5C > 5E > 5A > 5B > 5D,VALID,21.6,12.4,-46.0,12.8,11.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",32,5C,5E,5A,5D,5B,5C > 5E > 5A > 5D > 5B,VALID,18.6,11.2,-26.0,10.8,11.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",33,5C,5E,5B,5A,5D,5C > 5E > 5B > 5A > 5D,VALID,18.0,13.6,-58.0,10.8,10.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",34,5C,5E,5B,5D,5A,5C > 5E > 5B > 5D > 5A,VALID,11.4,13.6,-50.0,6.8,9.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",35,5C,5E,5D,5A,5B,5C > 5E > 5D > 5A > 5B,VALID,12.0,11.2,-18.0,6.8,10.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",36,5C,5E,5D,5B,5A,5C > 5E > 5D > 5B > 5A,VALID,8.4,12.4,-30.0,4.8,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",37,5C,5B,5A,5E,5D,5C > 5B > 5A > 5E > 5D,VALID,19.2,12.8,-110.0,14.4,10.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",38,5C,5B,5A,5D,5E,5C > 5B > 5A > 5D > 5E,VALID,15.0,11.8,-122.0,13.2,10.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",39,5C,5B,5E,5A,5D,5C > 5B > 5E > 5A > 5D,VALID,16.8,13.8,-90.0,11.6,10.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",40,5C,5B,5E,5D,5A,5C > 5B > 5E > 5D > 5A,VALID,10.2,13.8,-82.0,7.6,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",41,5C,5B,5D,5A,5E,5C > 5B > 5D > 5A > 5E,VALID,8.4,11.8,-114.0,9.2,8.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",42,5C,5B,5D,5E,5A,5C > 5B > 5D > 5E > 5A,VALID,6.0,12.8,-94.0,6.4,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",43,5C,5D,5A,5E,5B,5C > 5D > 5A > 5E > 5B,VALID,10.2,9.2,-50.0,8.4,9.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",44,5C,5D,5A,5B,5E,5C > 5D > 5A > 5B > 5E,VALID,9.0,9.4,-82.0,9.2,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",45,5C,5D,5E,5A,5B,5C > 5D > 5E > 5A > 5B,VALID,7.8,10.2,-30.0,5.6,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",46,5C,5D,5E,5B,5A,5C > 5D > 5E > 5B > 5A,VALID,4.2,11.4,-42.0,3.6,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",47,5C,5D,5B,5A,5E,5C > 5D > 5B > 5A > 5E,VALID,5.4,10.6,-94.0,7.2,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",48,5C,5D,5B,5E,5A,5C > 5D > 5B > 5E > 5A,VALID,3.0,11.6,-74.0,4.4,8.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",49,5E,5A,5C,5B,5D,5E > 5A > 5C > 5B > 5D,VALID,22.8,11.0,-30.0,11.6,9.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",50,5E,5A,5C,5D,5B,5E > 5A > 5C > 5D > 5B,VALID,19.8,9.8,-10.0,9.6,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",51,5E,5A,5B,5C,5D,5E > 5A > 5B > 5C > 5D,VALID,21.0,11.0,-44.0,10.4,8.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",52,5E,5A,5B,5D,5C,5E > 5A > 5B > 5D > 5C,VALID,16.2,9.8,-38.0,7.2,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",53,5E,5A,5D,5C,5B,5E > 5A > 5D > 5C > 5B,VALID,15.0,8.6,-4.0,6.4,7.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",54,5E,5A,5D,5B,5C,5E > 5A > 5D > 5B > 5C,VALID,13.2,8.6,-18.0,5.2,5.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",55,5E,5C,5A,5B,5D,5E > 5C > 5A > 5B > 5D,VALID,21.0,12.2,-28.0,10.8,10.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",56,5E,5C,5A,5D,5B,5E > 5C > 5A > 5D > 5B,VALID,18.0,11.0,-8.0,8.8,10.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",57,5E,5C,5B,5A,5D,5E > 5C > 5B > 5A > 5D,VALID,17.4,13.4,-40.0,8.8,9.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",58,5E,5C,5B,5D,5A,5E > 5C > 5B > 5D > 5A,VALID,10.8,13.4,-32.0,4.8,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",59,5E,5C,5D,5A,5B,5E > 5C > 5D > 5A > 5B,VALID,11.4,11.0,0.0,4.8,8.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",60,5E,5C,5D,5B,5A,5E > 5C > 5D > 5B > 5A,VALID,7.8,12.2,-12.0,2.8,8.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",61,5E,5B,5A,5C,5D,5E > 5B > 5A > 5C > 5D,VALID,17.4,12.2,-56.0,8.4,7.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",62,5E,5B,5A,5D,5C,5E > 5B > 5A > 5D > 5C,VALID,12.6,11.0,-50.0,5.2,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",63,5E,5B,5C,5A,5D,5E > 5B > 5C > 5A > 5D,VALID,15.6,13.4,-54.0,7.6,8.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",64,5E,5B,5C,5D,5A,5E > 5B > 5C > 5D > 5A,VALID,9.0,13.4,-46.0,3.6,6.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",65,5E,5B,5D,5A,5C,5E > 5B > 5D > 5A > 5C,VALID,6.0,11.0,-42.0,1.2,4.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",66,5E,5B,5D,5C,5A,5E > 5B > 5D > 5C > 5A,VALID,4.2,12.2,-40.0,0.4,4.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",67,5E,5D,5A,5C,5B,5E > 5D > 5A > 5C > 5B,VALID,8.4,8.6,4.0,2.4,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",68,5E,5D,5A,5B,5C,5E > 5D > 5A > 5B > 5C,VALID,6.6,8.6,-10.0,1.2,4.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",69,5E,5D,5C,5A,5B,5E > 5D > 5C > 5A > 5B,VALID,6.6,9.8,6.0,1.6,6.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",70,5E,5D,5C,5B,5A,5E > 5D > 5C > 5B > 5A,VALID,3.0,11.0,-6.0,-0.4,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",71,5E,5D,5B,5A,5C,5E > 5D > 5B > 5A > 5C,VALID,3.0,9.8,-22.0,-0.8,3.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",72,5E,5D,5B,5C,5A,5E > 5D > 5B > 5C > 5A,VALID,1.2,11.0,-20.0,-1.6,4.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",73,5B,5A,5C,5E,5D,5B > 5A > 5C > 5E > 5D,VALID,19.2,11.6,-126.0,14.0,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",74,5B,5A,5C,5D,5E,5B > 5A > 5C > 5D > 5E,VALID,15.0,10.6,-138.0,12.8,7.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",75,5B,5A,5E,5C,5D,5B > 5A > 5E > 5C > 5D,VALID,18.6,11.4,-108.0,12.0,7.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",76,5B,5A,5E,5D,5C,5B > 5A > 5E > 5D > 5C,VALID,13.8,10.2,-102.0,8.8,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",77,5B,5A,5D,5C,5E,5B > 5A > 5D > 5C > 5E,VALID,10.2,9.4,-132.0,9.6,5.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",78,5B,5A,5D,5E,5C,5B > 5A > 5D > 5E > 5C,VALID,9.6,9.2,-114.0,7.6,4.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",79,5B,5C,5A,5E,5D,5B > 5C > 5A > 5E > 5D,VALID,17.4,12.8,-124.0,13.2,9.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",80,5B,5C,5A,5D,5E,5B > 5C > 5A > 5D > 5E,VALID,13.2,11.8,-136.0,12.0,8.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",81,5B,5C,5E,5A,5D,5B > 5C > 5E > 5A > 5D,VALID,15.0,13.8,-104.0,10.4,8.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",82,5B,5C,5E,5D,5A,5B > 5C > 5E > 5D > 5A,VALID,8.4,13.8,-96.0,6.4,7.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",83,5B,5C,5D,5A,5E,5B > 5C > 5D > 5A > 5E,VALID,6.6,11.8,-128.0,8.0,7.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",84,5B,5C,5D,5E,5A,5B > 5C > 5D > 5E > 5A,VALID,4.2,12.8,-108.0,5.2,6.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",85,5B,5E,5A,5C,5D,5B > 5E > 5A > 5C > 5D,VALID,16.2,12.4,-88.0,9.2,6.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",86,5B,5E,5A,5D,5C,5B > 5E > 5A > 5D > 5C,VALID,11.4,11.2,-82.0,6.0,4.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",87,5B,5E,5C,5A,5D,5B > 5E > 5C > 5A > 5D,VALID,14.4,13.6,-86.0,8.4,7.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",88,5B,5E,5C,5D,5A,5B > 5E > 5C > 5D > 5A,VALID,7.8,13.6,-78.0,4.4,6.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",89,5B,5E,5D,5A,5C,5B > 5E > 5D > 5A > 5C,VALID,4.8,11.2,-74.0,2.0,3.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",90,5B,5E,5D,5C,5A,5B > 5E > 5D > 5C > 5A,VALID,3.0,12.4,-72.0,1.2,4.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",91,5B,5D,5A,5C,5E,5B > 5D > 5A > 5C > 5E,VALID,3.6,9.4,-124.0,5.6,4.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",92,5B,5D,5A,5E,5C,5B > 5D > 5A > 5E > 5C,VALID,3.0,9.2,-106.0,3.6,3.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",93,5B,5D,5C,5A,5E,5B > 5D > 5C > 5A > 5E,VALID,1.8,10.6,-122.0,4.8,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",94,5B,5D,5C,5E,5A,5B > 5D > 5C > 5E > 5A,VALID,-0.6,11.6,-102.0,2.0,4.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",95,5B,5D,5E,5A,5C,5B > 5D > 5E > 5A > 5C,VALID,0.6,10.2,-86.0,0.8,2.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",96,5B,5D,5E,5C,5A,5B > 5D > 5E > 5C > 5A,VALID,-1.2,11.4,-84.0,0.0,3.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",97,5D,5A,5C,5E,5B,5D > 5A > 5C > 5E > 5B,VALID,7.2,6.8,-46.0,6.0,6.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",98,5D,5A,5C,5B,5E,5D > 5A > 5C > 5B > 5E,VALID,6.0,7.0,-78.0,6.8,6.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",99,5D,5A,5E,5C,5B,5D > 5A > 5E > 5C > 5B,VALID,6.6,6.6,-28.0,4.0,5.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",100,5D,5A,5E,5B,5C,5D > 5A > 5E > 5B > 5C,VALID,4.8,6.6,-42.0,2.8,4.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",101,5D,5A,5B,5C,5E,5D > 5A > 5B > 5C > 5E,VALID,4.2,7.0,-92.0,5.6,4.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",102,5D,5A,5B,5E,5C,5D > 5A > 5B > 5E > 5C,VALID,3.6,6.8,-74.0,3.6,3.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",103,5D,5C,5A,5E,5B,5D > 5C > 5A > 5E > 5B,VALID,5.4,8.0,-44.0,5.2,7.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",104,5D,5C,5A,5B,5E,5D > 5C > 5A > 5B > 5E,VALID,4.2,8.2,-76.0,6.0,7.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",105,5D,5C,5E,5A,5B,5D > 5C > 5E > 5A > 5B,VALID,3.0,9.0,-24.0,2.4,7.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",106,5D,5C,5E,5B,5A,5D > 5C > 5E > 5B > 5A,VALID,-0.6,10.2,-36.0,0.4,6.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",107,5D,5C,5B,5A,5E,5D > 5C > 5B > 5A > 5E,VALID,0.6,9.4,-88.0,4.0,6.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",108,5D,5C,5B,5E,5A,5D > 5C > 5B > 5E > 5A,VALID,-1.8,10.4,-68.0,1.2,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",109,5D,5E,5A,5C,5B,5D > 5E > 5A > 5C > 5B,VALID,4.2,7.6,-8.0,1.2,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",110,5D,5E,5A,5B,5C,5D > 5E > 5A > 5B > 5C,VALID,2.4,7.6,-22.0,-0.0,3.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",111,5D,5E,5C,5A,5B,5D > 5E > 5C > 5A > 5B,VALID,2.4,8.8,-6.0,0.4,6.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",112,5D,5E,5C,5B,5A,5D > 5E > 5C > 5B > 5A,VALID,-1.2,10.0,-18.0,-1.6,5.2
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",113,5D,5E,5B,5A,5C,5D > 5E > 5B > 5A > 5C,VALID,-1.2,8.8,-34.0,-2.0,2.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",114,5D,5E,5B,5C,5A,5D > 5E > 5B > 5C > 5A,VALID,-3.0,10.0,-32.0,-2.8,3.6
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",115,5D,5B,5A,5C,5E,5D > 5B > 5A > 5C > 5E,VALID,0.6,8.2,-104.0,3.6,4.0
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",116,5D,5B,5A,5E,5C,5D > 5B > 5A > 5E > 5C,VALID,-0.0,8.0,-86.0,1.6,2.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",117,5D,5B,5C,5A,5E,5D > 5B > 5C > 5A > 5E,VALID,-1.2,9.4,-102.0,2.8,4.8
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",118,5D,5B,5C,5E,5A,5D > 5B > 5C > 5E > 5A,VALID,-3.6,10.4,-82.0,0.0,4.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",119,5D,5B,5E,5A,5C,5D > 5B > 5E > 5A > 5C,VALID,-2.4,9.0,-66.0,-1.2,2.4
+5,Day 8,"Landslides, blocked roads, telecom failure and Dry-Zone shortage",120,5D,5B,5E,5C,5A,5D > 5B > 5E > 5C > 5A,VALID,-4.2,10.2,-64.0,-2.0,3.2
+6,Day 10,From emergency response to recovery,1,6A,6C,6B,6E,6D,6A > 6C > 6B > 6E > 6D,VALID,18.4,22.8,-83.0,24.4,22.6
+6,Day 10,From emergency response to recovery,2,6A,6C,6B,6D,6E,6A > 6C > 6B > 6D > 6E,VALID,17.2,22.4,-93.0,20.8,19.4
+6,Day 10,From emergency response to recovery,3,6A,6C,6E,6B,6D,6A > 6C > 6E > 6B > 6D,VALID,17.2,22.0,-57.0,24.0,23.8
+6,Day 10,From emergency response to recovery,4,6A,6C,6E,6D,6B,6A > 6C > 6E > 6D > 6B,VALID,14.8,20.8,-41.0,20.0,21.8
+6,Day 10,From emergency response to recovery,5,6A,6C,6D,6B,6E,6A > 6C > 6D > 6B > 6E,VALID,14.8,21.2,-77.0,16.8,17.4
+6,Day 10,From emergency response to recovery,6,6A,6C,6D,6E,6B,6A > 6C > 6D > 6E > 6B,VALID,13.6,20.4,-51.0,16.4,18.6
+6,Day 10,From emergency response to recovery,7,6A,6B,6C,6E,6D,6A > 6B > 6C > 6E > 6D,VALID,19.6,22.4,-89.0,23.6,21.8
+6,Day 10,From emergency response to recovery,8,6A,6B,6C,6D,6E,6A > 6B > 6C > 6D > 6E,VALID,18.4,22.0,-99.0,20.0,18.6
+6,Day 10,From emergency response to recovery,9,6A,6B,6E,6C,6D,6A > 6B > 6E > 6C > 6D,VALID,19.6,21.2,-69.0,22.4,22.2
+6,Day 10,From emergency response to recovery,10,6A,6B,6E,6D,6C,6A > 6B > 6E > 6D > 6C,VALID,18.4,19.6,-59.0,17.6,19.4
+6,Day 10,From emergency response to recovery,11,6A,6B,6D,6C,6E,6A > 6B > 6D > 6C > 6E,VALID,17.2,20.4,-89.0,15.2,15.8
+6,Day 10,From emergency response to recovery,12,6A,6B,6D,6E,6C,6A > 6B > 6D > 6E > 6C,VALID,17.2,19.2,-69.0,14.0,16.2
+6,Day 10,From emergency response to recovery,13,6A,6E,6C,6B,6D,6A > 6E > 6C > 6B > 6D,VALID,17.2,20.8,-37.0,22.8,24.2
+6,Day 10,From emergency response to recovery,14,6A,6E,6C,6D,6B,6A > 6E > 6C > 6D > 6B,VALID,14.8,19.6,-21.0,18.8,22.2
+6,Day 10,From emergency response to recovery,15,6A,6E,6B,6C,6D,6A > 6E > 6B > 6C > 6D,VALID,18.4,20.4,-43.0,22.0,23.4
+6,Day 10,From emergency response to recovery,16,6A,6E,6B,6D,6C,6A > 6E > 6B > 6D > 6C,VALID,17.2,18.8,-33.0,17.2,20.6
+6,Day 10,From emergency response to recovery,17,6A,6E,6D,6C,6B,6A > 6E > 6D > 6C > 6B,VALID,13.6,18.0,-11.0,14.0,19.4
+6,Day 10,From emergency response to recovery,18,6A,6E,6D,6B,6C,6A > 6E > 6D > 6B > 6C,VALID,14.8,17.6,-17.0,13.2,18.6
+6,Day 10,From emergency response to recovery,19,6A,6D,6C,6B,6E,6A > 6D > 6C > 6B > 6E,VALID,13.6,19.6,-67.0,12.0,14.6
+6,Day 10,From emergency response to recovery,20,6A,6D,6C,6E,6B,6A > 6D > 6C > 6E > 6B,VALID,12.4,18.8,-41.0,11.6,15.8
+6,Day 10,From emergency response to recovery,21,6A,6D,6B,6C,6E,6A > 6D > 6B > 6C > 6E,VALID,14.8,19.2,-73.0,11.2,13.8
+6,Day 10,From emergency response to recovery,22,6A,6D,6B,6E,6C,6A > 6D > 6B > 6E > 6C,VALID,14.8,18.0,-53.0,10.0,14.2
+6,Day 10,From emergency response to recovery,23,6A,6D,6E,6C,6B,6A > 6D > 6E > 6C > 6B,VALID,12.4,17.6,-21.0,10.4,16.2
+6,Day 10,From emergency response to recovery,24,6A,6D,6E,6B,6C,6A > 6D > 6E > 6B > 6C,VALID,13.6,17.2,-27.0,9.6,15.4
+6,Day 10,From emergency response to recovery,25,6C,6A,6B,6E,6D,6C > 6A > 6B > 6E > 6D,VALID,17.6,23.2,-90.0,24.8,20.8
+6,Day 10,From emergency response to recovery,26,6C,6A,6B,6D,6E,6C > 6A > 6B > 6D > 6E,VALID,16.4,22.8,-100.0,21.2,17.6
+6,Day 10,From emergency response to recovery,27,6C,6A,6E,6B,6D,6C > 6A > 6E > 6B > 6D,VALID,16.4,22.4,-64.0,24.4,22.0
+6,Day 10,From emergency response to recovery,28,6C,6A,6E,6D,6B,6C > 6A > 6E > 6D > 6B,VALID,14.0,21.2,-48.0,20.4,20.0
+6,Day 10,From emergency response to recovery,29,6C,6A,6D,6B,6E,6C > 6A > 6D > 6B > 6E,VALID,14.0,21.6,-84.0,17.2,15.6
+6,Day 10,From emergency response to recovery,30,6C,6A,6D,6E,6B,6C > 6A > 6D > 6E > 6B,VALID,12.8,20.8,-58.0,16.8,16.8
+6,Day 10,From emergency response to recovery,31,6C,6B,6A,6E,6D,6C > 6B > 6A > 6E > 6D,VALID,18.0,23.2,-103.0,24.4,18.2
+6,Day 10,From emergency response to recovery,32,6C,6B,6A,6D,6E,6C > 6B > 6A > 6D > 6E,VALID,16.8,22.8,-113.0,20.8,15.0
+6,Day 10,From emergency response to recovery,33,6C,6B,6E,6A,6D,6C > 6B > 6E > 6A > 6D,VALID,17.2,22.4,-90.0,23.6,16.8
+6,Day 10,From emergency response to recovery,34,6C,6B,6E,6D,6A,6C > 6B > 6E > 6D > 6A,VALID,15.2,21.2,-87.0,19.2,12.2
+6,Day 10,From emergency response to recovery,35,6C,6B,6D,6A,6E,6C > 6B > 6D > 6A > 6E,VALID,14.8,21.6,-110.0,16.4,10.4
+6,Day 10,From emergency response to recovery,36,6C,6B,6D,6E,6A,6C > 6B > 6D > 6E > 6A,VALID,14.0,20.8,-97.0,15.6,9.0
+6,Day 10,From emergency response to recovery,37,6C,6E,6A,6B,6D,6C > 6E > 6A > 6B > 6D,VALID,15.6,21.6,-51.0,23.6,20.6
+6,Day 10,From emergency response to recovery,38,6C,6E,6A,6D,6B,6C > 6E > 6A > 6D > 6B,VALID,13.2,20.4,-35.0,19.6,18.6
+6,Day 10,From emergency response to recovery,39,6C,6E,6B,6A,6D,6C > 6E > 6B > 6A > 6D,VALID,16.0,21.6,-64.0,23.2,18.0
+6,Day 10,From emergency response to recovery,40,6C,6E,6B,6D,6A,6C > 6E > 6B > 6D > 6A,VALID,14.0,20.4,-61.0,18.8,13.4
+6,Day 10,From emergency response to recovery,41,6C,6E,6D,6A,6B,6C > 6E > 6D > 6A > 6B,VALID,11.2,19.2,-32.0,15.2,14.0
+6,Day 10,From emergency response to recovery,42,6C,6E,6D,6B,6A,6C > 6E > 6D > 6B > 6A,VALID,11.6,19.2,-45.0,14.8,11.4
+6,Day 10,From emergency response to recovery,43,6C,6D,6A,6B,6E,6C > 6D > 6A > 6B > 6E,VALID,12.0,20.4,-81.0,12.8,11.0
+6,Day 10,From emergency response to recovery,44,6C,6D,6A,6E,6B,6C > 6D > 6A > 6E > 6B,VALID,10.8,19.6,-55.0,12.4,12.2
+6,Day 10,From emergency response to recovery,45,6C,6D,6B,6A,6E,6C > 6D > 6B > 6A > 6E,VALID,12.4,20.4,-94.0,12.4,8.4
+6,Day 10,From emergency response to recovery,46,6C,6D,6B,6E,6A,6C > 6D > 6B > 6E > 6A,VALID,11.6,19.6,-81.0,11.6,7.0
+6,Day 10,From emergency response to recovery,47,6C,6D,6E,6A,6B,6C > 6D > 6E > 6A > 6B,VALID,10.0,18.8,-42.0,11.6,10.8
+6,Day 10,From emergency response to recovery,48,6C,6D,6E,6B,6A,6C > 6D > 6E > 6B > 6A,VALID,10.4,18.8,-55.0,11.2,8.2
+6,Day 10,From emergency response to recovery,49,6B,6A,6C,6E,6D,6B > 6A > 6C > 6E > 6D,VALID,20.0,22.4,-102.0,23.2,19.2
+6,Day 10,From emergency response to recovery,50,6B,6A,6C,6D,6E,6B > 6A > 6C > 6D > 6E,VALID,18.8,22.0,-112.0,19.6,16.0
+6,Day 10,From emergency response to recovery,51,6B,6A,6E,6C,6D,6B > 6A > 6E > 6C > 6D,VALID,20.0,21.2,-82.0,22.0,19.6
+6,Day 10,From emergency response to recovery,52,6B,6A,6E,6D,6C,6B > 6A > 6E > 6D > 6C,VALID,18.8,19.6,-72.0,17.2,16.8
+6,Day 10,From emergency response to recovery,53,6B,6A,6D,6C,6E,6B > 6A > 6D > 6C > 6E,VALID,17.6,20.4,-102.0,14.8,13.2
+6,Day 10,From emergency response to recovery,54,6B,6A,6D,6E,6C,6B > 6A > 6D > 6E > 6C,VALID,17.6,19.2,-82.0,13.6,13.6
+6,Day 10,From emergency response to recovery,55,6B,6C,6A,6E,6D,6B > 6C > 6A > 6E > 6D,VALID,19.2,22.8,-109.0,23.6,17.4
+6,Day 10,From emergency response to recovery,56,6B,6C,6A,6D,6E,6B > 6C > 6A > 6D > 6E,VALID,18.0,22.4,-119.0,20.0,14.2
+6,Day 10,From emergency response to recovery,57,6B,6C,6E,6A,6D,6B > 6C > 6E > 6A > 6D,VALID,18.4,22.0,-96.0,22.8,16.0
+6,Day 10,From emergency response to recovery,58,6B,6C,6E,6D,6A,6B > 6C > 6E > 6D > 6A,VALID,16.4,20.8,-93.0,18.4,11.4
+6,Day 10,From emergency response to recovery,59,6B,6C,6D,6A,6E,6B > 6C > 6D > 6A > 6E,VALID,16.0,21.2,-116.0,15.6,9.6
+6,Day 10,From emergency response to recovery,60,6B,6C,6D,6E,6A,6B > 6C > 6D > 6E > 6A,VALID,15.2,20.4,-103.0,14.8,8.2
+6,Day 10,From emergency response to recovery,61,6B,6E,6A,6C,6D,6B > 6E > 6A > 6C > 6D,VALID,19.2,20.4,-69.0,21.2,18.2
+6,Day 10,From emergency response to recovery,62,6B,6E,6A,6D,6C,6B > 6E > 6A > 6D > 6C,VALID,18.0,18.8,-59.0,16.4,15.4
+6,Day 10,From emergency response to recovery,63,6B,6E,6C,6A,6D,6B > 6E > 6C > 6A > 6D,VALID,18.4,20.8,-76.0,21.6,16.4
+6,Day 10,From emergency response to recovery,64,6B,6E,6C,6D,6A,6B > 6E > 6C > 6D > 6A,VALID,16.4,19.6,-73.0,17.2,11.8
+6,Day 10,From emergency response to recovery,65,6B,6E,6D,6A,6C,6B > 6E > 6D > 6A > 6C,VALID,16.0,17.6,-56.0,12.0,10.8
+6,Day 10,From emergency response to recovery,66,6B,6E,6D,6C,6A,6B > 6E > 6D > 6C > 6A,VALID,15.2,18.0,-63.0,12.4,9.0
+6,Day 10,From emergency response to recovery,67,6B,6D,6A,6C,6E,6B > 6D > 6A > 6C > 6E,VALID,15.6,19.2,-99.0,10.4,8.6
+6,Day 10,From emergency response to recovery,68,6B,6D,6A,6E,6C,6B > 6D > 6A > 6E > 6C,VALID,15.6,18.0,-79.0,9.2,9.0
+6,Day 10,From emergency response to recovery,69,6B,6D,6C,6A,6E,6B > 6D > 6C > 6A > 6E,VALID,14.8,19.6,-106.0,10.8,6.8
+6,Day 10,From emergency response to recovery,70,6B,6D,6C,6E,6A,6B > 6D > 6C > 6E > 6A,VALID,14.0,18.8,-93.0,10.0,5.4
+6,Day 10,From emergency response to recovery,71,6B,6D,6E,6A,6C,6B > 6D > 6E > 6A > 6C,VALID,14.8,17.2,-66.0,8.4,7.6
+6,Day 10,From emergency response to recovery,72,6B,6D,6E,6C,6A,6B > 6D > 6E > 6C > 6A,VALID,14.0,17.6,-73.0,8.8,5.8
+6,Day 10,From emergency response to recovery,73,6E,6A,6C,6B,6D,6E > 6A > 6C > 6B > 6D,VALID,16.4,20.0,-24.0,22.0,22.8
+6,Day 10,From emergency response to recovery,74,6E,6A,6C,6D,6B,6E > 6A > 6C > 6D > 6B,VALID,14.0,18.8,-8.0,18.0,20.8
+6,Day 10,From emergency response to recovery,75,6E,6A,6B,6C,6D,6E > 6A > 6B > 6C > 6D,VALID,17.6,19.6,-30.0,21.2,22.0
+6,Day 10,From emergency response to recovery,76,6E,6A,6B,6D,6C,6E > 6A > 6B > 6D > 6C,VALID,16.4,18.0,-20.0,16.4,19.2
+6,Day 10,From emergency response to recovery,77,6E,6A,6D,6C,6B,6E > 6A > 6D > 6C > 6B,VALID,12.8,17.2,2.0,13.2,18.0
+6,Day 10,From emergency response to recovery,78,6E,6A,6D,6B,6C,6E > 6A > 6D > 6B > 6C,VALID,14.0,16.8,-4.0,12.4,17.2
+6,Day 10,From emergency response to recovery,79,6E,6C,6A,6B,6D,6E > 6C > 6A > 6B > 6D,VALID,15.6,20.4,-31.0,22.4,21.0
+6,Day 10,From emergency response to recovery,80,6E,6C,6A,6D,6B,6E > 6C > 6A > 6D > 6B,VALID,13.2,19.2,-15.0,18.4,19.0
+6,Day 10,From emergency response to recovery,81,6E,6C,6B,6A,6D,6E > 6C > 6B > 6A > 6D,VALID,16.0,20.4,-44.0,22.0,18.4
+6,Day 10,From emergency response to recovery,82,6E,6C,6B,6D,6A,6E > 6C > 6B > 6D > 6A,VALID,14.0,19.2,-41.0,17.6,13.8
+6,Day 10,From emergency response to recovery,83,6E,6C,6D,6A,6B,6E > 6C > 6D > 6A > 6B,VALID,11.2,18.0,-12.0,14.0,14.4
+6,Day 10,From emergency response to recovery,84,6E,6C,6D,6B,6A,6E > 6C > 6D > 6B > 6A,VALID,11.6,18.0,-25.0,13.6,11.8
+6,Day 10,From emergency response to recovery,85,6E,6B,6A,6C,6D,6E > 6B > 6A > 6C > 6D,VALID,18.0,19.6,-43.0,20.8,19.4
+6,Day 10,From emergency response to recovery,86,6E,6B,6A,6D,6C,6E > 6B > 6A > 6D > 6C,VALID,16.8,18.0,-33.0,16.0,16.6
+6,Day 10,From emergency response to recovery,87,6E,6B,6C,6A,6D,6E > 6B > 6C > 6A > 6D,VALID,17.2,20.0,-50.0,21.2,17.6
+6,Day 10,From emergency response to recovery,88,6E,6B,6C,6D,6A,6E > 6B > 6C > 6D > 6A,VALID,15.2,18.8,-47.0,16.8,13.0
+6,Day 10,From emergency response to recovery,89,6E,6B,6D,6A,6C,6E > 6B > 6D > 6A > 6C,VALID,14.8,16.8,-30.0,11.6,12.0
+6,Day 10,From emergency response to recovery,90,6E,6B,6D,6C,6A,6E > 6B > 6D > 6C > 6A,VALID,14.0,17.2,-37.0,12.0,10.2
+6,Day 10,From emergency response to recovery,91,6E,6D,6A,6C,6B,6E > 6D > 6A > 6C > 6B,VALID,10.8,16.0,5.0,8.8,13.4
+6,Day 10,From emergency response to recovery,92,6E,6D,6A,6B,6C,6E > 6D > 6A > 6B > 6C,VALID,12.0,15.6,-1.0,8.0,12.6
+6,Day 10,From emergency response to recovery,93,6E,6D,6C,6A,6B,6E > 6D > 6C > 6A > 6B,VALID,10.0,16.4,-2.0,9.2,11.6
+6,Day 10,From emergency response to recovery,94,6E,6D,6C,6B,6A,6E > 6D > 6C > 6B > 6A,VALID,10.4,16.4,-15.0,8.8,9.0
+6,Day 10,From emergency response to recovery,95,6E,6D,6B,6A,6C,6E > 6D > 6B > 6A > 6C,VALID,12.4,15.6,-14.0,7.6,10.0
+6,Day 10,From emergency response to recovery,96,6E,6D,6B,6C,6A,6E > 6D > 6B > 6C > 6A,VALID,11.6,16.0,-21.0,8.0,8.2
+6,Day 10,From emergency response to recovery,97,6D,6A,6C,6B,6E,6D > 6A > 6C > 6B > 6E,VALID,11.6,18.4,-64.0,7.6,10.0
+6,Day 10,From emergency response to recovery,98,6D,6A,6C,6E,6B,6D > 6A > 6C > 6E > 6B,VALID,10.4,17.6,-38.0,7.2,11.2
+6,Day 10,From emergency response to recovery,99,6D,6A,6B,6C,6E,6D > 6A > 6B > 6C > 6E,VALID,12.8,18.0,-70.0,6.8,9.2
+6,Day 10,From emergency response to recovery,100,6D,6A,6B,6E,6C,6D > 6A > 6B > 6E > 6C,VALID,12.8,16.8,-50.0,5.6,9.6
+6,Day 10,From emergency response to recovery,101,6D,6A,6E,6C,6B,6D > 6A > 6E > 6C > 6B,VALID,10.4,16.4,-18.0,6.0,11.6
+6,Day 10,From emergency response to recovery,102,6D,6A,6E,6B,6C,6D > 6A > 6E > 6B > 6C,VALID,11.6,16.0,-24.0,5.2,10.8
+6,Day 10,From emergency response to recovery,103,6D,6C,6A,6B,6E,6D > 6C > 6A > 6B > 6E,VALID,10.8,18.8,-71.0,8.0,8.2
+6,Day 10,From emergency response to recovery,104,6D,6C,6A,6E,6B,6D > 6C > 6A > 6E > 6B,VALID,9.6,18.0,-45.0,7.6,9.4
+6,Day 10,From emergency response to recovery,105,6D,6C,6B,6A,6E,6D > 6C > 6B > 6A > 6E,VALID,11.2,18.8,-84.0,7.6,5.6
+6,Day 10,From emergency response to recovery,106,6D,6C,6B,6E,6A,6D > 6C > 6B > 6E > 6A,VALID,10.4,18.0,-71.0,6.8,4.2
+6,Day 10,From emergency response to recovery,107,6D,6C,6E,6A,6B,6D > 6C > 6E > 6A > 6B,VALID,8.8,17.2,-32.0,6.8,8.0
+6,Day 10,From emergency response to recovery,108,6D,6C,6E,6B,6A,6D > 6C > 6E > 6B > 6A,VALID,9.2,17.2,-45.0,6.4,5.4
+6,Day 10,From emergency response to recovery,109,6D,6B,6A,6C,6E,6D > 6B > 6A > 6C > 6E,VALID,13.2,18.0,-83.0,6.4,6.6
+6,Day 10,From emergency response to recovery,110,6D,6B,6A,6E,6C,6D > 6B > 6A > 6E > 6C,VALID,13.2,16.8,-63.0,5.2,7.0
+6,Day 10,From emergency response to recovery,111,6D,6B,6C,6A,6E,6D > 6B > 6C > 6A > 6E,VALID,12.4,18.4,-90.0,6.8,4.8
+6,Day 10,From emergency response to recovery,112,6D,6B,6C,6E,6A,6D > 6B > 6C > 6E > 6A,VALID,11.6,17.6,-77.0,6.0,3.4
+6,Day 10,From emergency response to recovery,113,6D,6B,6E,6A,6C,6D > 6B > 6E > 6A > 6C,VALID,12.4,16.0,-50.0,4.4,5.6
+6,Day 10,From emergency response to recovery,114,6D,6B,6E,6C,6A,6D > 6B > 6E > 6C > 6A,VALID,11.6,16.4,-57.0,4.8,3.8
+6,Day 10,From emergency response to recovery,115,6D,6E,6A,6C,6B,6D > 6E > 6A > 6C > 6B,VALID,9.6,15.6,-5.0,5.2,10.2
+6,Day 10,From emergency response to recovery,116,6D,6E,6A,6B,6C,6D > 6E > 6A > 6B > 6C,VALID,10.8,15.2,-11.0,4.4,9.4
+6,Day 10,From emergency response to recovery,117,6D,6E,6C,6A,6B,6D > 6E > 6C > 6A > 6B,VALID,8.8,16.0,-12.0,5.6,8.4
+6,Day 10,From emergency response to recovery,118,6D,6E,6C,6B,6A,6D > 6E > 6C > 6B > 6A,VALID,9.2,16.0,-25.0,5.2,5.8
+6,Day 10,From emergency response to recovery,119,6D,6E,6B,6A,6C,6D > 6E > 6B > 6A > 6C,VALID,11.2,15.2,-24.0,4.0,6.8
+6,Day 10,From emergency response to recovery,120,6D,6E,6B,6C,6A,6D > 6E > 6B > 6C > 6A,VALID,10.4,15.6,-31.0,4.4,5.0

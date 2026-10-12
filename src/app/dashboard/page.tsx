@@ -1,10 +1,10 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import crypto from 'crypto';
 import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
 import { getSession } from '@/lib/session';
 import { getInitialGameState } from '@/game/state';
-import crypto from 'crypto';
+import { determineNextScenario } from '@/game/engines/scenarioEngine';
 import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
@@ -36,26 +36,10 @@ export default async function DashboardPage() {
     await gameSession.save();
   }
 
-  // Determine the current scenario for the state
-  // We need to import determineNextScenario and populate actions
-  const { determineNextScenario } = await import('@/game/engines/scenarioEngine');
-  const ActionModel = (await import('@/models/Action')).default;
-  
-  let currentScenario: any = await determineNextScenario(gameSession.state);
-  
-  // Populate the available actions so the client can render them
-  if (currentScenario && currentScenario.availableActionIds) {
-    const actions = await ActionModel.find({ actionId: { $in: currentScenario.availableActionIds } }).lean();
-    
-    // Sort actions to match the order in availableActionIds, or just pass them
-    currentScenario.actions = actions.map(a => ({
-      id: a.actionId,
-      title: a.title,
-      description: a.description
-    }));
-  }
+  // Determine current scenario for the game state
+  const currentScenario = await determineNextScenario(gameSession.state);
 
-  // Pass the raw state object to the client component
+  // Pass raw serializable objects to client component
   const stateData = JSON.parse(JSON.stringify(gameSession.state));
   const scenarioData = JSON.parse(JSON.stringify(currentScenario));
 

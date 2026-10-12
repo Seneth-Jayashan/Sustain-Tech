@@ -3,7 +3,8 @@ import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
 import IntegrityLog from '@/models/IntegrityLog';
 import { getSession } from '@/lib/session';
-import { processDecision } from '@/game/engines/stateTransitionEngine';
+import { processDecision, calculateFinalOutcome, validateConstraints } from '@/game/engine';
+import { determineNextScenario } from '@/game/engines/scenarioEngine';
 
 export async function POST(request: Request) {
   try {
@@ -14,11 +15,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { rankings } = await request.json(); // Array of Action IDs
-
-    if (!Array.isArray(rankings) || rankings.length !== 5) {
-      return NextResponse.json({ error: 'Must provide exactly 5 rankings' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { rankings, allocations } = body;
 
     const gameSession = await GameSession.findOne({ teamId: session.teamId, status: 'ACTIVE' });
     
@@ -26,45 +24,50 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No active game session found' }, { status: 404 });
     }
 
-    const currentBucket = gameSession.state.bucket;
+    const currentBucket = gameSession.state.bucket || 1;
     
     if (currentBucket > 6) {
       return NextResponse.json({ error: 'Game already completed' }, { status: 400 });
     }
 
-    // Process the decision through the new state transition engine
-    const newState = await processDecision(gameSession.state, session.userId, rankings);
+    // 1. Validation based on round type
+    const isAllocationRound = currentBucket === 3 || currentBucket === 4;
+
+    if (!isAllocationRound) {
+      if (!Array.isArray(rankings) || rankings.length !== 5) {
+        return NextResponse.json({ error: 'Must provide all 5 actions in priority order' }, { status: 400 });
+      }
+    } else {
+      // For allocation rounds, must provide either allocations map or rankings plan
+      if (!allocations && (!Array.isArray(rankings) || rankings.length < 3)) {
+        return NextResponse.json({ error: 'Must provide resource allocations or an allocation package' }, { status: 400 });
+      }
+    }
+
+    // 2. Validate operational constraints
+    const constraintCheck = validateConstraints(
+      currentBucket, 
+      { rankings, allocations }, 
+      gameSession.state.resources?.emergencyBudget
+    );
+    if (!constraintCheck.valid) {
+      return NextResponse.json({ error: constraintCheck.error }, { status: 400 });
+    }
+
+    // 3. Process the decision through the hybrid simulation engine
+    const newState = processDecision(gameSession.state, session.userId, { rankings, allocations });
 
     gameSession.state = newState;
     gameSession.currentUserId = session.userId;
     
-    // Check if game is over
+    // Check if game is complete (all 6 buckets completed)
     if (newState.bucket > 6) {
       gameSession.status = 'COMPLETED';
-      
-      // Calculate final outcome (basic example using new state structure)
-      const { floodPreparedness, droughtPreparedness } = newState.scores;
-      const pathway = droughtPreparedness > floodPreparedness ? 'Drought' : 'Flood';
-      
-      let rawCps = (floodPreparedness + droughtPreparedness) / 2;
-      let cps = rawCps;
-      
-      // Asymptotic curve: makes it exponentially harder to reach 100
-      if (rawCps > 50) {
-        cps = 50 + 50 * (1 - Math.exp(-(rawCps - 50) / 40));
-      }
-      
-      cps = Math.max(0, Math.min(100, Math.round(cps)));
-      
-      gameSession.finalResult = {
-        cps,
-        pathway,
-        rating: cps >= 80 ? 'Excellent' : cps >= 60 ? 'Good' : cps >= 40 ? 'Moderate' : 'Poor'
-      };
+      gameSession.finalResult = calculateFinalOutcome(newState);
     }
 
-    // Tell mongoose the Mixed type state has changed
     gameSession.markModified('state');
+    gameSession.markModified('finalResult');
     await gameSession.save();
 
     // Log the submission in the Integrity System
@@ -72,30 +75,23 @@ export async function POST(request: Request) {
       gameSessionId: gameSession._id,
       userId: session.userId,
       actionType: 'SUBMISSION',
-      metadata: { bucket: currentBucket, rankings }
+      metadata: { bucket: currentBucket, rankings, allocations }
     });
 
-    // If active, determine the next scenario to send to the client
+    // If active, determine the next scenario
     let nextScenario = null;
     if (gameSession.status === 'ACTIVE') {
-      const { determineNextScenario } = await import('@/game/engines/scenarioEngine');
-      const ActionModel = (await import('@/models/Action')).default;
-      
-      const scen: any = await determineNextScenario(newState);
-      if (scen && scen.availableActionIds) {
-        const actions = await ActionModel.find({ actionId: { $in: scen.availableActionIds } }).lean();
-        scen.actions = actions.map(a => ({
-          id: a.actionId,
-          title: a.title,
-          description: a.description
-        }));
-      }
-      nextScenario = scen;
+      nextScenario = await determineNextScenario(newState);
     }
 
-    return NextResponse.json({ success: true, gameSession, nextScenario });
+    return NextResponse.json({ 
+      success: true, 
+      gameSession, 
+      nextScenario,
+      activeEvents: newState.activeDynamicEvents || []
+    });
   } catch (error: any) {
     console.error('Error submitting decision:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
