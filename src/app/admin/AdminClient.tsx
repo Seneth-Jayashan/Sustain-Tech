@@ -6,13 +6,14 @@ import {
   ShieldAlert, Droplets, Coins, LogOut, RefreshCcw, ChevronDown, ChevronUp, 
   Activity, Users, LayoutDashboard, Settings, FileText, Database, Plus, Trash2, 
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
-  Layers, Link2, ShieldCheck, UserCheck, Search, Info
+  Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminClient() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'scenarios'>('overview');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Data states
   const [sessions, setSessions] = useState<any[]>([]);
@@ -652,8 +653,114 @@ export default function AdminClient() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <div className="relative z-20 w-64 border-r border-blue-900/40 bg-black/70 backdrop-blur-2xl flex flex-col">
+      {/* Mobile Top Command Header */}
+      <div className="md:hidden sticky top-0 z-40 bg-black/85 backdrop-blur-xl border-b border-blue-900/40 px-4 py-3 flex items-center justify-between safe-top">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/40 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+            <ShieldAlert size={18} />
+          </div>
+          <div>
+            <div className="text-xs font-black tracking-widest uppercase text-white leading-none">Central Command</div>
+            <div className="text-[10px] font-mono text-blue-400/80 mt-0.5">Admin Console</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button 
+            type="button"
+            onClick={fetchData}
+            aria-label="Sync State"
+            className="w-8 h-8 rounded-lg bg-blue-950/50 text-blue-300 border border-blue-700/40 flex items-center justify-center active:scale-95 cursor-pointer"
+          >
+            <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+            className="w-8 h-8 rounded-lg bg-blue-900/30 text-blue-400 border border-blue-700/40 flex items-center justify-center active:scale-95 cursor-pointer"
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Navigation Backdrop & Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="md:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-[#030914] border-r border-blue-900/50 flex flex-col p-4 shadow-2xl safe-top safe-bottom"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-blue-900/40">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center border border-blue-500/40">
+                    <ShieldAlert size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black tracking-widest uppercase text-white">Central Command</h2>
+                    <p className="text-[10px] font-mono text-blue-400/80">Disaster Admin</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-8 h-8 rounded-lg bg-white/5 text-gray-400 hover:text-white flex items-center justify-center"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 py-4 flex flex-col gap-2">
+                {navItems.map(item => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id as any);
+                        setSearchTerm('');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-3.5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${
+                        isActive 
+                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]' 
+                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+                      }`}
+                    >
+                      <Icon size={18} /> {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="pt-4 border-t border-blue-900/40">
+                <button 
+                  onClick={handleLogout}
+                  className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase"
+                >
+                  <LogOut size={16} /> Sign Out
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex relative z-20 w-64 border-r border-blue-900/40 bg-black/70 backdrop-blur-2xl flex-col shrink-0">
         <div className="p-6 border-b border-blue-900/40">
           <div className="w-12 h-12 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-[0_0_20px_rgba(37,99,235,0.25)] mb-4">
             <ShieldAlert size={28} />
@@ -693,24 +800,24 @@ export default function AdminClient() {
       </div>
 
       {/* Main Command Console */}
-      <div className="flex-1 relative z-10 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-blue-900/40">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-blue-900/40 pb-6">
+      <div className="flex-1 relative z-10 overflow-y-auto p-3.5 sm:p-6 md:p-8 scrollbar-thin scrollbar-thumb-blue-900/40">
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 border-b border-blue-900/40 pb-4 sm:pb-6">
           <div>
-            <h2 className="text-2xl font-black tracking-widest uppercase text-white flex items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-black tracking-widest uppercase text-white flex items-center gap-2 sm:gap-3">
               {navItems.find(i => i.id === activeTab)?.label}
             </h2>
-            <p className="text-xs font-mono text-gray-400 mt-1">
+            <p className="text-[11px] sm:text-xs font-mono text-gray-400 mt-1">
               {activeTab === 'overview' && 'Live sector monitoring, team decision pipelines, and telemetry'}
               {activeTab === 'teams' && 'Create teams, manage player rosters, and configure administrative access'}
               {activeTab === 'scenarios' && 'Manage simulation operational buckets and link actionable decision cards'}
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {activeTab === 'overview' && sessions.length > 0 && (
               <button 
                 onClick={() => handleDeleteSession('all')}
-                className="flex items-center gap-2 px-3.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 rounded-xl transition-all font-mono text-xs"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 rounded-xl transition-all font-mono text-xs cursor-pointer active:scale-95"
                 title="Erase all active & completed sessions to reset all teams"
               >
                 <Trash2 size={14} /> Clear All Sessions
@@ -718,7 +825,7 @@ export default function AdminClient() {
             )}
             <button 
               onClick={fetchData}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 border border-blue-700/40 rounded-xl transition-all font-mono text-xs"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 border border-blue-700/40 rounded-xl transition-all font-mono text-xs cursor-pointer active:scale-95"
             >
               <RefreshCcw size={15} className={loading ? "animate-spin" : ""} /> Sync State
             </button>
@@ -729,9 +836,9 @@ export default function AdminClient() {
         {/* TAB 1: TELEMETRY OVERVIEW                                                 */}
         {/* ========================================================================= */}
         {activeTab === 'overview' && (
-          <div className="grid gap-6">
+          <div className="grid gap-4 sm:gap-6">
             {sessions.length === 0 && !loading && (
-              <div className="text-center p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-sm">
+              <div className="text-center p-12 sm:p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-xs sm:text-sm">
                 NO ACTIVE SESSIONS REGISTERED IN SECTOR
               </div>
             )}
@@ -747,54 +854,56 @@ export default function AdminClient() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`p-6 rounded-2xl border backdrop-blur-md flex flex-col ${
+                  className={`p-4 sm:p-6 rounded-2xl border backdrop-blur-md flex flex-col ${
                     isCompleted 
                       ? 'border-green-500/40 bg-green-950/10' 
                       : 'border-blue-500/30 bg-blue-950/10 hover:border-blue-500/50'
                   }`}
                 >
                   <div 
-                    className="flex items-center justify-between w-full cursor-pointer select-none"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full cursor-pointer select-none"
                     onClick={() => setExpandedSessions(prev => ({ ...prev, [session._id]: !prev[session._id] }))}
                   >
-                    <div className="flex flex-col gap-1 w-1/2">
+                    <div className="flex flex-col gap-1 w-full sm:w-auto">
                       <span className="text-xs font-mono text-blue-400 uppercase tracking-widest">{team?.name || 'Unassigned Team'}</span>
-                      <span className="text-xl font-black text-white">{session.currentUserId?.name || 'Session Commander'}</span>
-                      <div className="mt-2">
+                      <span className="text-lg sm:text-xl font-black text-white">{session.currentUserId?.name || 'Session Commander'}</span>
+                      <div className="mt-1.5 sm:mt-2">
                         {isCompleted ? (
-                          <span className="inline-block px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded-md text-xs font-black tracking-widest uppercase">
+                          <span className="inline-block px-2.5 sm:px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded-md text-[11px] sm:text-xs font-black tracking-widest uppercase">
                             Mission Accomplished // CPS: {typeof session.finalResult?.cps === 'number' ? session.finalResult.cps.toFixed(1) : 'Complete'}
                           </span>
                         ) : (
-                          <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-md text-xs font-black tracking-widest uppercase animate-pulse">
+                          <span className="inline-block px-2.5 sm:px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-md text-[11px] sm:text-xs font-black tracking-widest uppercase animate-pulse">
                             Day {state?.day ?? 0} (Bucket {state?.bucket ?? 1} / 6)
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 sm:gap-6">
-                      <div className="text-right">
-                        <span className="text-gray-400 text-xs font-mono uppercase">Information</span>
-                        <div className="text-xl font-black text-blue-400">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 w-full sm:w-auto pt-2.5 sm:pt-0 border-t border-blue-900/30 sm:border-t-0">
+                      <div className="text-left sm:text-right">
+                        <span className="text-gray-400 text-[10px] sm:text-xs font-mono uppercase block">Information</span>
+                        <div className="text-base sm:text-xl font-black text-blue-400">
                           {Math.round(state?.information?.informationQuality || 50)}%
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSession(session._id, team?.name);
-                        }}
-                        className="w-9 h-9 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 hover:border-red-600/60 flex items-center justify-center transition-all"
-                        title="Delete this game session (reset team progress)"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSession(session._id, team?.name);
+                          }}
+                          className="w-9 h-9 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 hover:border-red-600/60 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                          title="Delete this game session (reset team progress)"
+                        >
+                          <Trash2 size={16} />
+                        </button>
 
-                      <div className="w-9 h-9 rounded-xl bg-blue-900/30 flex items-center justify-center text-blue-400 border border-blue-800/40">
-                        {expandedSessions[session._id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        <div className="w-9 h-9 rounded-xl bg-blue-900/30 flex items-center justify-center text-blue-400 border border-blue-800/40">
+                          {expandedSessions[session._id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -803,30 +912,30 @@ export default function AdminClient() {
                     <motion.div 
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
-                      className="mt-6 pt-6 border-t border-blue-900/40 flex flex-col gap-6"
+                      className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-blue-900/40 flex flex-col gap-4 sm:gap-6"
                     >
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-black/40 p-4 rounded-xl border border-blue-900/30">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-gray-400 text-xs font-mono">WATER CAPACITY</span>
-                          <div className="flex items-center gap-2 text-blue-400 font-black text-lg">
-                            <Droplets size={18} /> {Math.round(state?.resources?.drinkingWater ?? 100)}%
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 bg-black/40 p-3 sm:p-4 rounded-xl border border-blue-900/30">
+                        <div className="flex flex-col items-center text-center gap-1">
+                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">WATER CAPACITY</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-blue-400 font-black text-base sm:text-lg">
+                            <Droplets size={16} /> {Math.round(state?.resources?.drinkingWater ?? 100)}%
                           </div>
                         </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-gray-400 text-xs font-mono">EMERGENCY BUDGET</span>
-                          <div className="flex items-center gap-2 text-green-400 font-black text-lg">
-                            <Coins size={18} /> LKR {Math.round(state?.resources?.emergencyBudget ?? 500)}M
+                        <div className="flex flex-col items-center text-center gap-1">
+                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">EMERGENCY BUDGET</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-green-400 font-black text-base sm:text-lg">
+                            <Coins size={16} /> LKR {Math.round(state?.resources?.emergencyBudget ?? 500)}M
                           </div>
                         </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-gray-400 text-xs font-mono">FLOOD PREPAREDNESS</span>
-                          <div className="flex items-center gap-2 text-cyan-400 font-black text-lg">
+                        <div className="flex flex-col items-center text-center gap-1">
+                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">FLOOD PREPAREDNESS</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-cyan-400 font-black text-base sm:text-lg">
                             {Math.round(state?.scores?.floodPreparedness ?? 50)}%
                           </div>
                         </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-gray-400 text-xs font-mono">COMMUNITY TRUST</span>
-                          <div className="flex items-center gap-2 text-purple-400 font-black text-lg">
+                        <div className="flex flex-col items-center text-center gap-1">
+                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">COMMUNITY TRUST</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-purple-400 font-black text-base sm:text-lg">
                             {Math.round(state?.community?.communityTrust ?? 50)}%
                           </div>
                         </div>
@@ -839,7 +948,7 @@ export default function AdminClient() {
                             e.stopPropagation();
                             handleDeleteSession(session._id, team?.name);
                           }}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-950/50 hover:bg-red-900/70 text-red-300 border border-red-800/50 text-xs font-mono font-bold transition-all"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-950/50 hover:bg-red-900/70 text-red-300 border border-red-800/50 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
                         >
                           <Trash2 size={14} /> Delete Session &amp; Reset Team
                         </button>
@@ -903,42 +1012,46 @@ export default function AdminClient() {
                       className="bg-black/40 border border-blue-900/40 rounded-2xl overflow-hidden backdrop-blur-md shadow-lg"
                     >
                       {/* Team Header */}
-                      <div className="p-5 bg-gradient-to-r from-blue-950/40 to-transparent border-b border-blue-900/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-950/40 to-transparent border-b border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                         <div className="flex items-center gap-3">
                           <button 
+                            type="button"
                             onClick={() => setExpandedTeams(prev => ({ ...prev, [team._id]: !prev[team._id] }))}
-                            className="w-8 h-8 rounded-lg bg-blue-900/30 flex items-center justify-center text-blue-400 hover:bg-blue-800/40 transition-colors"
+                            className="w-8 h-8 rounded-lg bg-blue-900/30 flex items-center justify-center text-blue-400 hover:bg-blue-800/40 transition-colors shrink-0"
                           >
                             {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                           </button>
                           <div>
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-black text-white uppercase tracking-wider">{team.name}</h3>
-                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-mono font-bold">
+                            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                              <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">{team.name}</h3>
+                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] sm:text-xs font-mono font-bold">
                                 {teamPlayers.length} {teamPlayers.length === 1 ? 'Player' : 'Players'}
                               </span>
                             </div>
-                            <p className="text-xs font-mono text-gray-500 mt-0.5">ID: {team._id}</p>
+                            <p className="text-[10px] sm:text-xs font-mono text-gray-500 mt-0.5">ID: {team._id}</p>
                           </div>
                         </div>
 
                         {/* Team Actions */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                           <button 
+                            type="button"
                             onClick={() => openAddPlayer(team._id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg font-mono text-xs font-bold transition-all"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer active:scale-95"
                           >
                             <UserPlus size={14} /> Add Player
                           </button>
                           <button 
+                            type="button"
                             onClick={() => openEditTeam(team)}
-                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/40 rounded-lg font-mono text-xs transition-all"
+                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/40 rounded-lg font-mono text-xs transition-all cursor-pointer active:scale-95"
                           >
                             <Edit3 size={14} />
                           </button>
                           <button 
+                            type="button"
                             onClick={() => handleDeleteTeam(team)}
-                            className="px-3 py-1.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-lg font-mono text-xs transition-all"
+                            className="px-3 py-1.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-lg font-mono text-xs transition-all cursor-pointer active:scale-95"
                             title="Delete Team & Associated Players"
                           >
                             <Trash2 size={14} />
@@ -948,20 +1061,21 @@ export default function AdminClient() {
 
                       {/* Players Sub-Table */}
                       {isExpanded && (
-                        <div className="p-5">
+                        <div className="p-3.5 sm:p-5">
                           {teamPlayers.length === 0 ? (
-                            <div className="text-center py-8 border border-dashed border-gray-800 rounded-xl bg-black/20">
+                            <div className="text-center py-6 sm:py-8 border border-dashed border-gray-800 rounded-xl bg-black/20">
                               <p className="text-gray-500 font-mono text-xs">No players assigned to {team.name} yet.</p>
                               <button 
+                                type="button"
                                 onClick={() => openAddPlayer(team._id)}
-                                className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-lg font-mono text-xs hover:bg-blue-600/30 transition-all"
+                                className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-lg font-mono text-xs hover:bg-blue-600/30 transition-all cursor-pointer active:scale-95"
                               >
                                 <UserPlus size={14} /> Add First Player
                               </button>
                             </div>
                           ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-left font-mono text-xs">
+                            <div className="overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0">
+                              <table className="w-full min-w-[500px] text-left font-mono text-xs">
                                 <thead>
                                   <tr className="border-b border-gray-800 text-gray-400">
                                     <th className="pb-3 font-semibold">Player Name</th>
@@ -974,8 +1088,8 @@ export default function AdminClient() {
                                   {teamPlayers.map((player: any) => (
                                     <tr key={player._id} className="hover:bg-white/5 transition-colors">
                                       <td className="py-3 font-bold text-gray-200 flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                        {player.name}
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></div>
+                                        <span>{player.name}</span>
                                       </td>
                                       <td className="py-3 text-blue-400/90">{player.email}</td>
                                       <td className="py-3">
@@ -984,17 +1098,19 @@ export default function AdminClient() {
                                         </span>
                                       </td>
                                       <td className="py-3 text-right">
-                                        <div className="inline-flex items-center gap-2">
+                                        <div className="inline-flex items-center gap-1.5 sm:gap-2">
                                           <button 
+                                            type="button"
                                             onClick={() => openEditPlayer(player)}
-                                            className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 transition-colors"
+                                            className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 transition-colors text-xs cursor-pointer active:scale-95"
                                             title="Edit Player"
                                           >
                                             Edit
                                           </button>
                                           <button 
+                                            type="button"
                                             onClick={() => handleDeleteUser(player._id, player.name)}
-                                            className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 transition-colors"
+                                            className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 transition-colors cursor-pointer active:scale-95"
                                             title="Remove Player"
                                           >
                                             <Trash2 size={13} />
@@ -1015,33 +1131,34 @@ export default function AdminClient() {
             </div>
 
             {/* Administrators Section (No team needed) */}
-            <div className="mt-12 pt-8 border-t border-blue-900/40">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-blue-900/40">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-2.5">
+                  <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider flex items-center gap-2.5">
                     <ShieldCheck size={22} className="text-yellow-500" />
                     System Administrators
                   </h3>
-                  <p className="text-xs font-mono text-gray-400 mt-0.5">
+                  <p className="text-[11px] sm:text-xs font-mono text-gray-400 mt-0.5">
                     Admin accounts operate across all teams and sectors (no team assignment needed).
                   </p>
                 </div>
                 <button 
+                  type="button"
                   onClick={openAddAdmin}
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 border border-yellow-500/40 font-mono text-xs font-bold rounded-xl transition-all"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 border border-yellow-500/40 font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95"
                 >
                   <Plus size={15} /> Add Administrator
                 </button>
               </div>
 
-              <div className="bg-black/40 border border-yellow-900/30 rounded-2xl overflow-hidden backdrop-blur-md">
-                <table className="w-full text-left font-mono text-xs">
+              <div className="bg-black/40 border border-yellow-900/30 rounded-2xl overflow-x-auto backdrop-blur-md pb-1">
+                <table className="w-full min-w-[500px] text-left font-mono text-xs">
                   <thead>
                     <tr className="bg-yellow-950/20 border-b border-yellow-900/30 text-yellow-400/80">
-                      <th className="p-4 font-semibold">Admin Name</th>
-                      <th className="p-4 font-semibold">Email</th>
-                      <th className="p-4 font-semibold">Access Level</th>
-                      <th className="p-4 text-right font-semibold">Actions</th>
+                      <th className="p-3.5 sm:p-4 font-semibold">Admin Name</th>
+                      <th className="p-3.5 sm:p-4 font-semibold">Email</th>
+                      <th className="p-3.5 sm:p-4 font-semibold">Access Level</th>
+                      <th className="p-3.5 sm:p-4 text-right font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-900">
@@ -1052,24 +1169,26 @@ export default function AdminClient() {
                     ) : (
                       adminUsersList.map(admin => (
                         <tr key={admin._id} className="hover:bg-white/5 transition-colors">
-                          <td className="p-4 font-bold text-gray-200">{admin.name}</td>
-                          <td className="p-4 text-yellow-400/90">{admin.email}</td>
-                          <td className="p-4">
+                          <td className="p-3.5 sm:p-4 font-bold text-gray-200">{admin.name}</td>
+                          <td className="p-3.5 sm:p-4 text-yellow-400/90">{admin.email}</td>
+                          <td className="p-3.5 sm:p-4">
                             <span className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[10px] uppercase font-bold">
                               Full Administrator
                             </span>
                           </td>
-                          <td className="p-4 text-right">
-                            <div className="inline-flex items-center gap-2">
+                          <td className="p-3.5 sm:p-4 text-right">
+                            <div className="inline-flex items-center gap-1.5 sm:gap-2">
                               <button 
+                                type="button"
                                 onClick={() => openEditAdmin(admin)}
-                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 transition-colors"
+                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 transition-colors cursor-pointer active:scale-95"
                               >
                                 Edit
                               </button>
                               <button 
+                                type="button"
                                 onClick={() => handleDeleteUser(admin._id, admin.name)}
-                                className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 transition-colors"
+                                className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 transition-colors cursor-pointer active:scale-95"
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -1089,9 +1208,9 @@ export default function AdminClient() {
         {/* TAB 3: SCENARIOS & ACTIONS (Unified page, Actions must have scenario)     */}
         {/* ========================================================================= */}
         {activeTab === 'scenarios' && (
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {/* Header Toolbar */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-950/20 p-4 rounded-2xl border border-blue-900/40">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 bg-blue-950/20 p-3.5 sm:p-4 rounded-2xl border border-blue-900/40">
               <div className="relative w-full sm:w-72">
                 <Search size={16} className="absolute left-3 top-3 text-gray-400" />
                 <input 
@@ -1105,8 +1224,9 @@ export default function AdminClient() {
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button 
+                  type="button"
                   onClick={openCreateScenario}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] cursor-pointer active:scale-95"
                 >
                   <Plus size={16} /> Create Scenario
                 </button>
@@ -1114,9 +1234,9 @@ export default function AdminClient() {
             </div>
 
             {/* Scenarios List */}
-            <div className="grid gap-8">
+            <div className="grid gap-6 sm:gap-8">
               {scenarios.length === 0 && !loading && (
-                <div className="text-center p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-sm">
+                <div className="text-center p-12 sm:p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-xs sm:text-sm">
                   No scenarios defined. Click &quot;Create Scenario&quot; to begin building your simulation.
                 </div>
               )}
@@ -1137,40 +1257,43 @@ export default function AdminClient() {
                       className="bg-black/40 border border-blue-900/40 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl"
                     >
                       {/* Scenario Header */}
-                      <div className="p-6 bg-gradient-to-r from-blue-950/40 via-blue-900/20 to-transparent border-b border-blue-900/40 flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="p-4 sm:p-6 bg-gradient-to-r from-blue-950/40 via-blue-900/20 to-transparent border-b border-blue-900/40 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                         <div className="space-y-1.5 max-w-3xl">
-                          <div className="flex items-center gap-3">
-                            <span className="px-3 py-1 rounded-md bg-blue-600/20 text-blue-400 border border-blue-500/40 text-xs font-mono font-black uppercase tracking-wider">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                            <span className="px-2.5 sm:px-3 py-1 rounded-md bg-blue-600/20 text-blue-400 border border-blue-500/40 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
                               Day {scenarioDay} // {scenario.scenarioId}
                             </span>
-                            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-mono font-bold">
-                              {scenActions.length} Assigned Actions
+                            <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-[10px] sm:text-xs font-mono font-bold">
+                              {scenActions.length} Actions
                             </span>
                           </div>
-                          <h3 className="text-xl font-black text-white uppercase tracking-wide">{scenario.title}</h3>
-                          <p className="text-xs font-mono text-gray-400 leading-relaxed pt-1">
+                          <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide">{scenario.title}</h3>
+                          <p className="text-[11px] sm:text-xs font-mono text-gray-400 leading-relaxed pt-1">
                             {scenario.situation}
                           </p>
                         </div>
 
                         {/* Scenario Controls */}
-                        <div className="flex items-center gap-2 self-start md:self-auto">
+                        <div className="flex items-center gap-1.5 sm:gap-2 self-start sm:self-auto flex-wrap">
                           <button 
+                            type="button"
                             onClick={() => openAddActionForScenario(scenario)}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-xl font-mono text-xs font-bold transition-all shadow-sm"
+                            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-xl font-mono text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
                           >
                             <Plus size={15} /> Add Action
                           </button>
                           <button 
+                            type="button"
                             onClick={() => openEditScenario(scenario)}
-                            className="px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/40 rounded-xl font-mono text-xs transition-all"
+                            className="px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/40 rounded-xl font-mono text-xs transition-all cursor-pointer active:scale-95"
                             title="Edit Scenario Details"
                           >
                             <Edit3 size={15} />
                           </button>
                           <button 
+                            type="button"
                             onClick={() => handleDeleteScenario(scenario)}
-                            className="px-3 py-2 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl font-mono text-xs transition-all"
+                            className="px-3 py-2 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl font-mono text-xs transition-all cursor-pointer active:scale-95"
                             title="Delete Scenario & Actions"
                           >
                             <Trash2 size={15} />
@@ -1179,45 +1302,46 @@ export default function AdminClient() {
                       </div>
 
                       {/* Scenario Actions Container */}
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-xs font-mono uppercase tracking-widest text-blue-400 font-bold flex items-center gap-2">
+                      <div className="p-3.5 sm:p-6">
+                        <div className="flex items-center justify-between mb-3 sm:mb-4">
+                          <h4 className="text-[11px] sm:text-xs font-mono uppercase tracking-widest text-blue-400 font-bold flex items-center gap-2">
                             <Layers size={14} /> Action Choices for this Scenario (Priority Ranked 1 - {scenActions.length})
                           </h4>
                         </div>
 
                         {scenActions.length === 0 ? (
-                          <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-black/20">
+                          <div className="text-center py-8 sm:py-10 border border-dashed border-gray-800 rounded-xl bg-black/20">
                             <p className="text-gray-500 font-mono text-xs">No actions attached to this scenario.</p>
                             <p className="text-gray-600 font-mono text-[11px] mt-1">Actions must have a scenario. Attach existing actions or create new ones below.</p>
                             <button 
+                              type="button"
                               onClick={() => openAddActionForScenario(scenario)}
-                              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-xl font-mono text-xs hover:bg-blue-600/30 transition-all"
+                              className="mt-3 sm:mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-xl font-mono text-xs hover:bg-blue-600/30 transition-all cursor-pointer active:scale-95"
                             >
                               <Plus size={15} /> Add Actions to this Scenario
                             </button>
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="space-y-2.5 sm:space-y-3">
                             {scenActions.map((action: any, idx: number) => {
                               const impacts = action.baseImpacts || {};
 
                               return (
                                 <div 
                                   key={action._id || action.actionId || idx}
-                                  className="p-4 bg-black/50 border border-gray-800/80 hover:border-blue-900/60 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
+                                  className="p-3 sm:p-4 bg-black/50 border border-gray-800/80 hover:border-blue-900/60 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 transition-all"
                                 >
                                   {/* Left: Priority & Description */}
-                                  <div className="flex items-start gap-3 flex-1">
-                                    <div className="w-7 h-7 rounded-lg bg-blue-950/60 border border-blue-800/40 flex items-center justify-center font-mono text-xs font-black text-blue-400 shrink-0 mt-0.5">
+                                  <div className="flex items-start gap-2.5 sm:gap-3 flex-1">
+                                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-blue-950/60 border border-blue-800/40 flex items-center justify-center font-mono text-xs font-black text-blue-400 shrink-0 mt-0.5">
                                       {idx + 1}
                                     </div>
                                     <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
                                         <span className="font-mono text-xs font-bold text-blue-300">{action.actionId}</span>
                                         <span className="font-mono text-xs font-bold text-white uppercase">{action.title}</span>
                                       </div>
-                                      <p className="font-mono text-xs text-gray-400 leading-relaxed max-w-2xl">
+                                      <p className="font-mono text-[11px] sm:text-xs text-gray-400 leading-relaxed max-w-2xl">
                                         {action.description}
                                       </p>
                                     </div>
@@ -1226,35 +1350,35 @@ export default function AdminClient() {
                                   {/* Middle: Impact Badges */}
                                   <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                                     {impacts.floodPreparedness !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
                                         (impacts.floodPreparedness || 0) > 0 ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
                                       }`}>
                                         Flood {(impacts.floodPreparedness || 0) > 0 ? `+${impacts.floodPreparedness}` : impacts.floodPreparedness}%
                                       </span>
                                     )}
                                     {impacts.droughtPreparedness !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
                                         (impacts.droughtPreparedness || 0) > 0 ? 'bg-blue-950/60 text-blue-400 border border-blue-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
                                       }`}>
                                         Drought {(impacts.droughtPreparedness || 0) > 0 ? `+${impacts.droughtPreparedness}` : impacts.droughtPreparedness}%
                                       </span>
                                     )}
                                     {impacts.emergencyBudget !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
                                         (impacts.emergencyBudget || 0) >= 0 ? 'bg-green-950/60 text-green-400 border border-green-800/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
                                       }`}>
                                         Budget {(impacts.emergencyBudget || 0) > 0 ? `+${impacts.emergencyBudget}` : impacts.emergencyBudget}M
                                       </span>
                                     )}
                                     {impacts.communityTrust !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
                                         (impacts.communityTrust || 0) > 0 ? 'bg-purple-950/60 text-purple-400 border border-purple-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
                                       }`}>
                                         Trust {(impacts.communityTrust || 0) > 0 ? `+${impacts.communityTrust}` : impacts.communityTrust}%
                                       </span>
                                     )}
                                     {impacts.informationQuality !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
                                         (impacts.informationQuality || 0) > 0 ? 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
                                       }`}>
                                         Intel {(impacts.informationQuality || 0) > 0 ? `+${impacts.informationQuality}` : impacts.informationQuality}%
@@ -1263,32 +1387,36 @@ export default function AdminClient() {
                                   </div>
 
                                   {/* Right: Actions & Reordering */}
-                                  <div className="flex items-center gap-1.5 shrink-0 self-end md:self-auto">
+                                  <div className="flex items-center gap-1.5 shrink-0 self-start md:self-auto">
                                     <button 
+                                      type="button"
                                       onClick={() => handleReorderAction(scenario, idx, 'up')}
                                       disabled={idx === 0}
-                                      className="p-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                                      className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer active:scale-95"
                                       title="Move Up in Priority"
                                     >
                                       <ArrowUp size={14} />
                                     </button>
                                     <button 
+                                      type="button"
                                       onClick={() => handleReorderAction(scenario, idx, 'down')}
                                       disabled={idx === scenActions.length - 1}
-                                      className="p-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                                      className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer active:scale-95"
                                       title="Move Down in Priority"
                                     >
                                       <ArrowDown size={14} />
                                     </button>
                                     <button 
+                                      type="button"
                                       onClick={() => openEditAction(action)}
-                                      className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 text-xs font-mono"
+                                      className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 text-xs font-mono cursor-pointer active:scale-95"
                                     >
                                       Edit
                                     </button>
                                     <button 
+                                      type="button"
                                       onClick={() => handleRemoveActionFromScenario(scenario, action.actionId)}
-                                      className="px-2 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 text-xs font-mono"
+                                      className="px-2 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 text-xs font-mono cursor-pointer active:scale-95"
                                       title="Remove from Scenario"
                                     >
                                       <Trash2 size={13} />
@@ -1313,19 +1441,19 @@ export default function AdminClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {teamModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5"
+              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5"
             >
-              <div className="flex justify-between items-center border-b border-blue-900/40 pb-4">
-                <h3 className="text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+              <div className="flex justify-between items-center border-b border-blue-900/40 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
                   <Users size={18} className="text-blue-400" />
                   {teamModal.mode === 'create' ? 'Create Team' : 'Edit Team'}
                 </h3>
-                <button onClick={() => setTeamModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setTeamModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
@@ -1345,16 +1473,18 @@ export default function AdminClient() {
                 </p>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-blue-900/40">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
                 <button 
+                  type="button"
                   onClick={() => setTeamModal({ open: false, mode: 'create' })}
-                  className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                  className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
+                  type="button"
                   onClick={handleSaveTeam}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                 >
                   {teamModal.mode === 'create' ? 'Create Team' : 'Save Changes'}
                 </button>
@@ -1369,24 +1499,24 @@ export default function AdminClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {playerModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5"
+              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5"
             >
-              <div className="flex justify-between items-center border-b border-blue-900/40 pb-4">
-                <h3 className="text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+              <div className="flex justify-between items-center border-b border-blue-900/40 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
                   <UserPlus size={18} className="text-blue-400" />
                   {playerModal.mode === 'create' ? 'Add Player to Team' : 'Edit Player'}
                 </h3>
-                <button onClick={() => setPlayerModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setPlayerModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5 sm:space-y-4">
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Assigned Team (Mandatory)</label>
                   <select 
@@ -1438,16 +1568,18 @@ export default function AdminClient() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-blue-900/40">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
                 <button 
+                  type="button"
                   onClick={() => setPlayerModal({ open: false, mode: 'create' })}
-                  className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                  className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
+                  type="button"
                   onClick={handleSavePlayer}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                 >
                   {playerModal.mode === 'create' ? 'Save Player' : 'Update Profile'}
                 </button>
@@ -1462,24 +1594,24 @@ export default function AdminClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {adminModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#030914] border border-yellow-500/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5"
+              className="bg-[#030914] border border-yellow-500/40 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5"
             >
-              <div className="flex justify-between items-center border-b border-yellow-900/40 pb-4">
-                <h3 className="text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+              <div className="flex justify-between items-center border-b border-yellow-900/40 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
                   <ShieldCheck size={18} className="text-yellow-400" />
                   {adminModal.mode === 'create' ? 'Add Administrator' : 'Edit Administrator'}
                 </h3>
-                <button onClick={() => setAdminModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setAdminModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5 sm:space-y-4">
                 <div className="p-3 bg-yellow-950/20 border border-yellow-800/40 rounded-xl text-yellow-300 font-mono text-xs flex items-center gap-2">
                   <Info size={16} className="shrink-0" />
                   Administrator accounts possess full access across all operations and do not require a team assignment.
@@ -1521,16 +1653,18 @@ export default function AdminClient() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-yellow-900/40">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-yellow-900/40">
                 <button 
+                  type="button"
                   onClick={() => setAdminModal({ open: false, mode: 'create' })}
-                  className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                  className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
+                  type="button"
                   onClick={handleSaveAdmin}
-                  className="px-5 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-mono text-xs font-bold rounded-xl transition-all"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-black font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                 >
                   {adminModal.mode === 'create' ? 'Create Admin Account' : 'Save Changes'}
                 </button>
@@ -1545,25 +1679,25 @@ export default function AdminClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {scenarioModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-5"
+              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5"
             >
-              <div className="flex justify-between items-center border-b border-blue-900/40 pb-4">
-                <h3 className="text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+              <div className="flex justify-between items-center border-b border-blue-900/40 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
                   <FileText size={18} className="text-blue-400" />
                   {scenarioModal.mode === 'create' ? 'Create Simulation Scenario' : 'Edit Scenario'}
                 </h3>
-                <button onClick={() => setScenarioModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setScenarioModal({ open: false, mode: 'create' })} className="text-gray-400 hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3.5 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Scenario ID</label>
                     <input 
@@ -1610,16 +1744,18 @@ export default function AdminClient() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-blue-900/40">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
                 <button 
+                  type="button"
                   onClick={() => setScenarioModal({ open: false, mode: 'create' })}
-                  className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                  className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
+                  type="button"
                   onClick={handleSaveScenario}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                 >
                   {scenarioModal.mode === 'create' ? 'Create Scenario' : 'Save Changes'}
                 </button>
@@ -1634,22 +1770,22 @@ export default function AdminClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {addActionModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-5"
+              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-2xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5"
             >
-              <div className="flex justify-between items-center border-b border-blue-900/40 pb-4">
+              <div className="flex justify-between items-center border-b border-blue-900/40 pb-3 sm:pb-4">
                 <div>
-                  <h3 className="text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
                     <Database size={18} className="text-blue-400" />
                     Add Action to {addActionModal.scenario?.title}
                   </h3>
-                  <p className="text-xs font-mono text-blue-400/80 mt-0.5">Actions must be assigned directly to an operational scenario.</p>
+                  <p className="text-[11px] sm:text-xs font-mono text-blue-400/80 mt-0.5">Actions must be assigned directly to an operational scenario.</p>
                 </div>
-                <button onClick={() => setAddActionModal({ open: false })} className="text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setAddActionModal({ open: false })} className="text-gray-400 hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
@@ -1657,8 +1793,9 @@ export default function AdminClient() {
               {/* Selector Tabs: Dropdown vs Create New */}
               <div className="flex rounded-xl bg-black/50 p-1 border border-blue-900/40 font-mono text-xs">
                 <button 
+                  type="button"
                   onClick={() => setActionSourceMode('dropdown')}
-                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     actionSourceMode === 'dropdown' 
                       ? 'bg-blue-600 text-white font-bold' 
                       : 'text-gray-400 hover:text-white'
@@ -1667,8 +1804,9 @@ export default function AdminClient() {
                   <Link2 size={14} /> Attach from Dropdown
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setActionSourceMode('create')}
-                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     actionSourceMode === 'create' 
                       ? 'bg-blue-600 text-white font-bold' 
                       : 'text-gray-400 hover:text-white'
@@ -1701,7 +1839,7 @@ export default function AdminClient() {
 
                   {/* Preview of selected action */}
                   {selectedDropdownActionId && (
-                    <div className="p-4 bg-blue-950/20 rounded-xl border border-blue-800/40 font-mono text-xs space-y-2">
+                    <div className="p-3.5 sm:p-4 bg-blue-950/20 rounded-xl border border-blue-800/40 font-mono text-xs space-y-2">
                       {(() => {
                         const act = allActions.find(a => a.actionId === selectedDropdownActionId);
                         if (!act) return null;
@@ -1709,17 +1847,17 @@ export default function AdminClient() {
                           <>
                             <div className="font-bold text-white uppercase">{act.title}</div>
                             <p className="text-gray-400">{act.description}</p>
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              <span className="px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-800/40">
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1">
+                              <span className="px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 text-[11px]">
                                 Flood: {act.baseImpacts?.floodPreparedness || 0}%
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-blue-950/60 text-blue-400 border border-blue-800/40">
+                              <span className="px-2 py-0.5 rounded bg-blue-950/60 text-blue-400 border border-blue-800/40 text-[11px]">
                                 Drought: {act.baseImpacts?.droughtPreparedness || 0}%
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-green-950/60 text-green-400 border border-green-800/40">
+                              <span className="px-2 py-0.5 rounded bg-green-950/60 text-green-400 border border-green-800/40 text-[11px]">
                                 Budget: {act.baseImpacts?.emergencyBudget || 0}M
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-800/40">
+                              <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-800/40 text-[11px]">
                                 Trust: {act.baseImpacts?.communityTrust || 0}%
                               </span>
                             </div>
@@ -1729,17 +1867,19 @@ export default function AdminClient() {
                     </div>
                   )}
 
-                  <div className="flex justify-end gap-3 pt-4 border-t border-blue-900/40">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
                     <button 
+                      type="button"
                       onClick={() => setAddActionModal({ open: false })}
-                      className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                      className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button 
+                      type="button"
                       onClick={handleAttachExistingAction}
                       disabled={!selectedDropdownActionId}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-mono text-xs font-bold rounded-xl transition-all"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                     >
                       Attach to Scenario
                     </button>
@@ -1749,8 +1889,8 @@ export default function AdminClient() {
 
               {/* MODE 2: CREATE NEW ACTION */}
               {actionSourceMode === 'create' && (
-                <div className="space-y-4 py-2">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3.5 sm:space-y-4 py-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Action ID (Code)</label>
                       <input 
@@ -1784,11 +1924,11 @@ export default function AdminClient() {
                     />
                   </div>
 
-                  <div className="p-4 bg-black/40 rounded-xl border border-blue-900/40 space-y-3">
+                  <div className="p-3.5 sm:p-4 bg-black/40 rounded-xl border border-blue-900/40 space-y-2.5 sm:space-y-3">
                     <span className="block text-xs font-mono text-blue-400 uppercase font-bold">Base Value Impacts</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 font-mono text-xs">
                       <div>
-                        <label className="block text-gray-400 mb-1">Flood Prep (+/- %)</label>
+                        <label className="block text-gray-400 mb-1 text-[11px]">Flood Prep (+/- %)</label>
                         <input 
                           type="number"
                           value={newActionForm.floodPreparedness}
@@ -1797,7 +1937,7 @@ export default function AdminClient() {
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-400 mb-1">Drought Prep (+/- %)</label>
+                        <label className="block text-gray-400 mb-1 text-[11px]">Drought Prep (+/- %)</label>
                         <input 
                           type="number"
                           value={newActionForm.droughtPreparedness}
@@ -1806,7 +1946,7 @@ export default function AdminClient() {
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-400 mb-1">Budget (LKR M, e.g. -20)</label>
+                        <label className="block text-gray-400 mb-1 text-[11px]">Budget (LKR M)</label>
                         <input 
                           type="number"
                           value={newActionForm.emergencyBudget}
@@ -1815,7 +1955,7 @@ export default function AdminClient() {
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-400 mb-1">Community Trust (+/- %)</label>
+                        <label className="block text-gray-400 mb-1 text-[11px]">Community Trust (+/- %)</label>
                         <input 
                           type="number"
                           value={newActionForm.communityTrust}
@@ -1824,7 +1964,7 @@ export default function AdminClient() {
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-400 mb-1">Intel Quality (+/- %)</label>
+                        <label className="block text-gray-400 mb-1 text-[11px]">Intel Quality (+/- %)</label>
                         <input 
                           type="number"
                           value={newActionForm.informationQuality}
@@ -1835,18 +1975,20 @@ export default function AdminClient() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t border-blue-900/40">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
                     <button 
+                      type="button"
                       onClick={() => setAddActionModal({ open: false })}
-                      className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                      className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button 
+                      type="button"
                       onClick={handleCreateNewActionForScenario}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                     >
-                      Create & Attach Action
+                      Create &amp; Attach Action
                     </button>
                   </div>
                 </div>
@@ -1861,24 +2003,24 @@ export default function AdminClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {editActionModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-5"
+              className="bg-[#030914] border border-blue-500/40 rounded-2xl w-full max-w-xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5"
             >
-              <div className="flex justify-between items-center border-b border-blue-900/40 pb-4">
-                <h3 className="text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+              <div className="flex justify-between items-center border-b border-blue-900/40 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
                   <Edit3 size={18} className="text-blue-400" />
                   Edit Action [{newActionForm.actionId}]
                 </h3>
-                <button onClick={() => setEditActionModal({ open: false })} className="text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setEditActionModal({ open: false })} className="text-gray-400 hover:text-white p-1">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5 sm:space-y-4">
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Action Title</label>
                   <input 
@@ -1899,11 +2041,11 @@ export default function AdminClient() {
                   />
                 </div>
 
-                <div className="p-4 bg-black/40 rounded-xl border border-blue-900/40 space-y-3">
+                <div className="p-3.5 sm:p-4 bg-black/40 rounded-xl border border-blue-900/40 space-y-2.5 sm:space-y-3">
                   <span className="block text-xs font-mono text-blue-400 uppercase font-bold">Base Value Impacts</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 font-mono text-xs">
                     <div>
-                      <label className="block text-gray-400 mb-1">Flood Prep (+/- %)</label>
+                      <label className="block text-gray-400 mb-1 text-[11px]">Flood Prep (+/- %)</label>
                       <input 
                         type="number"
                         value={newActionForm.floodPreparedness}
@@ -1912,7 +2054,7 @@ export default function AdminClient() {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-400 mb-1">Drought Prep (+/- %)</label>
+                      <label className="block text-gray-400 mb-1 text-[11px]">Drought Prep (+/- %)</label>
                       <input 
                         type="number"
                         value={newActionForm.droughtPreparedness}
@@ -1921,7 +2063,7 @@ export default function AdminClient() {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-400 mb-1">Budget (LKR M)</label>
+                      <label className="block text-gray-400 mb-1 text-[11px]">Budget (LKR M)</label>
                       <input 
                         type="number"
                         value={newActionForm.emergencyBudget}
@@ -1930,7 +2072,7 @@ export default function AdminClient() {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-400 mb-1">Community Trust (+/- %)</label>
+                      <label className="block text-gray-400 mb-1 text-[11px]">Community Trust (+/- %)</label>
                       <input 
                         type="number"
                         value={newActionForm.communityTrust}
@@ -1939,7 +2081,7 @@ export default function AdminClient() {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-400 mb-1">Intel Quality (+/- %)</label>
+                      <label className="block text-gray-400 mb-1 text-[11px]">Intel Quality (+/- %)</label>
                       <input 
                         type="number"
                         value={newActionForm.informationQuality}
@@ -1951,16 +2093,18 @@ export default function AdminClient() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-blue-900/40">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
                 <button 
+                  type="button"
                   onClick={() => setEditActionModal({ open: false })}
-                  className="px-4 py-2 font-mono text-xs text-gray-400 hover:text-white"
+                  className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
+                  type="button"
                   onClick={handleSaveEditedAction}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
                 >
                   Save Changes
                 </button>

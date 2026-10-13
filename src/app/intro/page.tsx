@@ -164,16 +164,16 @@ function GlitchTitle({ text, trigger }: { text: string; trigger: boolean }) {
   }, [trigger]);
 
   return (
-    <div className="relative select-none">
+    <div className="relative select-none text-center px-2">
       <span
-        className="block font-black tracking-[0.2em] text-transparent"
+        className="block font-black text-transparent break-words"
         style={{
-          fontSize: 'clamp(2.5rem, 8vw, 6rem)',
+          fontSize: 'clamp(1.6rem, 6.5vw, 5.5rem)',
           fontFamily: "'Courier New', monospace",
           backgroundImage: 'linear-gradient(135deg, #fff 0%, #94a3b8 40%, #2dd4bf 70%, #3b82f6 100%)',
           WebkitBackgroundClip: 'text',
           backgroundClip: 'text',
-          letterSpacing: '0.25em',
+          letterSpacing: 'clamp(0.06em, 1.2vw, 0.22em)',
         }}
       >
         {text}
@@ -181,31 +181,31 @@ function GlitchTitle({ text, trigger }: { text: string; trigger: boolean }) {
       {glitch && (
         <>
           <span
-            className="absolute inset-0 font-black text-transparent block"
+            className="absolute inset-0 font-black text-transparent block break-words"
             style={{
-              fontSize: 'clamp(2.5rem, 8vw, 6rem)',
+              fontSize: 'clamp(1.6rem, 6.5vw, 5.5rem)',
               fontFamily: "'Courier New', monospace",
               backgroundImage: 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)',
               WebkitBackgroundClip: 'text',
               backgroundClip: 'text',
               clipPath: 'polygon(0 0, 100% 0, 100% 40%, 0 40%)',
-              transform: 'translate(-3px, 2px)',
-              letterSpacing: '0.25em',
+              transform: 'translate(-2px, 1px)',
+              letterSpacing: 'clamp(0.06em, 1.2vw, 0.22em)',
             }}
           >
             {text}
           </span>
           <span
-            className="absolute inset-0 font-black text-transparent block"
+            className="absolute inset-0 font-black text-transparent block break-words"
             style={{
-              fontSize: 'clamp(2.5rem, 8vw, 6rem)',
+              fontSize: 'clamp(1.6rem, 6.5vw, 5.5rem)',
               fontFamily: "'Courier New', monospace",
               backgroundImage: 'linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%)',
               WebkitBackgroundClip: 'text',
               backgroundClip: 'text',
               clipPath: 'polygon(0 60%, 100% 60%, 100% 100%, 0 100%)',
-              transform: 'translate(3px, -2px)',
-              letterSpacing: '0.25em',
+              transform: 'translate(2px, -1px)',
+              letterSpacing: 'clamp(0.06em, 1.2vw, 0.22em)',
             }}
           >
             {text}
@@ -443,22 +443,22 @@ export default function IntroPage() {
       <HudCorners />
 
       {/* Top HUD bar */}
-      <div className="absolute top-0 inset-x-0 h-10 flex items-center justify-between px-16 border-b border-teal-400/10">
-        <div className="flex items-center gap-3">
+      <div className="absolute top-0 inset-x-0 h-10 flex items-center justify-between px-4 sm:px-8 md:px-16 border-b border-teal-400/10 bg-black/40 backdrop-blur-sm z-30">
+        <div className="flex items-center gap-2 sm:gap-3">
           <motion.div
-            className="w-2 h-2 rounded-full bg-teal-400"
+            className="w-2 h-2 rounded-full bg-teal-400 shrink-0"
             animate={{ opacity: [1, 0.2, 1] }}
             transition={{ duration: 1.2, repeat: Infinity }}
           />
-          <span className="font-mono text-xs text-teal-400/70 tracking-widest uppercase">
+          <span className="font-mono text-[11px] sm:text-xs text-teal-400/80 tracking-wider sm:tracking-widest uppercase truncate max-w-[150px] sm:max-w-none">
             {statusText}
           </span>
         </div>
-        <div className="flex items-center gap-6">
-          <span className="font-mono text-xs text-slate-500 tracking-widest">
+        <div className="flex items-center gap-3 sm:gap-6">
+          <span className="font-mono text-[10px] sm:text-xs text-slate-500 tracking-widest hidden sm:inline">
             SIM-2026 // LKA
           </span>
-          <span className="font-mono text-xs text-slate-600">
+          <span className="font-mono text-[10px] sm:text-xs text-slate-400 font-bold">
             {new Date().toLocaleTimeString('en-US', { hour12: false })}
           </span>
         </div>
@@ -482,7 +482,7 @@ export default function IntroPage() {
       <div className="absolute right-0 inset-y-0 w-px bg-gradient-to-b from-transparent via-teal-400/20 to-transparent" />
 
       {/* ── MAIN CONTENT ── */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-4 sm:px-8 py-12 overflow-y-auto">
         <AnimatePresence mode="wait">
 
           {/* IDLE */}
@@ -493,15 +493,15 @@ export default function IntroPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.6 }}
-              className="flex flex-col items-center gap-10 text-center"
+              className="flex flex-col items-center gap-6 sm:gap-10 text-center max-w-2xl"
             >
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-teal-400/30 bg-teal-400/5"
+                className="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full border border-teal-400/30 bg-teal-400/5"
               >
-                <span className="text-teal-400 text-xs font-mono tracking-widest uppercase">
+                <span className="text-teal-400 text-[10px] sm:text-xs font-mono tracking-widest uppercase">
                   Disaster Preparedness Simulation
                 </span>
               </motion.div>
@@ -510,6 +510,7 @@ export default function IntroPage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.8 }}
+                className="w-full"
               >
                 <GlitchTitle text="10 DAYS TO DECIDE" trigger={false} />
               </motion.div>
@@ -518,7 +519,7 @@ export default function IntroPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9 }}
-                className="text-slate-400 font-mono text-sm tracking-widest max-w-sm uppercase"
+                className="text-slate-400 font-mono text-xs sm:text-sm tracking-widest max-w-sm uppercase px-4 leading-relaxed"
               >
                 One community. Two possible futures. Every decision matters.
               </motion.p>
@@ -527,12 +528,12 @@ export default function IntroPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2 }}
-                className="flex flex-col items-center gap-4"
+                className="flex flex-col items-center gap-4 w-full px-4"
               >
                 <motion.button
                   id="begin-broadcast-btn"
                   onClick={handleStart}
-                  className="relative group px-12 py-4 font-mono font-bold tracking-widest uppercase text-sm overflow-hidden"
+                  className="relative group px-8 sm:px-12 py-3.5 sm:py-4 font-mono font-bold tracking-widest uppercase text-xs sm:text-sm overflow-hidden w-full sm:w-auto"
                   style={{ border: '1px solid rgba(45, 212, 191, 0.6)', color: '#2dd4bf' }}
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
@@ -548,9 +549,9 @@ export default function IntroPage() {
                 <motion.div
                   animate={{ opacity: [0.3, 0.8, 0.3] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="font-mono text-[10px] text-slate-600 tracking-widest uppercase"
+                  className="font-mono text-[10px] text-slate-500 tracking-widest uppercase"
                 >
-                  Click to initialize audio
+                  Tap to initialize audio
                 </motion.div>
               </motion.div>
             </motion.div>
@@ -563,12 +564,13 @@ export default function IntroPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-8 text-center"
+              className="flex flex-col items-center gap-6 sm:gap-8 text-center px-4"
             >
               <motion.div
                 initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+                className="w-full"
               >
                 <GlitchTitle text="10 DAYS TO DECIDE" trigger={showTitle} />
               </motion.div>
@@ -588,12 +590,12 @@ export default function IntroPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="font-mono text-xs tracking-[0.4em] text-slate-500 uppercase"
+                className="font-mono text-[11px] sm:text-xs tracking-[0.3em] sm:tracking-[0.4em] text-slate-500 uppercase"
               >
                 SRI LANKA // NOVEMBER 2026
               </motion.p>
 
-              <motion.div className="w-64 h-1 bg-slate-800 rounded-full overflow-hidden mt-4">
+              <motion.div className="w-48 sm:w-64 h-1 bg-slate-800 rounded-full overflow-hidden mt-4">
                 <motion.div
                   className="h-full rounded-full"
                   style={{ background: 'linear-gradient(90deg, #2dd4bf, #3b82f6)' }}
@@ -611,43 +613,44 @@ export default function IntroPage() {
               key="playing"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center gap-10 w-full max-w-4xl text-center"
+              className="flex flex-col items-center gap-6 sm:gap-10 w-full max-w-4xl text-center px-2"
             >
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
+                className="w-full"
               >
                 <GlitchTitle text="10 DAYS TO DECIDE" trigger={isPlaying} />
               </motion.div>
 
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-2 sm:gap-3">
                 <AudioWaveform active={isPlaying} />
-                <span className="font-mono text-[10px] text-teal-400/50 tracking-widest uppercase">
+                <span className="font-mono text-[9px] sm:text-[10px] text-teal-400/60 tracking-wider sm:tracking-widest uppercase">
                   {isPlaying ? 'JAX MERIDIAN // LIVE BROADCAST' : 'BROADCAST COMPLETE'}
                 </span>
               </div>
 
               {/* Subtitle display */}
-              <div className="min-h-32 flex items-center justify-center w-full px-4">
+              <div className="min-h-24 sm:min-h-32 flex items-center justify-center w-full px-2 sm:px-4">
                 <AnimatePresence mode="wait">
                   {currentText ? (
                     <motion.p
                       key={currentText}
-                      initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+                      initial={{ opacity: 0, y: 14, filter: 'blur(4px)' }}
                       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, y: -18, filter: 'blur(6px)' }}
+                      exit={{ opacity: 0, y: -14, filter: 'blur(4px)' }}
                       transition={{ duration: 0.3 }}
-                      className="font-black leading-tight text-center"
+                      className="font-black leading-snug sm:leading-tight text-center max-w-3xl"
                       style={{
-                        fontSize: 'clamp(1.8rem, 5vw, 4rem)',
+                        fontSize: 'clamp(1.15rem, 3.8vw, 3rem)',
                         fontFamily: "'Courier New', monospace",
                         backgroundImage:
                           'linear-gradient(180deg, #ffffff 0%, #94a3b8 100%)',
                         WebkitBackgroundClip: 'text',
                         backgroundClip: 'text',
                         color: 'transparent',
-                        letterSpacing: '0.04em',
+                        letterSpacing: '0.03em',
                       }}
                     >
                       {currentText}
@@ -679,7 +682,7 @@ export default function IntroPage() {
                   animate={{ opacity: 1, scale: 1 }}
                 >
                   <div
-                    className="px-8 py-2 font-mono text-sm tracking-widest text-teal-400 uppercase"
+                    className="px-6 sm:px-8 py-2 font-mono text-xs sm:text-sm tracking-widest text-teal-400 uppercase"
                     style={{ border: '1px solid rgba(45,212,191,0.4)' }}
                   >
                     Entering Command Centre...
@@ -702,7 +705,7 @@ export default function IntroPage() {
             exit={{ opacity: 0 }}
             transition={{ delay: 1 }}
             onClick={skipIntro}
-            className="absolute bottom-8 right-8 font-mono text-xs tracking-widest text-slate-600 hover:text-teal-400 transition-colors z-30 uppercase flex items-center gap-2"
+            className="absolute bottom-4 right-4 sm:bottom-8 sm:right-8 font-mono text-[11px] sm:text-xs tracking-widest text-slate-500 hover:text-teal-400 transition-colors z-30 uppercase flex items-center gap-1.5 sm:gap-2 bg-black/60 sm:bg-transparent px-3 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-slate-800 sm:border-0 backdrop-blur-sm sm:backdrop-blur-none"
           >
             <span>[ Skip Intro ]</span>
             <motion.span animate={{ x: [0, 3, 0] }} transition={{ duration: 1.2, repeat: Infinity }}>

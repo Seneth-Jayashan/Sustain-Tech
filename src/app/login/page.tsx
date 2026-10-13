@@ -40,35 +40,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center relative overflow-hidden p-4 sm:p-6">
       {/* Background Animated Elements */}
       <motion.div 
-        className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-3xl pointer-events-none"
-        animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
+        className="absolute top-[-10%] left-[-10%] w-[50%] sm:w-[40%] h-[50%] sm:h-[40%] bg-blue-500/10 rounded-full blur-3xl pointer-events-none"
+        animate={{ x: [0, 40, 0], y: [0, 20, 0] }}
         transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div 
-        className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-3xl pointer-events-none"
-        animate={{ x: [0, -50, 0], y: [0, -30, 0] }}
+        className="absolute bottom-[-10%] right-[-10%] w-[50%] sm:w-[40%] h-[50%] sm:h-[40%] bg-teal-500/10 rounded-full blur-3xl pointer-events-none"
+        animate={{ x: [0, -40, 0], y: [0, -20, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <motion.div 
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="glass-panel p-10 rounded-2xl w-full max-w-md z-10"
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="glass-panel p-6 sm:p-10 rounded-2xl w-full max-w-md z-10 shadow-2xl border border-teal-500/20"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <motion.h1 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl font-bold tracking-tight text-white mb-2"
+            transition={{ delay: 0.2 }}
+            className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1.5"
           >
             SustainTech
           </motion.h1>
-          <p className="text-gray-400 text-sm tracking-widest uppercase">10 Days to Decide</p>
+          <p className="text-teal-400/80 text-xs tracking-[0.25em] uppercase font-mono">10 Days to Decide</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">

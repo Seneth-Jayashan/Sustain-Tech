@@ -23,7 +23,7 @@ export default async function ReflectionPage() {
   const finalResultData = JSON.parse(JSON.stringify(gameSession.finalResult));
 
   return (
-    <main className="min-h-screen bg-[var(--background)] p-4 md:p-8 flex items-center justify-center">
+    <main className="min-h-screen min-h-[100dvh] bg-[var(--background)] p-2 sm:p-4 md:p-8 flex items-center justify-center overflow-x-hidden safe-bottom">
       <ReflectionClient finalState={stateData} result={finalResultData} teamName={session.teamName} />
     </main>
   );

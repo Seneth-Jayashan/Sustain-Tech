@@ -83,77 +83,77 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
   };
 
   return (
-    <div className="w-full max-w-5xl py-8 px-4 font-sans text-slate-200">
+    <div className="w-full max-w-5xl py-4 sm:py-8 px-2 sm:px-4 font-sans text-slate-200">
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative bg-slate-950/80 backdrop-blur-2xl border border-slate-800 rounded-3xl p-8 md:p-12 shadow-2xl overflow-hidden"
+        className="relative bg-slate-950/80 backdrop-blur-2xl border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-12 shadow-2xl overflow-hidden"
       >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-emerald-500 to-purple-500"></div>
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none"></div>
 
         {/* Header Bar */}
-        <div className="flex justify-between items-center pb-8 border-b border-slate-800/80">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-slate-800/80">
           <div>
-            <span className="text-xs font-mono text-cyan-400 uppercase tracking-[0.3em] font-bold block mb-1">
+            <span className="text-[10px] sm:text-xs font-mono text-cyan-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] font-bold block mb-1">
               Simulation Debrief // Mission Evaluation
             </span>
-            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight break-words">
               {teamName}
             </h1>
           </div>
 
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900/80 hover:bg-red-950/60 text-slate-400 hover:text-red-300 border border-slate-700/80 hover:border-red-500/50 rounded-xl transition-all font-mono text-xs uppercase tracking-wider"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-slate-900/80 hover:bg-red-950/60 text-slate-400 hover:text-red-300 border border-slate-700/80 hover:border-red-500/50 rounded-xl transition-all font-mono text-xs uppercase tracking-wider self-stretch sm:self-auto justify-center"
           >
-            <LogOut size={16} /> Disconnect
+            <LogOut size={15} /> Disconnect
           </button>
         </div>
 
         {/* Core Scorecard Section */}
-        <div className="grid md:grid-cols-12 gap-8 my-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 my-6 sm:my-8 items-stretch">
           
           {/* Main CPS Banner */}
-          <div className={`md:col-span-5 p-8 rounded-2xl border ${badge.border} ${badge.bg} ${badge.glow} flex flex-col justify-between relative overflow-hidden backdrop-blur-xl`}>
+          <div className={`md:col-span-5 p-5 sm:p-8 rounded-2xl border ${badge.border} ${badge.bg} ${badge.glow} flex flex-col justify-between relative overflow-hidden backdrop-blur-xl`}>
             <div>
-              <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-slate-400 font-bold block mb-2">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.25em] text-slate-400 font-bold block mb-2">
                 Composite Preparedness Score
               </span>
               <div className="flex items-baseline gap-2">
-                <span className={`text-6xl md:text-7xl font-black font-mono tracking-tighter ${badge.color}`}>
+                <span className={`text-5xl sm:text-6xl md:text-7xl font-black font-mono tracking-tighter ${badge.color}`}>
                   {result.cps.toFixed(1)}
                 </span>
-                <span className="text-slate-500 font-mono text-xl">/ 100</span>
+                <span className="text-slate-500 font-mono text-base sm:text-xl">/ 100</span>
               </div>
 
-              <div className="mt-4">
-                <span className={`inline-block px-4 py-1.5 rounded-lg border font-mono font-black text-xs uppercase tracking-wider ${badge.border} ${badge.color} bg-black/40`}>
+              <div className="mt-3 sm:mt-4">
+                <span className={`inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg border font-mono font-black text-xs uppercase tracking-wider ${badge.border} ${badge.color} bg-black/40`}>
                   {result.endingTier || result.rating}
                 </span>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-white/10 space-y-3 font-mono text-xs text-slate-300">
-              <div className="flex justify-between">
+            <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-white/10 space-y-2.5 sm:space-y-3 font-mono text-xs text-slate-300">
+              <div className="flex justify-between items-center gap-2">
                 <span className="text-slate-400">Primary Hazard Bias:</span>
                 <span className={`font-bold uppercase ${result.pathway === 'Flood' ? 'text-blue-400' : 'text-amber-400'}`}>
                   {result.pathway} Dominant
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <span className="text-slate-400">Final Treasury Balance:</span>
-                <span className={`font-bold ${resources.emergencyBudget <= 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                <span className={`font-bold text-right ${resources.emergencyBudget <= 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                   {resources.emergencyBudget < 0
-                    ? `-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M (LKR ${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M Facility Avail)`
+                    ? `-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M (${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M Avail)`
                     : `LKR ${Math.round(resources.emergencyBudget)}M / 500M`}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center gap-2">
                 <span className="text-slate-400">Campaign Timeline:</span>
-                <span className="font-bold text-white">
+                <span className="font-bold text-white text-right">
                   Day 10 (6 Buckets Complete)
                 </span>
               </div>
@@ -161,13 +161,13 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
           </div>
 
           {/* Diagnostic Breakdown Bars */}
-          <div className="md:col-span-7 bg-slate-900/50 border border-slate-800/80 p-8 rounded-2xl flex flex-col justify-between">
+          <div className="md:col-span-7 bg-slate-900/50 border border-slate-800/80 p-5 sm:p-8 rounded-2xl flex flex-col justify-between">
             <div>
-              <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-slate-400 font-bold mb-6">
+              <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-slate-400 font-bold mb-4 sm:mb-6">
                 Strategic Diagnostic Breakdown
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5 sm:space-y-4">
                 {metrics.map((m) => (
                   <div key={m.label} className="space-y-1">
                     <div className="flex justify-between text-xs font-mono">
@@ -192,7 +192,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
+            <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-slate-500">
               <span>National Disaster Management Framework</span>
               <span>v3.2 Production</span>
             </div>
@@ -200,32 +200,32 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
         </div>
 
         {/* Expandable Score Calculation Breakdown */}
-        <div className="my-8">
+        <div className="my-6 sm:my-8">
           <button
             id="toggle-score-calculation"
             type="button"
             onClick={() => setShowCalculationDetails(!showCalculationDetails)}
             aria-expanded={showCalculationDetails}
-            className="w-full flex items-center justify-between p-4 md:p-5 rounded-2xl bg-slate-900/60 hover:bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all text-left group"
+            className="w-full flex items-center justify-between p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-slate-900/60 hover:bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all text-left group"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform shrink-0">
-                <Calculator size={20} />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform shrink-0">
+                <Calculator size={18} />
               </div>
               <div>
-                <div className="text-sm font-bold text-white flex items-center gap-2">
+                <div className="text-xs sm:text-sm font-bold text-white flex flex-wrap items-center gap-1.5 sm:gap-2">
                   <span>How Your Score Was Calculated</span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/60 text-cyan-400">
+                  <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/60 text-cyan-400">
                     Engine Audit
                   </span>
                 </div>
-                <div className="text-xs text-slate-400 mt-0.5 font-sans">
-                  Why CPS ({result.cps.toFixed(1)}) reflects weighted defense &amp; crisis penalties rather than an unweighted average ({calc.arithmeticMean.toFixed(1)})
+                <div className="text-[11px] sm:text-xs text-slate-400 mt-0.5 font-sans leading-snug">
+                  Why CPS ({result.cps.toFixed(1)}) reflects weighted defense &amp; crisis penalties vs unweighted average ({calc.arithmeticMean.toFixed(1)})
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-slate-400 group-hover:text-cyan-400 transition-colors font-mono text-xs shrink-0">
-              <span className="hidden sm:inline">{showCalculationDetails ? 'Hide Audit' : 'Show Formula & Weights'}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-400 group-hover:text-cyan-400 transition-colors font-mono text-xs shrink-0 ml-2">
+              <span className="hidden md:inline">{showCalculationDetails ? 'Hide Audit' : 'Show Formula & Weights'}</span>
               {showCalculationDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
           </button>
@@ -237,15 +237,15 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="mt-3 bg-slate-900/40 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 overflow-hidden"
+                className="mt-3 bg-slate-900/40 border border-slate-800 rounded-2xl p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 overflow-hidden"
               >
                 {/* 1. Component Contributions Table */}
                 <div>
                   <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold mb-3 flex items-center gap-2">
                     <Info size={14} /> 1. Strategic Pillar Weighting (Total 100%)
                   </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left font-mono text-xs border-collapse">
+                  <div className="overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                    <table className="w-full min-w-[460px] text-left font-mono text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400">
                           <th className="pb-2 font-semibold">Pillar Indicator</th>
@@ -289,7 +289,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                   <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 font-bold mb-3 flex items-center gap-2">
                     <AlertCircle size={14} /> 2. Crisis Threshold Failure Deductions
                   </h3>
-                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs font-mono">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs font-mono">
                     <div className="flex justify-between items-center text-slate-300">
                       <span>Breached Failure Conditions:</span>
                       <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
@@ -318,19 +318,19 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                   <h3 className="uppercase tracking-[0.2em] text-purple-400 font-bold flex items-center gap-2">
                     <Award size={14} /> 3. Reconciliation &amp; Strategic Gates
                   </h3>
-                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-slate-300">
-                    <div className="flex justify-between">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-slate-300">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                       <span>Formula Accounting:</span>
-                      <span className="text-slate-400">
+                      <span className="text-slate-400 sm:text-right">
                         {calc.curveAdjustment !== 0
                           ? `Asymptotic adjustment applied (${calc.curveAdjustment >= 0 ? '+' : ''}${calc.curveAdjustment.toFixed(1)} pts)`
                           : 'Direct linear reconciliation (Baseline minus crisis deductions)'}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                       <span>Decision Quality ({Math.round(scores.decisionQuality)}%):</span>
-                      <span className="text-slate-400">
-                        Strategic Gate (Requires ≥ 65% for Tier 1; evaluated independently of physical CPS)
+                      <span className="text-slate-400 sm:text-right">
+                        Strategic Gate (Requires ≥ 65% for Tier 1; evaluated independently)
                       </span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white text-sm">
@@ -350,15 +350,15 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
         </div>
 
         {/* Crisis Thresholds Grid */}
-        <div className="my-8">
-          <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-slate-400 font-bold mb-4">
+        <div className="my-6 sm:my-8">
+          <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-slate-400 font-bold mb-3 sm:mb-4">
             Critical Survival Thresholds
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {failureItems.map((item, idx) => (
               <div 
                 key={idx}
-                className={`p-4 rounded-xl border font-mono text-xs flex flex-col justify-between ${
+                className={`p-3.5 sm:p-4 rounded-xl border font-mono text-xs flex flex-col justify-between ${
                   item.failed 
                     ? 'bg-red-950/20 border-red-500/40 text-red-300' 
                     : 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
@@ -366,7 +366,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-bold">{item.label}</span>
-                  {item.failed ? <XCircle size={16} className="text-red-400" /> : <CheckCircle2 size={16} className="text-emerald-400" />}
+                  {item.failed ? <XCircle size={16} className="text-red-400 shrink-0" /> : <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />}
                 </div>
                 <div>
                   <div className="text-white font-black text-sm">{item.metric}</div>
@@ -379,7 +379,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
 
         {/* Strategic Trade-offs Box */}
         {result.tradeoffs && result.tradeoffs.length > 0 && (
-          <div className="my-8 bg-slate-900/40 border border-slate-800/80 p-6 rounded-2xl">
+          <div className="my-6 sm:my-8 bg-slate-900/40 border border-slate-800/80 p-4 sm:p-6 rounded-2xl">
             <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 font-bold mb-3 flex items-center gap-2">
               <AlertCircle size={15} /> Strategic Trade-Off Analysis
             </h3>
@@ -395,25 +395,26 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
         )}
 
         {/* Narrative Evaluation Box */}
-        <div className="bg-black/50 border border-slate-800/80 p-6 md:p-8 rounded-2xl relative overflow-hidden">
+        <div className="bg-black/50 border border-slate-800/80 p-4 sm:p-6 md:p-8 rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500"></div>
           <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold mb-2">
             Executive Mission Analysis
           </h3>
-          <p className="text-slate-300 text-sm md:text-base leading-relaxed font-sans">
+          <p className="text-slate-300 text-xs sm:text-sm md:text-base leading-relaxed font-sans">
             &quot;{result.summary || 'Strategic decision sequence concluded. Preparedness and community resilience have been recorded in the central repository.'}&quot;
           </p>
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-8 pt-6 border-t border-slate-800/80 flex justify-between items-center">
-          <span className="text-xs font-mono text-slate-500">
+        <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-slate-800/80 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+          <span className="text-[11px] sm:text-xs font-mono text-slate-500 text-center sm:text-left">
             SustainTech Simulation Engine // Verified Playthrough Complete
           </span>
 
           <button
+            id="reflection-end-session"
             onClick={handleLogout}
-            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black font-mono text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+            className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black font-mono text-xs uppercase tracking-widest px-6 py-3.5 sm:py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center cursor-pointer active:scale-95"
           >
             End Session
           </button>
