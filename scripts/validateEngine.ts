@@ -361,6 +361,191 @@ test('Emergency Credit Facility: Rejects actions that exceed the LKR 200M borrow
 });
 
 // ============================================================================
+// TEST SUITE 2B: DAY 4 & DAY 6 RESOURCE ALLOCATION & FLEET LOGISTICS
+// ============================================================================
+console.log('\n--------------------------------------------------------------------------------');
+console.log('TEST SUITE 2B: DAY 4 & DAY 6 RESOURCE ALLOCATION & FLEET LOGISTICS');
+console.log('--------------------------------------------------------------------------------');
+
+test('Day 4: Valid custom allocations within 100M limit and accurate score updates', () => {
+  const state = getInitialGameState('test-day4-valid-custom');
+  state.bucket = 3;
+  state.resources.emergencyBudget = 350;
+
+  // Full 100M custom allocation
+  const fullAlloc = { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 };
+  const checkFull = validateConstraints(3, { allocations: fullAlloc }, 350);
+  assert.strictEqual(checkFull.valid, true, 'Full 100M custom allocation must be valid');
+
+  const nextFull = processDecision(state, 'tester', { allocations: fullAlloc });
+  assert.strictEqual(nextFull.resources.emergencyBudget, 250, 'Must deduct exactly 100M (350 - 100 = 250)');
+
+  // Partial 75M custom allocation
+  const statePart = getInitialGameState('test-day4-partial-custom');
+  statePart.bucket = 3;
+  statePart.resources.emergencyBudget = 350;
+  const partAlloc = { evacuation: 35, drinkingWater: 25, medicalSupplies: 15 };
+  const checkPart = validateConstraints(3, { allocations: partAlloc }, 350);
+  assert.strictEqual(checkPart.valid, true, 'Partial 75M custom allocation must be valid');
+
+  const nextPart = processDecision(statePart, 'tester', { allocations: partAlloc });
+  assert.strictEqual(nextPart.resources.emergencyBudget, 275, 'Must deduct exactly 75M (350 - 75 = 275)');
+});
+
+test('Day 4: Rejects over-budget totals and Plan 3E preset (single plan or ranked)', () => {
+  // Custom over 100M
+  const checkOver = validateConstraints(3, {
+    allocations: { evacuation: 45, drinkingWater: 40, medicalSupplies: 25 } // 110M
+  });
+  assert.strictEqual(checkOver.valid, false, 'Custom allocation exceeding 100M must be rejected');
+  assert.ok(checkOver.error?.includes('exceeds the scenario-defined LKR 100M emergency allocation ceiling'));
+
+  // Single preset 3E
+  const check3ESingle = validateConstraints(3, { rankings: ['3E'] });
+  assert.strictEqual(check3ESingle.valid, false, 'Single Plan 3E must be rejected');
+  assert.ok(check3ESingle.error?.includes('Plan 3E releases LKR 120M'));
+
+  // Ranked preset 3E as top choice
+  const check3ERanked = validateConstraints(3, { rankings: ['3E', '3A', '3D'] });
+  assert.strictEqual(check3ERanked.valid, false, 'Plan 3E as top choice must be rejected');
+  assert.ok(check3ERanked.error?.includes('Plan 3E releases LKR 120M'));
+});
+
+test('Day 4 & Day 6: Negative inputs rejected across both custom modes', () => {
+  // Day 4 negative sectors
+  const checkD4Neg = validateConstraints(3, {
+    allocations: { evacuation: -5, drinkingWater: 50, medicalSupplies: 30 }
+  });
+  assert.strictEqual(checkD4Neg.valid, false, 'Day 4 negative allocation must be rejected');
+  assert.strictEqual(checkD4Neg.error, 'Allocation amounts cannot be negative.');
+
+  // Day 6 negative vehicle inputs
+  const checkD6NegTruck = validateConstraints(4, { allocations: { trucks_flood: -2, trucks_dryzone: 5 } });
+  assert.strictEqual(checkD6NegTruck.valid, false, 'Negative trucks must be rejected');
+  assert.strictEqual(checkD6NegTruck.error, 'Fleet allocations cannot be negative.');
+
+  const checkD6NegBoat = validateConstraints(4, { allocations: { boats_flood: 10, boats_dryzone: -1 } });
+  assert.strictEqual(checkD6NegBoat.valid, false, 'Negative boats must be rejected');
+  assert.strictEqual(checkD6NegBoat.error, 'Fleet allocations cannot be negative.');
+});
+
+test('Day 6: Valid custom fleet deployment and accurate reserve count enforcement', () => {
+  const state = getInitialGameState('test-day6-custom-fleet');
+  state.bucket = 4;
+  state.resources.emergencyBudget = 250;
+
+  // Optimal fleet allocation: 20 trucks, 30 vehicles, 20 boats (0 held in reserve)
+  const fullFleet = {
+    trucks_flood: 8, trucks_dryzone: 12,
+    vehicles_flood: 24, vehicles_dryzone: 6,
+    boats_flood: 20, boats_dryzone: 0
+  };
+  const checkFull = validateConstraints(4, { allocations: fullFleet }, 250);
+  assert.strictEqual(checkFull.valid, true, 'Full legal fleet deployment must be valid');
+
+  const nextFull = processDecision(state, 'tester', { allocations: fullFleet });
+  assert.strictEqual(nextFull.resources.emergencyBudget, 190, 'Must deduct exactly LKR 60M fee (250 - 60 = 190)');
+
+  // Partial deployment with active units held in reserve
+  const statePart = getInitialGameState('test-day6-partial-fleet');
+  statePart.bucket = 4;
+  statePart.resources.emergencyBudget = 250;
+  const partialFleet = {
+    trucks_flood: 5, trucks_dryzone: 5,   // 10 deployed -> 10 held in reserve
+    vehicles_flood: 15, vehicles_dryzone: 5, // 20 deployed -> 10 held in reserve
+    boats_flood: 10, boats_dryzone: 0    // 10 deployed -> 10 held in reserve
+  };
+  const checkPart = validateConstraints(4, { allocations: partialFleet }, 250);
+  assert.strictEqual(checkPart.valid, true, 'Partial deployment with reserves must be valid');
+
+  const nextPart = processDecision(statePart, 'tester', { allocations: partialFleet });
+  assert.strictEqual(nextPart.resources.emergencyBudget, 190, 'Non-reserve deployment must incur LKR 60M fee exactly once');
+});
+
+test('Day 6: Fleet-limit violations strictly rejected for each asset pool', () => {
+  // Trucks > 20
+  const truckViolation = validateConstraints(4, { allocations: { trucks_flood: 14, trucks_dryzone: 8 } }); // 22
+  assert.strictEqual(truckViolation.valid, false);
+  assert.ok(truckViolation.error?.includes('Truck allocation (22) exceeds national fleet limit of 20'));
+
+  // Vehicles > 30
+  const vehicleViolation = validateConstraints(4, { allocations: { vehicles_flood: 22, vehicles_dryzone: 10 } }); // 32
+  assert.strictEqual(vehicleViolation.valid, false);
+  assert.ok(vehicleViolation.error?.includes('Rescue vehicle allocation (32) exceeds national fleet limit of 30'));
+
+  // Boats > 20
+  const boatViolation = validateConstraints(4, { allocations: { boats_flood: 12, boats_dryzone: 9 } }); // 21
+  assert.strictEqual(boatViolation.valid, false);
+  assert.ok(boatViolation.error?.includes('Rescue boat allocation (21) exceeds national fleet limit of 20'));
+});
+
+test('Day 4 & Day 6: Exactly-once charging and zero-fee reserve handling', () => {
+  // Day 4: Single preset selection ['3A'] charges exactly 100M once
+  const state3A = getInitialGameState('test-d4-single-preset');
+  state3A.bucket = 3;
+  state3A.resources.emergencyBudget = 300;
+  const next3A = processDecision(state3A, 'tester', { rankings: ['3A'] });
+  assert.strictEqual(next3A.resources.emergencyBudget, 200, 'Single plan 3A must deduct exactly 100M');
+
+  // Day 4: Ranked preset ['3D', '3A', '3B'] charges top plan (3D, 100M) exactly once
+  const state3D = getInitialGameState('test-d4-ranked-preset');
+  state3D.bucket = 3;
+  state3D.resources.emergencyBudget = 300;
+  const next3D = processDecision(state3D, 'tester', { rankings: ['3D', '3A', '3B'] });
+  assert.strictEqual(next3D.resources.emergencyBudget, 200, 'Ranked package must charge top plan 3D exactly once (100M)');
+
+  // Day 6: Single preset plan ['4A'] charges LKR 60M fee exactly once
+  const state4A = getInitialGameState('test-d6-single-preset');
+  state4A.bucket = 4;
+  state4A.resources.emergencyBudget = 250;
+  const next4A = processDecision(state4A, 'tester', { rankings: ['4A'] });
+  assert.strictEqual(next4A.resources.emergencyBudget, 190, 'Plan 4A must deduct exactly 60M fee (250 - 60 = 190)');
+
+  // Day 6: Plan 4E (holding all in reserve) costs LKR 0M
+  const state4E = getInitialGameState('test-d6-reserve-preset');
+  state4E.bucket = 4;
+  state4E.resources.emergencyBudget = 250;
+  const next4E = processDecision(state4E, 'tester', { rankings: ['4E'] });
+  assert.strictEqual(next4E.resources.emergencyBudget, 250, 'Plan 4E must cost LKR 0M (250 - 0 = 250)');
+
+  // Day 6: Custom allocation holding all units in reserve costs LKR 0M
+  const stateCustomReserve = getInitialGameState('test-d6-custom-reserve');
+  stateCustomReserve.bucket = 4;
+  stateCustomReserve.resources.emergencyBudget = 250;
+  const nextCustomReserve = processDecision(stateCustomReserve, 'tester', {
+    allocations: {
+      trucks_flood: 0, trucks_dryzone: 0,
+      vehicles_flood: 0, vehicles_dryzone: 0,
+      boats_flood: 0, boats_dryzone: 0
+    }
+  });
+  assert.strictEqual(nextCustomReserve.resources.emergencyBudget, 250, 'All-reserve custom fleet must cost LKR 0M (250 - 0 = 250)');
+});
+
+test('Day 4 & Day 6: Projected balances and credit limit validation', () => {
+  // Day 4: Solvent projection (300M - 100M = 200M)
+  const d4Solvent = validateConstraints(3, { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, 300);
+  assert.strictEqual(d4Solvent.valid, true);
+
+  // Day 4: Deficit projection (40M - 100M = -60M, debt 60M <= 200M credit facility)
+  const d4Deficit = validateConstraints(3, { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, 40);
+  assert.strictEqual(d4Deficit.valid, true, 'Deficit within 200M credit ceiling is permitted');
+
+  // Day 4: Credit ceiling breach (-120M - 100M = -220M, debt > 200M)
+  const d4Breach = validateConstraints(3, { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, -120);
+  assert.strictEqual(d4Breach.valid, false, 'Projected balance reaching -220M must be rejected');
+  assert.ok(d4Breach.error?.includes('Emergency Credit Facility ceiling'));
+
+  // Day 6: Credit ceiling breach with 60M deployment fee (-150M - 60M = -210M)
+  const d6Breach = validateConstraints(4, { allocations: { trucks_flood: 5, trucks_dryzone: 5 } }, -150);
+  assert.strictEqual(d6Breach.valid, false, 'Projected balance reaching -210M must be rejected');
+
+  // Day 6: Zero-fee reserve plan permitted even with -150M debt (-150M - 0M = -150M <= 200M cap)
+  const d6ReservePermitted = validateConstraints(4, { rankings: ['4E'] }, -150);
+  assert.strictEqual(d6ReservePermitted.valid, true, 'Plan 4E with 0M cost does not expand deficit and is permitted');
+});
+
+// ============================================================================
 // TEST SUITE 3: BOUNDARY TESTING OF FAILURE THRESHOLDS & ENDING TIERS
 // ============================================================================
 console.log('\n--------------------------------------------------------------------------------');

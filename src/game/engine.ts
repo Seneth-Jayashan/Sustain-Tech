@@ -197,12 +197,22 @@ export function validateConstraints(
     if (bucket === 3) {
       if (decision.allocations) {
         projectedDrain = Object.values(decision.allocations).reduce((sum, v) => sum + (Number(v) || 0), 0);
-      } else if (decision.rankings && decision.rankings.length > 0 && decision.rankings[0] !== '3E') {
-        projectedDrain = 100;
+      } else if (decision.rankings && decision.rankings.length > 0) {
+        const top = decision.rankings[0];
+        projectedDrain = (top === '3E' || top === 'B3_ACT_5') ? 120 : 100;
       }
     } else if (bucket === 4) {
-      if (decision.rankings && decision.rankings.length > 0 && decision.rankings[0] === '4E') {
+      if (decision.rankings && decision.rankings.length > 0 && (decision.rankings[0] === '4E' || decision.rankings[0] === 'B4_ACT_5')) {
         projectedDrain = 0;
+      } else if (decision.allocations) {
+        const alloc = decision.allocations;
+        const totalUnits = (Number(alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0)) +
+                           (Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0)) +
+                           (Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0)) +
+                           (Number(alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0)) +
+                           (Number(alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0)) +
+                           (Number(alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0));
+        projectedDrain = totalUnits > 0 ? 60 : 0;
       } else {
         projectedDrain = 60; // LKR 60M mobilization fee
       }
@@ -405,31 +415,41 @@ export function calculateDelta(
         delta.executedActionIds = ['CUSTOM_FLEET'];
         const alloc = normDecision.allocations;
         
-        const trucksFlood = alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0;
-        const trucksDry = alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0;
-        const vehiclesFlood = alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0;
-        const vehiclesDry = alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0;
-        const boatsFlood = alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0;
-        const boatsDry = alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0;
+        const trucksFlood = Number(alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0);
+        const trucksDry = Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0);
+        const vehiclesFlood = Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0);
+        const vehiclesDry = Number(alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0);
+        const boatsFlood = Number(alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0);
+        const boatsDry = Number(alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0);
 
-        const hasVehicleKeys = (trucksFlood + trucksDry + vehiclesFlood + vehiclesDry + boatsFlood + boatsDry) > 0;
-
-        delta.emergencyBudget = -60; // Standard logistical mobilization and deployment cost
+        const totalUnits = trucksFlood + trucksDry + vehiclesFlood + vehiclesDry + boatsFlood + boatsDry;
+        const hasVehicleKeys = ['trucks_flood', 'trucks_dryzone', 'vehicles_flood', 'vehicles_dryzone', 'boats_flood', 'boats_dryzone', 'trucksFlood', 'trucksDryZone', 'vehiclesFlood', 'vehiclesDryZone', 'boatsFlood', 'boatsDryZone'].some(k => k in alloc);
 
         if (hasVehicleKeys) {
-          // Optimal asset-to-task matching:
-          // Boats only operate in flood waters; trucks haul bulk water tankers to Dry Zone
-          delta.floodPreparedness += (boatsFlood / 20) * 10 + (vehiclesFlood / 30) * 6 + (trucksFlood / 20) * 4;
-          delta.droughtPreparedness += (trucksDry / 20) * 12 + (vehiclesDry / 30) * 4;
-          
-          // Misallocation penalty: sending boats to dry zone wastes assets on dry ground
-          if (boatsDry > 5) {
-            delta.communityTrust -= 6;
+          if (totalUnits > 0) {
+            delta.emergencyBudget = -60; // Standard logistical mobilization and deployment cost
+            // Optimal asset-to-task matching:
+            // Boats only operate in flood waters; trucks haul bulk water tankers to Dry Zone
+            delta.floodPreparedness += (boatsFlood / 20) * 10 + (vehiclesFlood / 30) * 6 + (trucksFlood / 20) * 4;
+            delta.droughtPreparedness += (trucksDry / 20) * 12 + (vehiclesDry / 30) * 4;
+            
+            // Misallocation penalty: sending boats to dry zone wastes assets on dry ground
+            if (boatsDry > 5) {
+              delta.communityTrust -= 6;
+            } else {
+              delta.communityTrust += (vehiclesFlood / 30) * 5 + (trucksDry / 20) * 5;
+            }
+            delta.informationQuality += 2;
+            delta.decisionQuality = 8;
           } else {
-            delta.communityTrust += (vehiclesFlood / 30) * 5 + (trucksDry / 20) * 5;
+            // Holding all resources in reserve costs LKR 0M (same as Plan 4E)
+            delta.emergencyBudget = 0;
+            delta.floodPreparedness -= 8;
+            delta.droughtPreparedness -= 8;
+            delta.communityTrust -= 10;
+            delta.informationQuality -= 2;
+            delta.decisionQuality = 4;
           }
-          delta.informationQuality += 2;
-          delta.decisionQuality = 8;
         } else {
           // Support package IDs / generic distribution (4A, 4B, 4C, etc.)
           const plan4A = alloc['4A'] || 0;
@@ -438,6 +458,7 @@ export function calculateDelta(
           const plan4D = alloc['4D'] || 0;
           const plan4E = alloc['4E'] || 0;
 
+          delta.emergencyBudget = (plan4E > 0 && plan4A === 0 && plan4B === 0 && plan4C === 0 && plan4D === 0) ? 0 : -60;
           delta.floodPreparedness += (plan4A / 30) * 14 + (plan4D / 30) * 18 + (plan4B / 30) * 13;
           delta.droughtPreparedness += (plan4A / 30) * 10 + (plan4B / 30) * 11 + (plan4C / 30) * 6 - (plan4D / 30) * 10;
           delta.communityTrust += (plan4A / 30) * 8 + (plan4B / 30) * 4 - (plan4E / 30) * 10;

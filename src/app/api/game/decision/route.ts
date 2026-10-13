@@ -38,8 +38,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Must provide all 5 actions in priority order' }, { status: 400 });
       }
     } else {
-      // For allocation rounds, must provide either allocations map or rankings plan
-      if (!allocations && (!Array.isArray(rankings) || rankings.length < 3)) {
+      // For allocation rounds, must provide either allocations map or rankings plan (single or ranked)
+      if (!allocations && (!Array.isArray(rankings) || rankings.length < 1)) {
         return NextResponse.json({ error: 'Must provide resource allocations or an allocation package' }, { status: 400 });
       }
     }

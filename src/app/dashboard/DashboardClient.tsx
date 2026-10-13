@@ -1,14 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
 import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
-import { Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, CheckCircle2, ArrowRight } from 'lucide-react';
+import { 
+  Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
+  Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
+  CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus 
+} from 'lucide-react';
 import Image from 'next/image';
 
 // Advanced Visualizers
@@ -96,8 +100,17 @@ const CommsGrid = ({ health }: { health: number }) => {
   );
 };
 
-// 3D Tilt Card Component
-const ActionCard = ({ action, isSelected, rankIndex, onClick }: any) => {
+// 3D Tilt Card Component with Accurate Cost Labels
+interface ActionCardProps {
+  action: any;
+  bucket: number;
+  isSelected: boolean;
+  rankIndex?: number;
+  isSingleSelect?: boolean;
+  onClick: () => void;
+}
+
+const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect = false, onClick }: ActionCardProps) => {
   const cardRef = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -120,6 +133,57 @@ const ActionCard = ({ action, isSelected, rankIndex, onClick }: any) => {
     y.set(0);
   }
 
+  // Cost Label & Validation Determination
+  const is3E = bucket === 3 && (action.id === '3E' || action.id === 'B3_ACT_5');
+  const is4E = bucket === 4 && (action.id === '4E' || action.id === 'B4_ACT_5');
+
+  let costLabel = '';
+  let costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
+  let efficacyLabel = '';
+
+  if (bucket === 3) {
+    if (is3E) {
+      costLabel = 'Cost: LKR 120M';
+      costBadgeClass = 'text-red-400 bg-red-950/80 border-red-500/50';
+      efficacyLabel = 'Breaches LKR 100M Cap — Invalid';
+    } else {
+      costLabel = 'Cost: LKR 100M';
+      costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
+      efficacyLabel = isSelected ? 'Selected Plan' : 'Statutory Cap Compliant';
+    }
+  } else if (bucket === 4) {
+    if (is4E) {
+      costLabel = 'Cost: LKR 0M';
+      costBadgeClass = 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30';
+      efficacyLabel = isSelected ? 'Selected Reserve Plan' : 'Held in Reserve';
+    } else {
+      costLabel = 'Cost: LKR 60M';
+      costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
+      efficacyLabel = isSelected ? 'Selected Fleet Plan' : 'Mobilization Fee';
+    }
+  } else {
+    const netBudget = action.impacts?.emergencyBudget ?? 0;
+    if (netBudget < 0) {
+      costLabel = `Cost: LKR ${Math.abs(netBudget)}M`;
+      costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
+    } else if (netBudget > 0) {
+      costLabel = `Grant: +LKR ${netBudget}M`;
+      costBadgeClass = 'text-cyan-300 bg-cyan-950/80 border-cyan-500/40';
+    } else {
+      costLabel = 'Cost: LKR 0M';
+      costBadgeClass = 'text-slate-300 bg-slate-900/60 border-slate-700';
+    }
+
+    if (isSelected) {
+      efficacyLabel = rankIndex === 0 ? 'Immediate (100%)' :
+                      rankIndex === 1 ? 'Fast (85%)' :
+                      rankIndex === 2 ? 'Standard (70%)' :
+                      rankIndex === 3 ? 'Delayed (40%)' : 'Backlog (20%)';
+    } else {
+      efficacyLabel = 'Unassigned';
+    }
+  }
+
   return (
     <motion.button
       ref={cardRef}
@@ -131,9 +195,13 @@ const ActionCard = ({ action, isSelected, rankIndex, onClick }: any) => {
       whileTap={{ scale: 0.96 }}
       style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
       onClick={onClick}
-      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[185px] sm:min-h-[190px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none ${
+      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[195px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none ${
         isSelected
-          ? 'border-emerald-400 bg-emerald-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+          ? is3E
+            ? 'border-red-500 bg-red-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(239,68,68,0.4)]'
+            : 'border-emerald-400 bg-emerald-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+          : is3E
+          ? 'border-red-900/50 bg-slate-900/60 backdrop-blur-md hover:border-red-500/60 hover:bg-red-950/20'
           : 'border-slate-700 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800/80 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]'
       }`}
     >
@@ -142,28 +210,65 @@ const ActionCard = ({ action, isSelected, rankIndex, onClick }: any) => {
         <motion.div 
           animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
           transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-          className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 via-transparent to-emerald-400/10 rounded-2xl blur-xl -z-10 bg-[length:200%_200%]" 
+          className={`absolute inset-0 rounded-2xl blur-xl -z-10 bg-[length:200%_200%] ${
+            is3E
+              ? 'bg-gradient-to-tr from-red-500/20 via-transparent to-red-400/10'
+              : 'bg-gradient-to-tr from-emerald-500/20 via-transparent to-emerald-400/10'
+          }`} 
         />
       )}
 
       {/* Cyberpunk Tech Lines */}
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ transform: 'translateZ(20px)' }}></div>
-      <div className="absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ transform: 'translateZ(20px)' }}></div>
+      <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{ transform: 'translateZ(20px)' }}></div>
+      <div className={`absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{ transform: 'translateZ(20px)' }}></div>
 
       <div className="flex justify-between items-start mb-3" style={{ transform: 'translateZ(30px)' }}>
-        <div className={`p-2.5 rounded-xl backdrop-blur-md border ${isSelected ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'}`}>
-          <Terminal size={18} />
+        <div className={`p-2.5 rounded-xl backdrop-blur-md border ${
+          isSelected 
+            ? is3E 
+              ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+              : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
+            : is3E
+            ? 'bg-red-950/40 border-red-800 text-red-400'
+            : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
+        }`}>
+          {is3E ? <AlertTriangle size={18} /> : <Terminal size={18} />}
         </div>
+        
+        {/* Selection Badge */}
         <AnimatePresence>
-          {isSelected && (
-            <motion.div
-              initial={{ scale: 0, rotate: 180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: -180 }}
-              className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
-            >
-              {rankIndex + 1}
-            </motion.div>
+          {isSingleSelect ? (
+            isSelected ? (
+              <motion.div
+                initial={{ scale: 0, rotate: 90 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0 }}
+                className={`w-7 h-7 rounded-full flex items-center justify-center font-black shadow-lg text-sm ${
+                  is3E ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)]'
+                }`}
+              >
+                {is3E ? '✕' : <CheckCircle2 size={16} />}
+              </motion.div>
+            ) : is3E ? (
+              <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                REJECTED
+              </span>
+            ) : (
+              <span className="text-[9px] font-mono text-slate-500 group-hover:text-cyan-400 transition-colors uppercase font-bold">
+                Select
+              </span>
+            )
+          ) : (
+            isSelected && (
+              <motion.div
+                initial={{ scale: 0, rotate: 180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: -180 }}
+                className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
+              >
+                {rankIndex + 1}
+              </motion.div>
+            )
           )}
         </AnimatePresence>
       </div>
@@ -177,26 +282,24 @@ const ActionCard = ({ action, isSelected, rankIndex, onClick }: any) => {
         </span>
       )}
 
-      {/* Real Financial Cost & Priority Efficacy */}
+      {/* Real Financial Cost & Priority / Status Efficacy */}
       <div className="mt-3.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2.5" style={{ transform: 'translateZ(30px)' }}>
-        <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-500/30">
-          Cost: LKR {Math.abs(action.baseImpacts?.emergencyBudget ?? action.impacts?.emergencyBudget ?? 0)}M
+        <span className={`font-bold px-2.5 py-0.5 rounded-md border text-[10px] sm:text-[11px] ${costBadgeClass}`}>
+          {costLabel}
         </span>
-        {isSelected ? (
-          <span className="text-cyan-300 font-bold bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-500/30 text-[10px]">
-            {rankIndex === 0 ? 'Immediate (100%)' :
-             rankIndex === 1 ? 'Fast (85%)' :
-             rankIndex === 2 ? 'Standard (70%)' :
-             rankIndex === 3 ? 'Delayed (50%)' : 'Backlog (30%)'}
-          </span>
-        ) : (
-          <span className="text-slate-500 text-[10px]">Unassigned</span>
-        )}
+        <span className={`font-bold px-2 py-0.5 rounded-md border text-[10px] truncate max-w-[140px] ${
+          is3E 
+            ? 'text-red-300 bg-red-950/80 border-red-500/40'
+            : isSelected 
+            ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
+            : 'text-slate-500 border-transparent'
+        }`}>
+          {efficacyLabel}
+        </span>
       </div>
     </motion.button>
   );
 };
-
 
 interface Props {
   initialState: GameState;
@@ -208,7 +311,42 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const router = useRouter();
   const [state, setState] = useState<GameState>(initialState);
   const [currentScenario, setCurrentScenario] = useState<any>(initialScenario);
+  
+  // Operational Ranking Rounds (Buckets 1, 2, 5, 6)
   const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
+  
+  // Day 4 (Fiscal Allocation, Bucket 3) State
+  const [day4Mode, setDay4Mode] = useState<'preset' | 'custom'>('preset');
+  const [day4PresetPlan, setDay4PresetPlan] = useState<string | null>(null);
+  const [day4Custom, setDay4Custom] = useState<{
+    evacuation: number;
+    drinkingWater: number;
+    medicalSupplies: number;
+  }>({
+    evacuation: 40,
+    drinkingWater: 30,
+    medicalSupplies: 30
+  });
+
+  // Day 6 (Emergency Fleet Distribution, Bucket 4) State
+  const [day6Mode, setDay6Mode] = useState<'preset' | 'custom'>('preset');
+  const [day6PresetPlan, setDay6PresetPlan] = useState<string | null>(null);
+  const [day6Custom, setDay6Custom] = useState<{
+    trucks_flood: number;
+    trucks_dryzone: number;
+    vehicles_flood: number;
+    vehicles_dryzone: number;
+    boats_flood: number;
+    boats_dryzone: number;
+  }>({
+    trucks_flood: 8,
+    trucks_dryzone: 12,
+    vehicles_flood: 24,
+    vehicles_dryzone: 6,
+    boats_flood: 20,
+    boats_dryzone: 0
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showBrief, setShowBrief] = useState(true);
@@ -229,6 +367,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
+  // Toggle selection for operational 5-rank rounds
   const toggleSelection = (actionId: string) => {
     playUIBlip();
     if (selectedOrder.includes(actionId)) {
@@ -240,8 +379,154 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     }
   };
 
-  const handleSubmit = async () => {
-    if (selectedOrder.length !== 5) return;
+  // Day 4 Calculations
+  const day4AllocatedTotal = day4Mode === 'preset'
+    ? (day4PresetPlan === '3E' ? 120 : day4PresetPlan ? 100 : 0)
+    : Math.max(0, (Number(day4Custom.evacuation) || 0) + (Number(day4Custom.drinkingWater) || 0) + (Number(day4Custom.medicalSupplies) || 0));
+
+  const day4RemainingCapacity = Math.max(0, 100 - day4AllocatedTotal);
+  const currentBudget = state.resources?.emergencyBudget ?? 500;
+  const day4ProjectedTreasury = currentBudget - day4AllocatedTotal;
+  const day4RemainingCredit = day4ProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(day4ProjectedTreasury)) : 200;
+  const day4HasNegative = day4Mode === 'custom' && (day4Custom.evacuation < 0 || day4Custom.drinkingWater < 0 || day4Custom.medicalSupplies < 0);
+  const day4IsOverCap = day4AllocatedTotal > 100;
+  const day4IsCreditBreached = day4ProjectedTreasury < -200;
+  const day4Is3E = day4Mode === 'preset' && day4PresetPlan === '3E';
+
+  // Day 6 Calculations
+  const day6TrucksFlood = Math.max(0, Number(day6Custom.trucks_flood) || 0);
+  const day6TrucksDry = Math.max(0, Number(day6Custom.trucks_dryzone) || 0);
+  const day6VehiclesFlood = Math.max(0, Number(day6Custom.vehicles_flood) || 0);
+  const day6VehiclesDry = Math.max(0, Number(day6Custom.vehicles_dryzone) || 0);
+  const day6BoatsFlood = Math.max(0, Number(day6Custom.boats_flood) || 0);
+  const day6BoatsDry = Math.max(0, Number(day6Custom.boats_dryzone) || 0);
+
+  const day6TrucksTotal = day6TrucksFlood + day6TrucksDry;
+  const day6VehiclesTotal = day6VehiclesFlood + day6VehiclesDry;
+  const day6BoatsTotal = day6BoatsFlood + day6BoatsDry;
+  const day6TotalDeployed = day6TrucksTotal + day6VehiclesTotal + day6BoatsTotal;
+
+  const day6TrucksReserve = Math.max(0, 20 - day6TrucksTotal);
+  const day6VehiclesReserve = Math.max(0, 30 - day6VehiclesTotal);
+  const day6BoatsReserve = Math.max(0, 20 - day6BoatsTotal);
+
+  const day6HasLimitViolation = day6Mode === 'custom' && (day6TrucksTotal > 20 || day6VehiclesTotal > 30 || day6BoatsTotal > 20);
+  const day6HasNegative = day6Mode === 'custom' && (
+    day6Custom.trucks_flood < 0 || day6Custom.trucks_dryzone < 0 ||
+    day6Custom.vehicles_flood < 0 || day6Custom.vehicles_dryzone < 0 ||
+    day6Custom.boats_flood < 0 || day6Custom.boats_dryzone < 0
+  );
+
+  const day6Cost = day6Mode === 'preset'
+    ? (day6PresetPlan === '4E' ? 0 : day6PresetPlan ? 60 : 0)
+    : (day6TotalDeployed > 0 ? 60 : 0);
+
+  const day6ProjectedTreasury = currentBudget - day6Cost;
+  const day6RemainingCredit = day6ProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(day6ProjectedTreasury)) : 200;
+  const day6IsCreditBreached = day6ProjectedTreasury < -200;
+
+  // Operational Rounds (Buckets 1, 2, 5, 6) Calculations
+  const operationalDrain = (() => {
+    const top3 = selectedOrder.slice(0, 3);
+    let netDrain = 0;
+    top3.forEach(id => {
+      const act = currentScenario?.actions?.find((a: any) => a.id === id);
+      if (act) {
+        netDrain -= (act.impacts?.emergencyBudget ?? 0);
+      }
+    });
+    return netDrain;
+  })();
+  const operationalProjectedTreasury = currentBudget - (selectedOrder.length > 0 ? operationalDrain : 0);
+  const operationalRemainingCredit = operationalProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(operationalProjectedTreasury)) : 200;
+
+  // Submit Handler
+  const handleSubmitDecision = async () => {
+    let payload: { rankings?: string[]; allocations?: Record<string, number> } = {};
+
+    if (state.bucket === 3) {
+      if (day4Mode === 'preset') {
+        if (!day4PresetPlan) {
+          alert('Please select a preset fiscal plan to authorize.');
+          return;
+        }
+        if (day4PresetPlan === '3E') {
+          alert('Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
+          return;
+        }
+        payload = { rankings: [day4PresetPlan] };
+      } else {
+        if (day4HasNegative) {
+          alert('Allocation amounts cannot be negative.');
+          return;
+        }
+        if (day4AllocatedTotal > 100) {
+          alert(`Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
+          return;
+        }
+        if (day4AllocatedTotal <= 0) {
+          alert('Please allocate emergency funds across sectors.');
+          return;
+        }
+        if (day4IsCreditBreached) {
+          alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+          return;
+        }
+        payload = {
+          allocations: {
+            evacuation: day4Custom.evacuation,
+            drinkingWater: day4Custom.drinkingWater,
+            medicalSupplies: day4Custom.medicalSupplies
+          }
+        };
+      }
+    } else if (state.bucket === 4) {
+      if (day6Mode === 'preset') {
+        if (!day6PresetPlan) {
+          alert('Please select a preset fleet plan to authorize.');
+          return;
+        }
+        payload = { rankings: [day6PresetPlan] };
+      } else {
+        if (day6HasNegative) {
+          alert('Fleet allocations cannot be negative.');
+          return;
+        }
+        if (day6TrucksTotal > 20) {
+          alert(`Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
+          return;
+        }
+        if (day6VehiclesTotal > 30) {
+          alert(`Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
+          return;
+        }
+        if (day6BoatsTotal > 20) {
+          alert(`Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
+          return;
+        }
+        if (day6IsCreditBreached) {
+          alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+          return;
+        }
+        payload = {
+          allocations: {
+            trucks_flood: day6TrucksFlood,
+            trucks_dryzone: day6TrucksDry,
+            vehicles_flood: day6VehiclesFlood,
+            vehicles_dryzone: day6VehiclesDry,
+            boats_flood: day6BoatsFlood,
+            boats_dryzone: day6BoatsDry
+          }
+        };
+      }
+    } else {
+      if (selectedOrder.length !== 5) {
+        alert('Please rank all 5 actions in priority order.');
+        return;
+      }
+      payload = { rankings: selectedOrder };
+    }
+
     setSubmitting(true);
     stopSpeaking();
 
@@ -249,7 +534,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       const res = await fetch('/api/game/decision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rankings: selectedOrder })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -261,7 +546,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           if (data.nextScenario) {
             setCurrentScenario(data.nextScenario);
           }
+          // Reset states for subsequent round
           setSelectedOrder([]);
+          setDay4PresetPlan(null);
+          setDay6PresetPlan(null);
+          setDay4Mode('preset');
+          setDay6Mode('preset');
           setSubmitting(false);
         }
       } else {
@@ -283,29 +573,6 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   if (!currentScenario) return <div className="fixed inset-0 flex items-center justify-center bg-[#020617]"><span className="animate-pulse text-3xl font-mono font-black text-cyan-500 tracking-[0.5em]">ESTABLISHING_UPLINK...</span></div>;
 
   const waterPercent = Math.max(5, Math.min(100, Math.round(state.scores?.droughtPreparedness ?? state.resources?.drinkingWater ?? 50)));
-
-  // Projected financial impact of current selection
-  const currentBudget = state.resources?.emergencyBudget ?? 500;
-  
-  const projectedDrain = (() => {
-    if (state.bucket === 3) {
-      return selectedOrder.length > 0 && selectedOrder[0] !== '3E' ? 100 : 0;
-    }
-    if (state.bucket === 4) {
-      return selectedOrder.length > 0 && selectedOrder[0] === '4E' ? 0 : 60;
-    }
-    const top3 = selectedOrder.slice(0, 3);
-    let netDrain = 0;
-    top3.forEach(id => {
-      const act = currentScenario?.actions?.find((a: any) => a.id === id);
-      if (act) {
-        netDrain -= (act.impacts?.emergencyBudget ?? 0);
-      }
-    });
-    return netDrain;
-  })();
-
-  const projectedNewBudget = currentBudget - (selectedOrder.length > 0 ? projectedDrain : 0);
 
   return (
     <div className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden text-slate-200 selection:bg-cyan-500/30 font-sans bg-black flex flex-col justify-between">
@@ -531,7 +798,6 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         </AnimatePresence>
       </motion.header>
 
-      {/* Narrative HUD - Come & Going Advisor */}
       {/* Narrative HUD - Advisor Briefing */}
       <AnimatePresence>
         {showBrief && (
@@ -662,8 +928,666 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </div>
         )}
 
-        {/* Pre-Authorization Directives Summary Tray */}
-        {selectedOrder.length > 0 && (
+        {/* ========================================================================= */}
+        {/* DAY 4: FISCAL ALLOCATION CONTROLS & SUMMARY TRAY                          */}
+        {/* ========================================================================= */}
+        {state.bucket === 3 && (
+          <div className="mb-3 sm:mb-4 bg-slate-900/95 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-2xl">
+            {/* Header with Title and Mode Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400">
+                    <Coins size={16} />
+                  </div>
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+                    Day 4 — Fiscal Allocation
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full">
+                    Cap: LKR 100M
+                  </span>
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 mt-1">
+                  Three sectors require LKR 120M total. Available round limit is LKR 100M.
+                </span>
+              </div>
+
+              {/* Mode Selector */}
+              <div className="flex items-center gap-1.5 bg-slate-950/90 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                <button
+                  id="day4-mode-preset"
+                  onClick={() => { setDay4Mode('preset'); playUIBlip(); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                    day4Mode === 'preset'
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Layers size={13} />
+                  <span>Preset Plans</span>
+                </button>
+                <button
+                  id="day4-mode-custom"
+                  onClick={() => { setDay4Mode('custom'); playUIBlip(); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                    day4Mode === 'custom'
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sliders size={13} />
+                  <span>Custom Allocation</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Financial Accounting Bar (Requirement 6) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 py-3 border-b border-slate-800 text-[10px] sm:text-xs font-mono">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Allocated Total</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${day4IsOverCap ? 'text-red-400' : 'text-emerald-400'}`}>
+                    LKR {day4AllocatedTotal.toFixed(0)}M
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day4IsOverCap ? 'bg-red-950 text-red-300' : 'bg-emerald-950 text-emerald-300'}`}>
+                    / 100M
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Remaining Capacity</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${day4RemainingCapacity === 0 ? 'text-amber-300' : 'text-cyan-400'}`}>
+                    LKR {day4RemainingCapacity.toFixed(0)}M
+                  </span>
+                  <span className="text-[9px] text-slate-500">allowance</span>
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Projected Treasury</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${
+                    day4ProjectedTreasury < 0 ? 'text-red-400' : day4ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
+                  }`}>
+                    {day4ProjectedTreasury < 0 ? `-LKR ${Math.abs(day4ProjectedTreasury).toFixed(0)}M` : `LKR ${day4ProjectedTreasury.toFixed(0)}M`}
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    day4ProjectedTreasury < 0 ? 'bg-red-950 text-red-300' : 'bg-emerald-950 text-emerald-300'
+                  }`}>
+                    {day4ProjectedTreasury < 0 ? 'Deficit' : 'Solvent'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Credit Availability</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${day4RemainingCredit < 50 ? 'text-red-400' : 'text-amber-300'}`}>
+                    LKR {day4RemainingCredit.toFixed(0)}M
+                  </span>
+                  <span className="text-[9px] text-slate-500">of 200M cap</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Deficit / Limit Violation Warnings */}
+            {(day4IsOverCap || day4Is3E || day4ProjectedTreasury < 0 || day4HasNegative) && (
+              <div className="mt-2.5 p-2.5 rounded-xl font-mono text-[10px] sm:text-[11px] flex flex-col gap-1 border">
+                {day4Is3E && (
+                  <div className="text-red-400 bg-red-950/70 p-1.5 rounded-lg border border-red-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>PLAN 3E REJECTED:</strong> Releases LKR 120M and breaches the statutory LKR 100M limit. This plan cannot be authorized.</span>
+                  </div>
+                )}
+                {day4IsOverCap && !day4Is3E && (
+                  <div className="text-red-400 bg-red-950/70 p-1.5 rounded-lg border border-red-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>ROUND CAP EXCEEDED:</strong> Total allocation (LKR {day4AllocatedTotal.toFixed(0)}M) exceeds the LKR 100M limit by LKR {(day4AllocatedTotal - 100).toFixed(0)}M.</span>
+                  </div>
+                )}
+                {day4HasNegative && (
+                  <div className="text-red-400 bg-red-950/70 p-1.5 rounded-lg border border-red-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>INVALID AMOUNTS:</strong> Allocations cannot be negative.</span>
+                  </div>
+                )}
+                {day4ProjectedTreasury < 0 && (
+                  <div className="text-amber-300 bg-amber-950/70 p-1.5 rounded-lg border border-amber-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>DEFICIT WARNING:</strong> Spending drives provincial reserves into negative balance (-LKR {Math.abs(day4ProjectedTreasury).toFixed(0)}M). Drawing from Emergency Credit Facility incurs the fiscal insolvency deduction (-12 pts CPS).</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Day 4 Custom Allocation Sector Inputs */}
+            {day4Mode === 'custom' && (
+              <div className="mt-3.5 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Evacuation Support */}
+                  <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Navigation size={13} className="text-cyan-400" />
+                          Evacuation Support
+                        </span>
+                        <span className="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded">
+                          Need: 40M
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-mono text-slate-400 mb-2">
+                        Kelani flood basin levee evacuation & shelter transport
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 mt-1">
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="custom-slider-evacuation"
+                          type="range"
+                          min={0}
+                          max={60}
+                          step={1}
+                          value={day4Custom.evacuation}
+                          onChange={(e) => setDay4Custom(prev => ({ ...prev, evacuation: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-cyan-400 cursor-pointer"
+                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            id="custom-input-evacuation"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={day4Custom.evacuation}
+                            onChange={(e) => setDay4Custom(prev => ({ ...prev, evacuation: Math.max(0, parseInt(e.target.value) || 0) }))}
+                            className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-right font-mono text-xs font-bold text-white"
+                          />
+                          <span className="text-[10px] font-mono text-slate-400">M</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-1 justify-between text-[9px] font-mono text-slate-400 pt-1">
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, evacuation: 0 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">0M</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, evacuation: 20 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">20M</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, evacuation: 40 }))} className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold hover:bg-cyan-900">40M (100%)</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, evacuation: 60 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">60M</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Drinking Water */}
+                  <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Droplets size={13} className="text-amber-400" />
+                          Drinking Water Delivery
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded">
+                          Need: 50M
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-mono text-slate-400 mb-2">
+                        Dry Zone emergency water bowsers & well rehabilitation
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 mt-1">
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="custom-slider-water"
+                          type="range"
+                          min={0}
+                          max={60}
+                          step={1}
+                          value={day4Custom.drinkingWater}
+                          onChange={(e) => setDay4Custom(prev => ({ ...prev, drinkingWater: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-amber-400 cursor-pointer"
+                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            id="custom-input-water"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={day4Custom.drinkingWater}
+                            onChange={(e) => setDay4Custom(prev => ({ ...prev, drinkingWater: Math.max(0, parseInt(e.target.value) || 0) }))}
+                            className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-right font-mono text-xs font-bold text-white"
+                          />
+                          <span className="text-[10px] font-mono text-slate-400">M</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-1 justify-between text-[9px] font-mono text-slate-400 pt-1">
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, drinkingWater: 0 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">0M</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, drinkingWater: 25 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">25M</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, drinkingWater: 50 }))} className="px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 font-bold hover:bg-amber-900">50M (100%)</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Medical Supplies */}
+                  <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <ShieldAlert size={13} className="text-emerald-400" />
+                          Emergency Medical Supplies
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                          Need: 30M
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-mono text-slate-400 mb-2">
+                        Mobile triage clinics & critical medicine buffer
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 mt-1">
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="custom-slider-medical"
+                          type="range"
+                          min={0}
+                          max={60}
+                          step={1}
+                          value={day4Custom.medicalSupplies}
+                          onChange={(e) => setDay4Custom(prev => ({ ...prev, medicalSupplies: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-emerald-400 cursor-pointer"
+                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            id="custom-input-medical"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={day4Custom.medicalSupplies}
+                            onChange={(e) => setDay4Custom(prev => ({ ...prev, medicalSupplies: Math.max(0, parseInt(e.target.value) || 0) }))}
+                            className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-right font-mono text-xs font-bold text-white"
+                          />
+                          <span className="text-[10px] font-mono text-slate-400">M</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-1 justify-between text-[9px] font-mono text-slate-400 pt-1">
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, medicalSupplies: 0 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">0M</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, medicalSupplies: 15 }))} className="px-1.5 py-0.5 rounded bg-slate-800 hover:text-white">15M</button>
+                        <button onClick={() => setDay4Custom(prev => ({ ...prev, medicalSupplies: 30 }))} className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold hover:bg-emerald-900">30M (100%)</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Presets Row */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono">
+                  <span className="text-slate-400 font-bold">Quick Presets:</span>
+                  <button
+                    onClick={() => setDay4Custom({ evacuation: 40, drinkingWater: 30, medicalSupplies: 30 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-300 transition-colors"
+                  >
+                    Balanced (40 / 30 / 30)
+                  </button>
+                  <button
+                    onClick={() => setDay4Custom({ evacuation: 30, drinkingWater: 40, medicalSupplies: 30 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-300 transition-colors"
+                  >
+                    Water Focus (30 / 40 / 30)
+                  </button>
+                  <button
+                    onClick={() => setDay4Custom({ evacuation: 50, drinkingWater: 30, medicalSupplies: 20 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-300 transition-colors"
+                  >
+                    Evac Focus (50 / 30 / 20)
+                  </button>
+                  <button
+                    onClick={() => setDay4Custom({ evacuation: 0, drinkingWater: 0, medicalSupplies: 0 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-red-950 hover:text-red-300 text-slate-400 transition-colors"
+                  >
+                    Reset (0 / 0 / 0)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* DAY 6: FLEET DISTRIBUTION CONTROLS & SUMMARY TRAY                         */}
+        {/* ========================================================================= */}
+        {state.bucket === 4 && (
+          <div className="mb-3 sm:mb-4 bg-slate-900/95 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-2xl">
+            {/* Header with Title and Mode Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400">
+                    <Truck size={16} />
+                  </div>
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+                    Day 6 — Emergency Fleet Distribution
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full">
+                    Pool: 20 Trucks, 30 Vehicles, 20 Boats
+                  </span>
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 mt-1">
+                  Deploy national transport fleets. Non-reserve deployment incurs an LKR 60M fee; Plan 4E costs LKR 0M.
+                </span>
+              </div>
+
+              {/* Mode Selector */}
+              <div className="flex items-center gap-1.5 bg-slate-950/90 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                <button
+                  id="day6-mode-preset"
+                  onClick={() => { setDay6Mode('preset'); playUIBlip(); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                    day6Mode === 'preset'
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Layers size={13} />
+                  <span>Preset Fleet Plans</span>
+                </button>
+                <button
+                  id="day6-mode-custom"
+                  onClick={() => { setDay6Mode('custom'); playUIBlip(); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                    day6Mode === 'custom'
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sliders size={13} />
+                  <span>Custom Fleet Allocation</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Fleet & Cost Accounting Bar (Requirement 6) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 py-3 border-b border-slate-800 text-[10px] sm:text-xs font-mono">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Fleet Deployment</span>
+                <div className="flex flex-col gap-0.5 mt-1 text-[10px] font-bold">
+                  <span className="text-blue-300">Flood: {day6TrucksFlood + day6VehiclesFlood + day6BoatsFlood} units</span>
+                  <span className="text-amber-300">Dry Zone: {day6TrucksDry + day6VehiclesDry + day6BoatsDry} units</span>
+                  <span className="text-slate-400">Reserve: {day6TrucksReserve + day6VehiclesReserve + day6BoatsReserve} units</span>
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Actual Deployment Cost</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${day6Cost === 0 ? 'text-cyan-300' : 'text-emerald-400'}`}>
+                    LKR {day6Cost}M
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day6Cost === 0 ? 'bg-cyan-950 text-cyan-300' : 'bg-emerald-950 text-emerald-300'}`}>
+                    {day6Cost === 0 ? '0M Reserve' : '60M Fee'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Projected Treasury</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${
+                    day6ProjectedTreasury < 0 ? 'text-red-400' : day6ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
+                  }`}>
+                    {day6ProjectedTreasury < 0 ? `-LKR ${Math.abs(day6ProjectedTreasury).toFixed(0)}M` : `LKR ${day6ProjectedTreasury.toFixed(0)}M`}
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    day6ProjectedTreasury < 0 ? 'bg-red-950 text-red-300' : 'bg-emerald-950 text-emerald-300'
+                  }`}>
+                    {day6ProjectedTreasury < 0 ? 'Deficit' : 'Solvent'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Credit Availability</span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className={`text-base sm:text-lg font-black ${day6RemainingCredit < 50 ? 'text-red-400' : 'text-amber-300'}`}>
+                    LKR {day6RemainingCredit.toFixed(0)}M
+                  </span>
+                  <span className="text-[9px] text-slate-500">of 200M cap</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Warnings Bar */}
+            {(day6HasLimitViolation || day6ProjectedTreasury < 0 || day6HasNegative) && (
+              <div className="mt-2.5 p-2.5 rounded-xl font-mono text-[10px] sm:text-[11px] flex flex-col gap-1 border">
+                {day6HasLimitViolation && (
+                  <div className="text-red-400 bg-red-950/70 p-1.5 rounded-lg border border-red-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>STOCKPILE LIMIT VIOLATION:</strong> Fleet deployment exceeds available national pool (Trucks &le; 20, Vehicles &le; 30, Boats &le; 20).</span>
+                  </div>
+                )}
+                {day6HasNegative && (
+                  <div className="text-red-400 bg-red-950/70 p-1.5 rounded-lg border border-red-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>INVALID AMOUNTS:</strong> Fleet unit numbers cannot be negative.</span>
+                  </div>
+                )}
+                {day6ProjectedTreasury < 0 && (
+                  <div className="text-amber-300 bg-amber-950/70 p-1.5 rounded-lg border border-amber-500/40 flex items-center gap-2">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span><strong>DEFICIT WARNING:</strong> Mobilization fee drives treasury into overdraft (-LKR {Math.abs(day6ProjectedTreasury).toFixed(0)}M). Remaining borrowing facility: LKR {day6RemainingCredit.toFixed(0)}M.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Day 6 Custom Fleet Allocation Inputs */}
+            {day6Mode === 'custom' && (
+              <div className="mt-3.5 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Heavy-Duty Trucks */}
+                  <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Truck size={13} className="text-cyan-400" />
+                          Heavy-Duty Trucks
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                          Pool: 20
+                        </span>
+                      </div>
+                      <div className="text-[10px] font-mono text-cyan-300 flex items-center justify-between mb-2">
+                        <span>Deployed: {day6TrucksTotal}</span>
+                        <span className="font-bold text-emerald-400">Reserve: {day6TrucksReserve}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mt-1 font-mono text-[11px]">
+                      <div>
+                        <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                          <span>Kelani Flood Zone:</span>
+                          <span className="text-white font-bold">{day6TrucksFlood}</span>
+                        </div>
+                        <input
+                          id="custom-trucks-flood"
+                          type="range"
+                          min={0}
+                          max={20}
+                          step={1}
+                          value={day6TrucksFlood}
+                          onChange={(e) => setDay6Custom(prev => ({ ...prev, trucks_flood: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-cyan-400 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                          <span>Dry Zone (Water Bowsers):</span>
+                          <span className="text-white font-bold">{day6TrucksDry}</span>
+                        </div>
+                        <input
+                          id="custom-trucks-dryzone"
+                          type="range"
+                          min={0}
+                          max={20}
+                          step={1}
+                          value={day6TrucksDry}
+                          onChange={(e) => setDay6Custom(prev => ({ ...prev, trucks_dryzone: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-amber-400 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rescue Vehicles */}
+                  <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Activity size={13} className="text-emerald-400" />
+                          Rescue Vehicles
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                          Pool: 30
+                        </span>
+                      </div>
+                      <div className="text-[10px] font-mono text-emerald-300 flex items-center justify-between mb-2">
+                        <span>Deployed: {day6VehiclesTotal}</span>
+                        <span className="font-bold text-emerald-400">Reserve: {day6VehiclesReserve}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mt-1 font-mono text-[11px]">
+                      <div>
+                        <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                          <span>Kelani Flood Zone:</span>
+                          <span className="text-white font-bold">{day6VehiclesFlood}</span>
+                        </div>
+                        <input
+                          id="custom-vehicles-flood"
+                          type="range"
+                          min={0}
+                          max={30}
+                          step={1}
+                          value={day6VehiclesFlood}
+                          onChange={(e) => setDay6Custom(prev => ({ ...prev, vehicles_flood: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-emerald-400 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                          <span>Dry Zone:</span>
+                          <span className="text-white font-bold">{day6VehiclesDry}</span>
+                        </div>
+                        <input
+                          id="custom-vehicles-dryzone"
+                          type="range"
+                          min={0}
+                          max={30}
+                          step={1}
+                          value={day6VehiclesDry}
+                          onChange={(e) => setDay6Custom(prev => ({ ...prev, vehicles_dryzone: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-amber-400 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rescue Boats */}
+                  <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Ship size={13} className="text-blue-400" />
+                          Rescue Boats
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                          Pool: 20
+                        </span>
+                      </div>
+                      <div className="text-[10px] font-mono text-blue-300 flex items-center justify-between mb-2">
+                        <span>Deployed: {day6BoatsTotal}</span>
+                        <span className="font-bold text-emerald-400">Reserve: {day6BoatsReserve}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mt-1 font-mono text-[11px]">
+                      <div>
+                        <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                          <span>Kelani Flood Zone:</span>
+                          <span className="text-white font-bold">{day6BoatsFlood}</span>
+                        </div>
+                        <input
+                          id="custom-boats-flood"
+                          type="range"
+                          min={0}
+                          max={20}
+                          step={1}
+                          value={day6BoatsFlood}
+                          onChange={(e) => setDay6Custom(prev => ({ ...prev, boats_flood: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-blue-400 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                          <span>Dry Zone:</span>
+                          <span className="text-white font-bold">{day6BoatsDry}</span>
+                        </div>
+                        <input
+                          id="custom-boats-dryzone"
+                          type="range"
+                          min={0}
+                          max={20}
+                          step={1}
+                          value={day6BoatsDry}
+                          onChange={(e) => setDay6Custom(prev => ({ ...prev, boats_dryzone: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-full accent-slate-500 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Presets Row */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono">
+                  <span className="text-slate-400 font-bold">Quick Presets:</span>
+                  <button
+                    onClick={() => setDay6Custom({ trucks_flood: 8, trucks_dryzone: 12, vehicles_flood: 24, vehicles_dryzone: 6, boats_flood: 20, boats_dryzone: 0 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-300 transition-colors"
+                  >
+                    Optimal 4A (8/12 T, 24/6 V, 20/0 B)
+                  </button>
+                  <button
+                    onClick={() => setDay6Custom({ trucks_flood: 0, trucks_dryzone: 20, vehicles_flood: 30, vehicles_dryzone: 0, boats_flood: 20, boats_dryzone: 0 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-300 transition-colors"
+                  >
+                    Specialized 4B (0/20 T, 30/0 V, 20/0 B)
+                  </button>
+                  <button
+                    onClick={() => setDay6Custom({ trucks_flood: 10, trucks_dryzone: 10, vehicles_flood: 15, vehicles_dryzone: 15, boats_flood: 10, boats_dryzone: 10 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-300 transition-colors"
+                  >
+                    Equal Split (10/10, 15/15, 10/10)
+                  </button>
+                  <button
+                    onClick={() => setDay6Custom({ trucks_flood: 0, trucks_dryzone: 0, vehicles_flood: 0, vehicles_dryzone: 0, boats_flood: 0, boats_dryzone: 0 })}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 text-slate-400 transition-colors"
+                  >
+                    Hold All in Reserve (0M fee)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* OPERATIONAL RANKING ROUNDS (BUCKETS 1, 2, 5, 6) SUMMARY TRAY              */}
+        {/* ========================================================================= */}
+        {state.bucket !== 3 && state.bucket !== 4 && selectedOrder.length > 0 && (
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -675,28 +1599,24 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   <Terminal size={14} /> Priority Sequence:
                 </span>
                 <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
-                  {state.bucket === 3 
-                    ? 'Rank 1 Package Executes (Cost: LKR 100M)' 
-                    : state.bucket === 4 
-                    ? 'Rank 1 Fleet Plan Executes (Fee: LKR 60M)' 
-                    : 'Ranks 1–3 Execute | Ranks 4–5 Standby'}
+                  Ranks 1–3 Execute | Ranks 4–5 Standby
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono justify-between sm:justify-start w-full sm:w-auto">
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-400">Est. Drain:</span>
-                  <span className={`font-black ${projectedDrain > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {projectedDrain > 0 ? `-LKR ${projectedDrain}M` : `+LKR ${Math.abs(projectedDrain)}M`}
+                  <span className={`font-black ${operationalDrain > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {operationalDrain > 0 ? `-LKR ${operationalDrain}M` : `+LKR ${Math.abs(operationalDrain)}M`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-400">Projected:</span>
-                  <span className={`font-black ${projectedNewBudget < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {projectedNewBudget < 0 ? `-LKR ${Math.abs(projectedNewBudget)}M` : `LKR ${projectedNewBudget}M`}
+                  <span className={`font-black ${operationalProjectedTreasury < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {operationalProjectedTreasury < 0 ? `-LKR ${Math.abs(operationalProjectedTreasury)}M` : `LKR ${operationalProjectedTreasury}M`}
                   </span>
-                  {projectedNewBudget < 0 && (
+                  {operationalProjectedTreasury < 0 && (
                     <span className="text-[9px] text-red-300 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">
-                      {Math.max(0, 200 - Math.abs(projectedNewBudget))}M Left
+                      {operationalRemainingCredit}M Avail
                     </span>
                   )}
                 </div>
@@ -714,7 +1634,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               {[0, 1, 2, 3, 4].map((slotIdx) => {
                 const actionId = selectedOrder[slotIdx];
                 const action = actionId ? currentScenario?.actions?.find((a: any) => a.id === actionId) : null;
-                const isExecuting = state.bucket === 3 || state.bucket === 4 ? slotIdx === 0 : slotIdx < 3;
+                const isExecuting = slotIdx < 3;
                 
                 return (
                   <div
@@ -775,67 +1695,204 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </motion.div>
         )}
 
+        {/* ========================================================================= */}
+        {/* ACTION CARDS TRACK & AUTHORIZE SUBMIT BUTTON                              */}
+        {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 mb-3 sm:mb-4">
           <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-start">
-            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-[0.2em] text-slate-400 flex items-center gap-2 sm:gap-3 truncate">
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-[0.2em] text-slate-300 flex items-center gap-2 sm:gap-3 truncate">
               <span className="truncate">
                 {state.bucket === 3 
-                  ? 'Fiscal Allocation' 
+                  ? day4Mode === 'preset' ? 'Select One Preset Plan' : 'Custom Sector Inputs'
                   : state.bucket === 4 
-                  ? 'Fleet Distribution' 
+                  ? day6Mode === 'preset' ? 'Select One Fleet Plan' : 'Custom Fleet Logistics'
                   : 'Priority Directives'}
               </span>
-              <span className="text-white bg-slate-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg border border-slate-700 shadow-inner text-xs font-mono shrink-0">{selectedOrder.length}/5</span>
+              {state.bucket !== 3 && state.bucket !== 4 && (
+                <span className="text-white bg-slate-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg border border-slate-700 shadow-inner text-xs font-mono shrink-0">
+                  {selectedOrder.length}/5
+                </span>
+              )}
             </h3>
-            {selectedOrder.length < 5 && (
+
+            {state.bucket !== 3 && state.bucket !== 4 && selectedOrder.length < 5 && (
               <span className="text-[10px] sm:text-xs text-cyan-400 animate-pulse font-mono border border-cyan-500/30 bg-cyan-500/10 px-2 sm:px-3 py-1 rounded-full tracking-wider sm:tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.2)] shrink-0">
                 NEED {5 - selectedOrder.length}
               </span>
             )}
           </div>
 
+          {/* Authorize Action Button */}
           <AnimatePresence>
-            {selectedOrder.length === 5 && (
+            {state.bucket === 3 ? (
               <motion.button
+                id="day4-authorize-btn"
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
                 whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
                 whileTap={{ scale: 0.96 }}
-                disabled={submitting}
-                onClick={handleSubmit}
-                className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto"
+                disabled={submitting || (
+                  day4Mode === 'preset'
+                    ? (!day4PresetPlan || day4PresetPlan === '3E')
+                    : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
+                )}
+                onClick={handleSubmitDecision}
+                className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                  (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                    : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                }`}
               >
                 <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                 <div className="flex flex-col text-left">
-                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
-                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
-                    {state.bucket === 3 || state.bucket === 4 ? `executes plan ${selectedOrder[0]}` : `executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
+                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                    {submitting 
+                      ? 'EXECUTING...' 
+                      : day4Mode === 'preset'
+                      ? day4PresetPlan === '3E'
+                        ? 'PLAN 3E REJECTED (OVER CAP)'
+                        : day4PresetPlan
+                        ? `AUTHORIZE PLAN [${day4PresetPlan}]`
+                        : 'SELECT A PLAN'
+                      : day4AllocatedTotal > 100
+                      ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
+                      : day4AllocatedTotal === 0
+                      ? 'ALLOCATE FUNDS'
+                      : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                    {day4Mode === 'preset'
+                      ? day4PresetPlan ? `costs LKR ${day4PresetPlan === '3E' ? '120' : '100'}M against round cap` : 'select exactly one option from 3A–3E'
+                      : `total spend: LKR ${day4AllocatedTotal.toFixed(0)}M / 100M`}
                   </span>
                 </div>
                 <Send size={18} className="shrink-0" />
               </motion.button>
+            ) : state.bucket === 4 ? (
+              <motion.button
+                id="day6-authorize-btn"
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                whileTap={{ scale: 0.96 }}
+                disabled={submitting || (
+                  day6Mode === 'preset'
+                    ? !day6PresetPlan
+                    : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
+                )}
+                onClick={handleSubmitDecision}
+                className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                  (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                    : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                }`}
+              >
+                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                    {submitting 
+                      ? 'EXECUTING...' 
+                      : day6Mode === 'preset'
+                      ? day6PresetPlan === '4E'
+                        ? 'HOLD FLEET IN RESERVE (LKR 0M)'
+                        : day6PresetPlan
+                        ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
+                        : 'SELECT A FLEET PLAN'
+                      : day6HasLimitViolation
+                      ? 'RESOLVE FLEET LIMIT VIOLATIONS'
+                      : day6TotalDeployed > 0
+                      ? 'DEPLOY FLEET (FEE: LKR 60M)'
+                      : 'HOLD IN RESERVE (COST: LKR 0M)'}
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                    {day6Mode === 'preset'
+                      ? day6PresetPlan ? `deployment fee: LKR ${day6PresetPlan === '4E' ? '0' : '60'}M` : 'select exactly one option from 4A–4E'
+                      : `deployed: ${day6TotalDeployed} units | fee: LKR ${day6Cost}M`}
+                  </span>
+                </div>
+                <Send size={18} className="shrink-0" />
+              </motion.button>
+            ) : (
+              selectedOrder.length === 5 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                  whileTap={{ scale: 0.96 }}
+                  disabled={submitting}
+                  onClick={handleSubmitDecision}
+                  className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
+                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
+                      {`executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
+                    </span>
+                  </div>
+                  <Send size={18} className="shrink-0" />
+                </motion.button>
+              )
             )}
           </AnimatePresence>
         </div>
 
-        {/* Cinematic Card Track */}
-        <div className="flex gap-3 sm:gap-6 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory relative touch-pan-x" style={{ scrollbarWidth: 'thin' }}>
-          {currentScenario.actions.map((action: any) => {
-            const rankIndex = selectedOrder.indexOf(action.id);
-            const isSelected = rankIndex !== -1;
-            
-            return (
-              <ActionCard 
-                key={action.id} 
-                action={action} 
-                isSelected={isSelected} 
-                rankIndex={rankIndex} 
-                onClick={() => toggleSelection(action.id)} 
-              />
-            );
-          })}
-        </div>
+        {/* Cinematic Card Track: Shown when in Preset mode or in Operational rounds */}
+        {(state.bucket !== 3 && state.bucket !== 4) || (state.bucket === 3 && day4Mode === 'preset') || (state.bucket === 4 && day6Mode === 'preset') ? (
+          <div className="flex gap-3 sm:gap-6 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory relative touch-pan-x" style={{ scrollbarWidth: 'thin' }}>
+            {currentScenario.actions.map((action: any) => {
+              if (state.bucket === 3 && day4Mode === 'preset') {
+                const isSelected = day4PresetPlan === action.id;
+                return (
+                  <ActionCard 
+                    key={action.id} 
+                    action={action} 
+                    bucket={state.bucket}
+                    isSelected={isSelected} 
+                    isSingleSelect={true}
+                    onClick={() => {
+                      playUIBlip();
+                      setDay4PresetPlan(prev => prev === action.id ? null : action.id);
+                    }} 
+                  />
+                );
+              }
+
+              if (state.bucket === 4 && day6Mode === 'preset') {
+                const isSelected = day6PresetPlan === action.id;
+                return (
+                  <ActionCard 
+                    key={action.id} 
+                    action={action} 
+                    bucket={state.bucket}
+                    isSelected={isSelected} 
+                    isSingleSelect={true}
+                    onClick={() => {
+                      playUIBlip();
+                      setDay6PresetPlan(prev => prev === action.id ? null : action.id);
+                    }} 
+                  />
+                );
+              }
+
+              // Operational rounds
+              const rankIndex = selectedOrder.indexOf(action.id);
+              const isSelected = rankIndex !== -1;
+              return (
+                <ActionCard 
+                  key={action.id} 
+                  action={action} 
+                  bucket={state.bucket}
+                  isSelected={isSelected} 
+                  rankIndex={rankIndex} 
+                  isSingleSelect={false}
+                  onClick={() => toggleSelection(action.id)} 
+                />
+              );
+            })}
+          </div>
+        ) : null}
       </motion.div>
     </div>
   );
