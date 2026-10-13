@@ -1,5 +1,7 @@
 import { GameState } from '../state';
 import { SCENARIOS, BucketScenario } from '../scenario';
+import { findAction } from '../engine';
+import { ACTION_MATRIX } from '../matrix';
 import Scenario, { IScenario } from '@/models/Scenario';
 import Action from '@/models/Action';
 
@@ -25,10 +27,13 @@ export async function determineNextScenario(state: GameState): Promise<any> {
           // Preserve order of availableActionIds
           scen.actions = scen.availableActionIds.map((id: string) => {
             const found = dbActions.find((a: any) => a.actionId === id);
+            const canonical = findAction(id, currentBucket) || ACTION_MATRIX.find(a => a.id === id);
             return {
               id,
-              title: found?.title || id,
-              description: found?.description || ''
+              title: found?.title || canonical?.title || id,
+              description: found?.description || canonical?.description || '',
+              impacts: canonical?.impacts || (found as any)?.impacts,
+              cost: canonical ? Math.abs(canonical.impacts.emergencyBudget) : 0,
             };
           });
           return scen;
@@ -48,7 +53,9 @@ export async function determineNextScenario(state: GameState): Promise<any> {
     actions: staticScenario.actions.map(a => ({
       id: a.id,
       title: a.title,
-      description: a.description
+      description: a.description,
+      impacts: a.impacts,
+      cost: Math.abs(a.impacts.emergencyBudget)
     }))
   };
 }

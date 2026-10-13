@@ -158,12 +158,23 @@ export function evaluateDynamicInterRoundEvents(state: GameState): DynamicEventT
 
   // 5. Fiscal Liquidity Constraint
   if (state.bucket >= 5) {
-    if (state.resources.emergencyBudget <= 60) {
+    if (state.resources.emergencyBudget <= 0) {
       events.push({
         id: 'FISCAL_STRESS_LIQUIDITY',
         title: 'Provincial Treasury Exhaustion',
-        description: 'Treasury reserves dipped critically low, delaying commercial contractor procurements for emergency repairs.',
+        description: 'Treasury reserves dipped into deficit. Response operations are drawing on the Emergency Credit Facility, delaying commercial contractor procurements.',
         impactType: 'negative',
+        effects: {
+          floodPreparedness: -6,
+          communityTrust: -4,
+        }
+      });
+    } else if (state.resources.emergencyBudget <= 60) {
+      events.push({
+        id: 'FISCAL_STRESS_LIQUIDITY',
+        title: 'Treasury Liquidity Stress',
+        description: `Only LKR ${Math.round(state.resources.emergencyBudget)}M remains from the initial LKR 500M treasury. Review recovery commitments carefully to preserve funds for essential repairs and ongoing emergency needs.`,
+        impactType: 'warning',
         effects: {
           floodPreparedness: -6,
           communityTrust: -4,

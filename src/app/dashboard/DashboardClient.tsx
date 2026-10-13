@@ -5,13 +5,16 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { useRouter } from 'next/navigation';
 import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
+import { findAction } from '@/game/engine';
+import { ACTION_MATRIX } from '@/game/matrix';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
 import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
 import { 
   Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
-  CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus 
+  CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
+  ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -134,6 +137,7 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
   }
 
   // Cost Label & Validation Determination
+  const canonicalAction = findAction(action.id, bucket) || action;
   const is3E = bucket === 3 && (action.id === '3E' || action.id === 'B3_ACT_5');
   const is4E = bucket === 4 && (action.id === '4E' || action.id === 'B4_ACT_5');
 
@@ -145,15 +149,15 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
     if (is3E) {
       costLabel = 'Cost: LKR 120M';
       costBadgeClass = 'text-red-400 bg-red-950/80 border-red-500/50';
-      efficacyLabel = 'Breaches LKR 100M Cap — Invalid';
+      efficacyLabel = 'Breaches scenario limit — Invalid';
     } else {
       costLabel = 'Cost: LKR 100M';
       costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
-      efficacyLabel = isSelected ? 'Selected Plan' : 'Statutory Cap Compliant';
+      efficacyLabel = isSelected ? 'Selected Plan' : 'Within scenario allocation limit';
     }
   } else if (bucket === 4) {
     if (is4E) {
-      costLabel = 'Cost: LKR 0M';
+      costLabel = 'No direct cost';
       costBadgeClass = 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30';
       efficacyLabel = isSelected ? 'Selected Reserve Plan' : 'Held in Reserve';
     } else {
@@ -162,15 +166,15 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
       efficacyLabel = isSelected ? 'Selected Fleet Plan' : 'Mobilization Fee';
     }
   } else {
-    const netBudget = action.impacts?.emergencyBudget ?? 0;
+    const netBudget = canonicalAction.impacts?.emergencyBudget ?? action.impacts?.emergencyBudget ?? 0;
     if (netBudget < 0) {
-      costLabel = `Cost: LKR ${Math.abs(netBudget)}M`;
+      costLabel = `Cost: −LKR ${Math.abs(netBudget)}M`;
       costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
     } else if (netBudget > 0) {
       costLabel = `Grant: +LKR ${netBudget}M`;
-      costBadgeClass = 'text-cyan-300 bg-cyan-950/80 border-cyan-500/40';
+      costBadgeClass = 'text-cyan-300 bg-cyan-950/80 border-cyan-500/40 font-bold';
     } else {
-      costLabel = 'Cost: LKR 0M';
+      costLabel = 'No direct cost';
       costBadgeClass = 'text-slate-300 bg-slate-900/60 border-slate-700';
     }
 
@@ -350,12 +354,23 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [submitting, setSubmitting] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showBrief, setShowBrief] = useState(true);
+  const [showFullSituation, setShowFullSituation] = useState(false);
   const [mobileMetricsOpen, setMobileMetricsOpen] = useState(false);
+
+  // Preset Fleet Logistics Profiles
+  const PRESET_FLEET_DISTRIBUTIONS: Record<string, { flood: number; dryZone: number; reserve: number; cost: number; title: string }> = {
+    '4A': { flood: 52, dryZone: 18, reserve: 0, cost: 60, title: '8/12 trucks, 24/6 vehicles, 20/0 boats' },
+    '4B': { flood: 50, dryZone: 20, reserve: 0, cost: 60, title: '0/20 trucks, 30/0 vehicles, 20/0 boats' },
+    '4C': { flood: 35, dryZone: 35, reserve: 0, cost: 60, title: '10/10 trucks, 15/15 vehicles, 10/10 boats (50/50)' },
+    '4D': { flood: 70, dryZone: 0, reserve: 0, cost: 60, title: '20/0 trucks, 30/0 vehicles, 20/0 boats (100% Flood)' },
+    '4E': { flood: 0, dryZone: 0, reserve: 70, cost: 0, title: '0 deployed, 70 in reserve' },
+  };
 
   useEffect(() => {
     if (!currentScenario) return;
     playRadarPing();
     setShowBrief(true);
+    setShowFullSituation(false);
 
     if (voiceEnabled) {
       const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
@@ -386,7 +401,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   const day4RemainingCapacity = Math.max(0, 100 - day4AllocatedTotal);
   const currentBudget = state.resources?.emergencyBudget ?? 500;
-  const day4ProjectedTreasury = currentBudget - day4AllocatedTotal;
+  const day4ProjectedTreasury = day4Mode === 'preset'
+    ? (day4PresetPlan ? currentBudget - (day4PresetPlan === '3E' ? 120 : 100) : currentBudget)
+    : currentBudget - day4AllocatedTotal;
   const day4RemainingCredit = day4ProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(day4ProjectedTreasury)) : 200;
   const day4HasNegative = day4Mode === 'custom' && (day4Custom.evacuation < 0 || day4Custom.drinkingWater < 0 || day4Custom.medicalSupplies < 0);
   const day4IsOverCap = day4AllocatedTotal > 100;
@@ -421,7 +438,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     ? (day6PresetPlan === '4E' ? 0 : day6PresetPlan ? 60 : 0)
     : (day6TotalDeployed > 0 ? 60 : 0);
 
-  const day6ProjectedTreasury = currentBudget - day6Cost;
+  const day6ProjectedTreasury = day6Mode === 'preset'
+    ? (day6PresetPlan ? currentBudget - day6Cost : currentBudget)
+    : currentBudget - day6Cost;
   const day6RemainingCredit = day6ProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(day6ProjectedTreasury)) : 200;
   const day6IsCreditBreached = day6ProjectedTreasury < -200;
 
@@ -430,7 +449,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     const top3 = selectedOrder.slice(0, 3);
     let netDrain = 0;
     top3.forEach(id => {
-      const act = currentScenario?.actions?.find((a: any) => a.id === id);
+      const act = findAction(id, state.bucket) || currentScenario?.actions?.find((a: any) => a.id === id);
       if (act) {
         netDrain -= (act.impacts?.emergencyBudget ?? 0);
       }
@@ -806,47 +825,79 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             animate={{ x: 0, opacity: 1, rotateY: 0 }}
             exit={{ x: -400, opacity: 0, rotateY: 30 }}
             transition={{ type: "spring", damping: 20, stiffness: 100 }}
-            className="fixed sm:absolute top-[80px] sm:top-[130px] md:top-[140px] left-3 right-3 sm:left-6 sm:right-auto md:left-8 z-40 max-w-xl perspective-[1000px]"
+            className="fixed sm:absolute top-[75px] sm:top-[120px] md:top-[130px] left-3 right-3 sm:left-6 sm:right-auto md:left-8 z-40 max-w-xl perspective-[1000px]"
           >
-            <div className="relative flex flex-col gap-2 sm:gap-4">
-              {/* Advisor Avatar Pop-in */}
+            <div className="relative flex flex-col gap-2 sm:gap-3">
+              {/* Advisor Avatar Pop-in with Collapse Action */}
               <motion.div 
                 initial={{ y: 50, opacity: 0 }} 
                 animate={{ y: 0, opacity: 1 }} 
                 transition={{ delay: 0.3, type: "spring" }}
-                className="flex items-end gap-3 sm:gap-4"
+                className="flex items-end justify-between gap-3 sm:gap-4"
               >
-                <div className="relative w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 sm:border-4 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-black z-20 shrink-0">
-                  <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
-                  <div className="absolute inset-0 bg-cyan-500/10 mix-blend-overlay"></div>
+                <div className="flex items-end gap-3 sm:gap-4">
+                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 sm:border-4 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-black z-20 shrink-0">
+                    <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
+                    <div className="absolute inset-0 bg-cyan-500/10 mix-blend-overlay"></div>
+                  </div>
+                  <div className="bg-cyan-950/80 border border-cyan-500/50 px-3 sm:px-4 py-1 sm:py-1.5 rounded-t-xl rounded-br-xl backdrop-blur-md mb-1 shadow-lg">
+                    <span className="text-cyan-400 font-black tracking-wider sm:tracking-widest text-[10px] sm:text-xs uppercase flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                      Priority Scenario Briefing
+                    </span>
+                  </div>
                 </div>
-                <div className="bg-cyan-950/80 border border-cyan-500/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-t-xl rounded-br-xl backdrop-blur-md mb-1 sm:mb-2 shadow-lg">
-                  <span className="text-cyan-400 font-black tracking-wider sm:tracking-widest text-[10px] sm:text-xs uppercase flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    Priority Message
-                  </span>
-                </div>
+
+                <button 
+                  onClick={() => setShowBrief(false)} 
+                  className="mb-1 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/90 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 hover:bg-slate-800 transition-all"
+                  title="Minimize briefing to focus on allocation decisions"
+                >
+                  <ChevronUp size={14} />
+                  <span>Minimize</span>
+                </button>
               </motion.div>
 
               {/* Message Box */}
               <motion.div 
-                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto"
+                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[55vh] sm:max-h-[65vh] overflow-y-auto"
+                style={{ scrollbarWidth: 'thin' }}
               >
                 <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl rounded-full pointer-events-none"></div>
                 
                 <div className="flex justify-between items-start mb-2 gap-2">
-                  <h2 className="text-base sm:text-xl font-black text-white tracking-tight">{currentScenario.title}</h2>
-                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 sm:p-2 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0">
+                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight">{currentScenario.title}</h2>
+                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 </div>
 
-                <div className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed min-h-[50px] sm:min-h-[60px]">
-                  <Typewriter text={currentScenario.situation} speed={25} />
+                <div 
+                  onClick={() => setShowFullSituation(true)} 
+                  className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed min-h-[50px] cursor-pointer select-text"
+                  title="Click to instantly reveal full text"
+                >
+                  {showFullSituation ? (
+                    <p className="whitespace-pre-line">{currentScenario.situation}</p>
+                  ) : (
+                    <Typewriter 
+                      text={currentScenario.situation} 
+                      speed={12} 
+                      onComplete={() => setShowFullSituation(true)} 
+                    />
+                  )}
                 </div>
+                {!showFullSituation && (
+                  <button 
+                    onClick={() => setShowFullSituation(true)} 
+                    className="mt-1 text-[10px] font-mono text-cyan-400/80 hover:text-cyan-300 underline"
+                  >
+                    Click to show full text immediately
+                  </button>
+                )}
 
                 {currentScenario.events && currentScenario.events.length > 0 && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-3 pt-2.5 border-t border-slate-800">
                     <div className="flex flex-col gap-1.5">
                       {currentScenario.events.map((ev: string, i: number) => (
                         <div key={i} className="text-[10px] sm:text-[11px] font-mono text-cyan-200/90 flex items-start gap-2">
@@ -857,6 +908,23 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                     </div>
                   </motion.div>
                 )}
+
+                {/* Bottom Dismiss / Proceed Button */}
+                <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-mono text-slate-400 hidden xs:inline">
+                    Read situation, then proceed to allocation below
+                  </span>
+                  <button
+                    onClick={() => {
+                      setShowBrief(false);
+                      playUIBlip();
+                    }}
+                    className="w-full xs:w-auto px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ml-auto shadow-md"
+                  >
+                    <span>Proceed to Allocation & Decisions</span>
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
               </motion.div>
             </div>
           </motion.div>
@@ -868,13 +936,23 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           initial={{ scale: 0, x: -50 }}
           animate={{ scale: 1, x: 0 }}
           whileHover={{ scale: 1.05 }}
-          onClick={() => setShowBrief(true)}
-          className="fixed sm:absolute top-[80px] sm:top-[130px] md:top-[160px] left-3 sm:left-6 md:left-8 z-40 bg-slate-900/90 border border-slate-700 text-cyan-400 p-2 sm:p-3 rounded-full backdrop-blur-xl hover:bg-slate-800 transition-all shadow-lg flex items-center gap-2 sm:gap-3 pr-3.5 sm:pr-4 group"
+          onClick={() => {
+            setShowBrief(true);
+            setShowFullSituation(true);
+            playUIBlip();
+          }}
+          className="fixed sm:absolute top-[80px] sm:top-[130px] md:top-[140px] left-3 sm:left-6 md:left-8 z-40 bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1.5 sm:p-2 rounded-2xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 group"
         >
-          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-500/50">
-            <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover grayscale group-hover:grayscale-0 transition-all" unoptimized />
+          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+            <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
           </div>
-          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest group-hover:text-white transition-colors">Advisor</span>
+          <div className="flex flex-col items-start text-left">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
+              <span>Scenario Briefing</span>
+              <span className="text-cyan-400 text-[9px] font-mono font-normal">Day {state.day}</span>
+            </span>
+            <span className="text-[9px] font-mono text-cyan-400/80">Click to expand briefing</span>
+          </div>
         </motion.button>
       )}
 
@@ -909,11 +987,11 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       >
         {/* Active Dynamic Events Alert Banner */}
         {state.activeDynamicEvents && state.activeDynamicEvents.length > 0 && (
-          <div className="mb-2 sm:mb-3 flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="mb-2 max-h-16 overflow-y-auto flex flex-wrap gap-1.5 sm:gap-2 pr-1" style={{ scrollbarWidth: 'thin' }}>
             {state.activeDynamicEvents.map((evt: any, i: number) => (
               <div 
                 key={i} 
-                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border font-mono text-[10px] sm:text-[11px] flex items-center gap-2 backdrop-blur-xl shadow-lg ${
+                className={`px-2.5 py-0.5 sm:py-1 rounded-lg border font-mono text-[9px] sm:text-[10px] flex items-center gap-1.5 backdrop-blur-xl shadow-md ${
                   evt.impactType === 'positive' 
                     ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300' 
                     : evt.impactType === 'warning'
@@ -922,7 +1000,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 }`}
               >
                 <span className="font-bold uppercase tracking-wider">{evt.title}:</span>
-                <span className="text-slate-300 truncate max-w-[200px] sm:max-w-none">{evt.description}</span>
+                <span className="text-slate-300 truncate max-w-[220px] sm:max-w-none">{evt.description}</span>
               </div>
             ))}
           </div>
@@ -984,39 +1062,78 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             {/* Financial Accounting Bar (Requirement 6) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 py-3 border-b border-slate-800 text-[10px] sm:text-xs font-mono">
               <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Allocated Total</span>
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">
+                  {day4Mode === 'preset' ? 'Selected Preset Plan' : 'Allocated Total'}
+                </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${day4IsOverCap ? 'text-red-400' : 'text-emerald-400'}`}>
-                    LKR {day4AllocatedTotal.toFixed(0)}M
+                  <span className={`text-base sm:text-lg font-black ${
+                    day4Mode === 'preset' && !day4PresetPlan 
+                      ? 'text-slate-500' 
+                      : day4IsOverCap 
+                      ? 'text-red-400' 
+                      : 'text-emerald-400'
+                  }`}>
+                    {day4Mode === 'preset' 
+                      ? (day4PresetPlan ? `Plan ${day4PresetPlan} (LKR ${day4AllocatedTotal}M)` : '—') 
+                      : `LKR ${day4AllocatedTotal.toFixed(0)}M`}
                   </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day4IsOverCap ? 'bg-red-950 text-red-300' : 'bg-emerald-950 text-emerald-300'}`}>
-                    / 100M
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    day4Mode === 'preset' && !day4PresetPlan
+                      ? 'bg-slate-900 text-slate-400'
+                      : day4IsOverCap 
+                      ? 'bg-red-950 text-red-300' 
+                      : 'bg-emerald-950 text-emerald-300'
+                  }`}>
+                    {day4Mode === 'preset' && !day4PresetPlan ? 'Select Plan' : '/ 100M Cap'}
                   </span>
                 </div>
               </div>
 
               <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Remaining Capacity</span>
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">
+                  {day4Mode === 'preset' ? 'Scenario Allocation Cap' : 'Remaining Capacity'}
+                </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${day4RemainingCapacity === 0 ? 'text-amber-300' : 'text-cyan-400'}`}>
-                    LKR {day4RemainingCapacity.toFixed(0)}M
+                  <span className={`text-base sm:text-lg font-black ${
+                    day4Mode === 'preset'
+                      ? 'text-cyan-400'
+                      : day4RemainingCapacity === 0 
+                      ? 'text-amber-300' 
+                      : 'text-cyan-400'
+                  }`}>
+                    {day4Mode === 'preset'
+                      ? (day4PresetPlan ? (day4PresetPlan === '3E' ? 'Breached (120M)' : 'LKR 0M Remaining') : 'LKR 100M Limit')
+                      : `LKR ${day4RemainingCapacity.toFixed(0)}M`}
                   </span>
-                  <span className="text-[9px] text-slate-500">allowance</span>
+                  <span className="text-[9px] text-slate-500">
+                    {day4Mode === 'preset' ? 'scenario rule' : 'allowance'}
+                  </span>
                 </div>
               </div>
 
               <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Projected Treasury</span>
+                <div className="flex justify-between items-center text-[9px] sm:text-[10px]">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider">Treasury Balance</span>
+                  <span className="text-slate-500 text-[8px] font-semibold">Actual: LKR {currentBudget}M</span>
+                </div>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className={`text-base sm:text-lg font-black ${
                     day4ProjectedTreasury < 0 ? 'text-red-400' : day4ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
                   }`}>
-                    {day4ProjectedTreasury < 0 ? `-LKR ${Math.abs(day4ProjectedTreasury).toFixed(0)}M` : `LKR ${day4ProjectedTreasury.toFixed(0)}M`}
+                    {day4Mode === 'preset' && !day4PresetPlan
+                      ? `LKR ${currentBudget}M`
+                      : day4ProjectedTreasury < 0 
+                      ? `-LKR ${Math.abs(day4ProjectedTreasury).toFixed(0)}M` 
+                      : `LKR ${day4ProjectedTreasury.toFixed(0)}M`}
                   </span>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    day4ProjectedTreasury < 0 ? 'bg-red-950 text-red-300' : 'bg-emerald-950 text-emerald-300'
+                    day4Mode === 'preset' && !day4PresetPlan
+                      ? 'bg-slate-900 text-slate-400'
+                      : day4ProjectedTreasury < 0 
+                      ? 'bg-red-950 text-red-300' 
+                      : 'bg-emerald-950 text-emerald-300'
                   }`}>
-                    {day4ProjectedTreasury < 0 ? 'Deficit' : 'Solvent'}
+                    {day4Mode === 'preset' && !day4PresetPlan ? 'Current' : day4ProjectedTreasury < 0 ? 'Deficit' : 'Projected'}
                   </span>
                 </div>
               </div>
@@ -1038,7 +1155,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 {day4Is3E && (
                   <div className="text-red-400 bg-red-950/70 p-1.5 rounded-lg border border-red-500/40 flex items-center gap-2">
                     <AlertTriangle size={14} className="shrink-0" />
-                    <span><strong>PLAN 3E REJECTED:</strong> Releases LKR 120M and breaches the statutory LKR 100M limit. This plan cannot be authorized.</span>
+                    <span><strong>PLAN 3E REJECTED:</strong> Releases LKR 120M and breaches the scenario LKR 100M allocation limit. This plan cannot be authorized.</span>
                   </div>
                 )}
                 {day4IsOverCap && !day4Is3E && (
@@ -1059,6 +1176,17 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                     <span><strong>DEFICIT WARNING:</strong> Spending drives provincial reserves into negative balance (-LKR {Math.abs(day4ProjectedTreasury).toFixed(0)}M). Drawing from Emergency Credit Facility incurs the fiscal insolvency deduction (-12 pts CPS).</span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Day 4 Custom Allocation Header */}
+            {day4Mode === 'custom' && (
+              <div className="mt-3 flex items-center justify-between text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
+                <span className="font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders size={13} className="text-cyan-400" />
+                  Current Draft Allocation (Pending Authorization)
+                </span>
+                <span className="text-slate-400 text-[10px]">Adjust values below, then click Authorize</span>
               </div>
             )}
 
@@ -1310,38 +1438,88 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             {/* Fleet & Cost Accounting Bar (Requirement 6) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 py-3 border-b border-slate-800 text-[10px] sm:text-xs font-mono">
               <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Fleet Deployment</span>
-                <div className="flex flex-col gap-0.5 mt-1 text-[10px] font-bold">
-                  <span className="text-blue-300">Flood: {day6TrucksFlood + day6VehiclesFlood + day6BoatsFlood} units</span>
-                  <span className="text-amber-300">Dry Zone: {day6TrucksDry + day6VehiclesDry + day6BoatsDry} units</span>
-                  <span className="text-slate-400">Reserve: {day6TrucksReserve + day6VehiclesReserve + day6BoatsReserve} units</span>
-                </div>
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">
+                  {day6Mode === 'preset' ? 'Fleet Distribution' : 'Draft Fleet Deployment'}
+                </span>
+                {day6Mode === 'preset' && !day6PresetPlan ? (
+                  <div className="flex flex-col gap-0.5 mt-1 text-[10px]">
+                    <span className="text-slate-400 font-bold">No fleet plan selected</span>
+                    <span className="text-slate-500 text-[9px]">Select a preset plan from cards below</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-0.5 mt-1 text-[10px] font-bold">
+                    <span className="text-blue-300">
+                      Flood: {day6Mode === 'preset' 
+                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.flood ?? 0) 
+                        : (day6TrucksFlood + day6VehiclesFlood + day6BoatsFlood)} units
+                    </span>
+                    <span className="text-amber-300">
+                      Dry Zone: {day6Mode === 'preset' 
+                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.dryZone ?? 0) 
+                        : (day6TrucksDry + day6VehiclesDry + day6BoatsDry)} units
+                    </span>
+                    <span className="text-slate-400">
+                      Reserve: {day6Mode === 'preset' 
+                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.reserve ?? 0) 
+                        : (day6TrucksReserve + day6VehiclesReserve + day6BoatsReserve)} units
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Actual Deployment Cost</span>
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">
+                  {day6Mode === 'preset' ? 'Mobilization Cost' : 'Draft Deployment Cost'}
+                </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${day6Cost === 0 ? 'text-cyan-300' : 'text-emerald-400'}`}>
-                    LKR {day6Cost}M
+                  <span className={`text-base sm:text-lg font-black ${
+                    day6Mode === 'preset' && !day6PresetPlan 
+                      ? 'text-slate-500' 
+                      : day6Cost === 0 
+                      ? 'text-cyan-300' 
+                      : 'text-emerald-400'
+                  }`}>
+                    {day6Mode === 'preset' && !day6PresetPlan ? '—' : `LKR ${day6Cost}M`}
                   </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day6Cost === 0 ? 'bg-cyan-950 text-cyan-300' : 'bg-emerald-950 text-emerald-300'}`}>
-                    {day6Cost === 0 ? '0M Reserve' : '60M Fee'}
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    day6Mode === 'preset' && !day6PresetPlan
+                      ? 'bg-slate-900 text-slate-400'
+                      : day6Cost === 0 
+                      ? 'bg-cyan-950 text-cyan-300' 
+                      : 'bg-emerald-950 text-emerald-300'
+                  }`}>
+                    {day6Mode === 'preset' && !day6PresetPlan 
+                      ? 'Select Plan' 
+                      : day6Cost === 0 
+                      ? '0M Reserve' 
+                      : '60M Fee'}
                   </span>
                 </div>
               </div>
 
               <div className="p-2 sm:p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">Projected Treasury</span>
+                <div className="flex justify-between items-center text-[9px] sm:text-[10px]">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider">Treasury Balance</span>
+                  <span className="text-slate-500 text-[8px] font-semibold">Actual: LKR {currentBudget}M</span>
+                </div>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className={`text-base sm:text-lg font-black ${
                     day6ProjectedTreasury < 0 ? 'text-red-400' : day6ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
                   }`}>
-                    {day6ProjectedTreasury < 0 ? `-LKR ${Math.abs(day6ProjectedTreasury).toFixed(0)}M` : `LKR ${day6ProjectedTreasury.toFixed(0)}M`}
+                    {day6Mode === 'preset' && !day6PresetPlan
+                      ? `LKR ${currentBudget}M`
+                      : day6ProjectedTreasury < 0 
+                      ? `-LKR ${Math.abs(day6ProjectedTreasury).toFixed(0)}M` 
+                      : `LKR ${day6ProjectedTreasury.toFixed(0)}M`}
                   </span>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    day6ProjectedTreasury < 0 ? 'bg-red-950 text-red-300' : 'bg-emerald-950 text-emerald-300'
+                    day6Mode === 'preset' && !day6PresetPlan
+                      ? 'bg-slate-900 text-slate-400'
+                      : day6ProjectedTreasury < 0 
+                      ? 'bg-red-950 text-red-300' 
+                      : 'bg-emerald-950 text-emerald-300'
                   }`}>
-                    {day6ProjectedTreasury < 0 ? 'Deficit' : 'Solvent'}
+                    {day6Mode === 'preset' && !day6PresetPlan ? 'Current' : day6ProjectedTreasury < 0 ? 'Deficit' : 'Projected'}
                   </span>
                 </div>
               </div>
@@ -1378,6 +1556,17 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                     <span><strong>DEFICIT WARNING:</strong> Mobilization fee drives treasury into overdraft (-LKR {Math.abs(day6ProjectedTreasury).toFixed(0)}M). Remaining borrowing facility: LKR {day6RemainingCredit.toFixed(0)}M.</span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Day 6 Custom Fleet Draft Label */}
+            {day6Mode === 'custom' && (
+              <div className="mt-3 flex items-center justify-between text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
+                <span className="font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders size={13} className="text-cyan-400" />
+                  Current Draft Allocation (Pending Authorization)
+                </span>
+                <span className="text-slate-400 text-[10px]">Adjust units per zone below, then click Authorize</span>
               </div>
             )}
 
@@ -1604,9 +1793,15 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono justify-between sm:justify-start w-full sm:w-auto">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400">Est. Drain:</span>
-                  <span className={`font-black ${operationalDrain > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {operationalDrain > 0 ? `-LKR ${operationalDrain}M` : `+LKR ${Math.abs(operationalDrain)}M`}
+                  <span className="text-slate-400">Actual Treasury:</span>
+                  <span className="font-bold text-white">LKR {currentBudget}M</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400">Top-3 Net Impact:</span>
+                  <span className={`font-black ${operationalDrain > 0 ? 'text-amber-400' : operationalDrain < 0 ? 'text-cyan-300' : 'text-slate-300'}`}>
+                    {selectedOrder.length >= 3 
+                      ? operationalDrain > 0 ? `−LKR ${operationalDrain}M` : operationalDrain < 0 ? `+LKR ${Math.abs(operationalDrain)}M (Grant)` : 'LKR 0M'
+                      : '— (Select Top 3)'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -1616,7 +1811,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   </span>
                   {operationalProjectedTreasury < 0 && (
                     <span className="text-[9px] text-red-300 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">
-                      {operationalRemainingCredit}M Avail
+                      {operationalRemainingCredit}M Avail of 200M Cap
                     </span>
                   )}
                 </div>
@@ -1633,8 +1828,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-2.5">
               {[0, 1, 2, 3, 4].map((slotIdx) => {
                 const actionId = selectedOrder[slotIdx];
-                const action = actionId ? currentScenario?.actions?.find((a: any) => a.id === actionId) : null;
+                const action = actionId ? (findAction(actionId, state.bucket) || currentScenario?.actions?.find((a: any) => a.id === actionId)) : null;
                 const isExecuting = slotIdx < 3;
+                const netBudget = action?.impacts?.emergencyBudget ?? 0;
                 
                 return (
                   <div
@@ -1667,12 +1863,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                           <span className="truncate">{action.title}</span>
                         </div>
                         <div className="mt-1 flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-400">
-                          <span className="truncate">
-                            {(action.impacts?.emergencyBudget ?? 0) < 0 
-                              ? `Cost: LKR ${Math.abs(action.impacts.emergencyBudget)}M`
-                              : (action.impacts?.emergencyBudget ?? 0) > 0
-                              ? `Grant: +${action.impacts.emergencyBudget}M`
-                              : '0M'}
+                          <span className="truncate font-semibold">
+                            {netBudget < 0 
+                              ? `Cost: −LKR ${Math.abs(netBudget)}M`
+                              : netBudget > 0
+                              ? `Grant: +LKR ${netBudget}M`
+                              : 'No direct cost'}
                           </span>
                           <button
                             onClick={() => toggleSelection(action.id)}
