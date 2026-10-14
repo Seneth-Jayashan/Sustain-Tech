@@ -1,5 +1,5 @@
-import { 
-  ActionId, FinalResult, PreparednessRating, ScenarioOutcome, 
+import {
+  ActionId, FinalResult, PreparednessRating, ScenarioOutcome,
   EndingTier, FailureStates, DynamicEventTrigger, Action,
   ScoreCalculationDetails, TpiComponent, TpiCalculationDetails, SimulationMode
 } from './types';
@@ -8,7 +8,7 @@ import { SCENARIOS, BucketScenario } from './scenario';
 import { GameState, getInitialGameState } from './state';
 import { getRoundDuration, getDefaultBucketShuffledOrder } from './timer';
 
-export const FALLBACK_INTERVENTION_PENALTY_PER_ROUND = 10; // Documented deduction of 10 points per fallback intervention
+export const FALLBACK_INTERVENTION_PENALTY_PER_ROUND = 2; // Documented deduction of 2 points per fallback intervention
 
 
 export interface DecisionDelta {
@@ -29,7 +29,7 @@ export interface DecisionDelta {
  */
 export function findAction(actionId: string, bucket?: number): Action | undefined {
   if (!actionId) return undefined;
-  
+
   // 1. Direct ID match
   let action = ACTION_MATRIX.find(a => a.id === actionId);
   if (action) return action;
@@ -202,7 +202,7 @@ export const EMERGENCY_CREDIT_FACILITY_CAP = 200;
  * Validates budget, credit facility, & fleet constraints for resource rounds (Buckets 3 & 4).
  */
 export function validateConstraints(
-  bucket: number, 
+  bucket: number,
   decision: { rankings?: string[]; allocations?: Record<string, number> },
   currentBudget?: number
 ): { valid: boolean; error?: string } {
@@ -222,11 +222,11 @@ export function validateConstraints(
       } else if (decision.allocations) {
         const alloc = decision.allocations;
         const totalUnits = (Number(alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0)) +
-                           (Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0)) +
-                           (Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0)) +
-                           (Number(alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0)) +
-                           (Number(alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0)) +
-                           (Number(alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0));
+          (Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0)) +
+          (Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0)) +
+          (Number(alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0)) +
+          (Number(alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0)) +
+          (Number(alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0));
         projectedDrain = totalUnits > 0 ? 60 : 0;
       } else {
         projectedDrain = 60; // LKR 60M mobilization fee
@@ -266,9 +266,9 @@ export function validateConstraints(
       }
       const total = values.reduce((sum, val) => sum + val, 0);
       if (total > 100.001) {
-        return { 
-          valid: false, 
-          error: `Budget allocation of LKR ${total.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.` 
+        return {
+          valid: false,
+          error: `Budget allocation of LKR ${total.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`
         };
       }
     }
@@ -282,8 +282,8 @@ export function validateConstraints(
 
       // Per-vehicle pool constraints:
       // Heavy-duty Trucks: max 20 | Rescue Vehicles: max 30 | Rescue Boats: max 20
-      const trucks = (Number(alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0)) + 
-                     (Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0));
+      const trucks = (Number(alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0)) +
+        (Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0));
       if (trucks > 20) {
         return {
           valid: false,
@@ -291,8 +291,8 @@ export function validateConstraints(
         };
       }
 
-      const vehicles = (Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0)) + 
-                       (Number(alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0));
+      const vehicles = (Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0)) +
+        (Number(alloc['vehicles_dryzone'] ?? alloc['vehiclesDryZone'] ?? 0));
       if (vehicles > 30) {
         return {
           valid: false,
@@ -300,8 +300,8 @@ export function validateConstraints(
         };
       }
 
-      const boats = (Number(alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0)) + 
-                    (Number(alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0));
+      const boats = (Number(alloc['boats_flood'] ?? alloc['boatsFlood'] ?? 0)) +
+        (Number(alloc['boats_dryzone'] ?? alloc['boatsDryZone'] ?? 0));
       if (boats > 20) {
         return {
           valid: false,
@@ -312,9 +312,9 @@ export function validateConstraints(
       // Generic unit fallback (if passing plan shares like 4A: 30, 4B: 25)
       const totalFleet = Object.values(alloc).reduce((sum, val) => sum + (Number(val) || 0), 0);
       if (trucks === 0 && vehicles === 0 && boats === 0 && totalFleet > 100.001) {
-        return { 
-          valid: false, 
-          error: `Fleet deployment of ${totalFleet} units exceeds regional pool limit (100 units).` 
+        return {
+          valid: false,
+          error: `Fleet deployment of ${totalFleet} units exceeds regional pool limit (100 units).`
         };
       }
     }
@@ -336,15 +336,15 @@ export function validateConstraints(
  *   eroding community readiness faster.
  */
 export const COMPOUND_HAZARD_EROSION_PENALTIES: Record<
-  number, 
+  number,
   { floodPreparednessDecay: number; droughtPreparednessDecay: number; communityTrustErosion: number }
 > = {
-  1: { floodPreparednessDecay: 0,   droughtPreparednessDecay: 0,   communityTrustErosion: 0 },  // Day 0: Baseline uncertainty
-  2: { floodPreparednessDecay: -8,  droughtPreparednessDecay: -8,  communityTrustErosion: -2 }, // Day 2: 150mm heavy rain & ongoing dry-zone deficit
+  1: { floodPreparednessDecay: 0, droughtPreparednessDecay: 0, communityTrustErosion: 0 },  // Day 0: Baseline uncertainty
+  2: { floodPreparednessDecay: -8, droughtPreparednessDecay: -8, communityTrustErosion: -2 }, // Day 2: 150mm heavy rain & ongoing dry-zone deficit
   3: { floodPreparednessDecay: -10, droughtPreparednessDecay: -12, communityTrustErosion: -3 }, // Day 4: Acute resource crunch (120M needs vs 100M cap)
   4: { floodPreparednessDecay: -12, droughtPreparednessDecay: -10, communityTrustErosion: -3 }, // Day 6: Major Kelani spill & emergency transport strain
   5: { floodPreparednessDecay: -14, droughtPreparednessDecay: -10, communityTrustErosion: -4 }, // Day 8: Landslides in Ratnapura/Kalutara & telecom failure
-  6: { floodPreparednessDecay: -6,  droughtPreparednessDecay: -6,  communityTrustErosion: -2 }, // Day 10: Aftermath contamination & recovery backlog
+  6: { floodPreparednessDecay: -6, droughtPreparednessDecay: -6, communityTrustErosion: -2 }, // Day 10: Aftermath contamination & recovery backlog
 };
 
 /**
@@ -353,7 +353,7 @@ export const COMPOUND_HAZARD_EROSION_PENALTIES: Record<
  * Resource Rounds (3, 4): Evaluated with constraint validation and allocation logic.
  */
 export function calculateDelta(
-  decision: { rankings?: ActionId[]; allocations?: Record<string, number> } | ActionId[], 
+  decision: { rankings?: ActionId[]; allocations?: Record<string, number> } | ActionId[],
   bucketNumber: number = 1,
   currentState?: GameState
 ): DecisionDelta {
@@ -391,10 +391,10 @@ export function calculateDelta(
 
         delta.floodPreparedness += (evac / 40) * 16;
         delta.droughtPreparedness += (water / 50) * 18;
-        
+
         // Healthcare and evacuation foster community trust
         delta.communityTrust += (evac / 40) * 6 + (water / 50) * 6 + (medical / 30) * 8;
-        
+
         // If medical supplies are completely starved (0M), clinic stockouts cause acute dissatisfaction
         if (spent > 0 && medical === 0) {
           delta.communityTrust -= 10;
@@ -433,7 +433,7 @@ export function calculateDelta(
       if (normDecision.allocations) {
         delta.executedActionIds = ['CUSTOM_FLEET'];
         const alloc = normDecision.allocations;
-        
+
         const trucksFlood = Number(alloc['trucks_flood'] ?? alloc['trucksFlood'] ?? 0);
         const trucksDry = Number(alloc['trucks_dryzone'] ?? alloc['trucksDryZone'] ?? 0);
         const vehiclesFlood = Number(alloc['vehicles_flood'] ?? alloc['vehiclesFlood'] ?? 0);
@@ -451,7 +451,7 @@ export function calculateDelta(
             // Boats only operate in flood waters; trucks haul bulk water tankers to Dry Zone
             delta.floodPreparedness += (boatsFlood / 20) * 10 + (vehiclesFlood / 30) * 6 + (trucksFlood / 20) * 4;
             delta.droughtPreparedness += (trucksDry / 20) * 12 + (vehiclesDry / 30) * 4;
-            
+
             // Misallocation penalty: sending boats to dry zone wastes assets on dry ground
             if (boatsDry > 5) {
               delta.communityTrust -= 6;
@@ -555,10 +555,10 @@ export function calculateDelta(
   // COMPOUND HAZARD EROSION & ADAPTIVE REGIME DYNAMICS
   // Reflects the physical degradation of unreinforced defenses under escalating weather
   // -------------------------------------------------------------------------
-  const baseDecay = COMPOUND_HAZARD_EROSION_PENALTIES[bucketNumber] || { 
-    floodPreparednessDecay: 0, 
-    droughtPreparednessDecay: 0, 
-    communityTrustErosion: 0 
+  const baseDecay = COMPOUND_HAZARD_EROSION_PENALTIES[bucketNumber] || {
+    floodPreparednessDecay: 0,
+    droughtPreparednessDecay: 0,
+    communityTrustErosion: 0
   };
 
   let floodDecay = baseDecay.floodPreparednessDecay;
@@ -709,11 +709,11 @@ export function createFallbackDecision(
     // If player had entered a valid custom allocation within budget, preserve it
     if (norm.allocations && typeof norm.allocations === 'object') {
       const sum = (Number(norm.allocations.evacuation) || 0) +
-                  (Number(norm.allocations.drinkingWater) || 0) +
-                  (Number(norm.allocations.medicalSupplies) || 0);
+        (Number(norm.allocations.drinkingWater) || 0) +
+        (Number(norm.allocations.medicalSupplies) || 0);
       const hasNegative = (Number(norm.allocations.evacuation) < 0) ||
-                          (Number(norm.allocations.drinkingWater) < 0) ||
-                          (Number(norm.allocations.medicalSupplies) < 0);
+        (Number(norm.allocations.drinkingWater) < 0) ||
+        (Number(norm.allocations.medicalSupplies) < 0);
       if (sum > 0 && sum <= 100 && !hasNegative && (budget - sum >= -EMERGENCY_CREDIT_FACILITY_CAP)) {
         return {
           decision: norm,
@@ -760,7 +760,7 @@ export function createFallbackDecision(
     if (availableCapacity >= 100) {
       // Inadequate Plan 3B (100M: 60 Evac, 40 Water, 0 Medical)
       return {
-        decision: { 
+        decision: {
           rankings: ['3B'],
           allocations: { evacuation: 60, drinkingWater: 40, medicalSupplies: 0 }
         },
@@ -814,10 +814,10 @@ export function createFallbackDecision(
     if (norm.allocations && typeof norm.allocations === 'object') {
       const { trucksKelani = 0, vehiclesKelani = 0, boatsKelani = 0, trucksDryZone = 0, vehiclesDryZone = 0, boatsDryZone = 0 } = norm.allocations;
       const valid = trucksKelani >= 0 && vehiclesKelani >= 0 && boatsKelani >= 0 &&
-                    trucksDryZone >= 0 && vehiclesDryZone >= 0 && boatsDryZone >= 0 &&
-                    (trucksKelani + trucksDryZone <= 20) &&
-                    (vehiclesKelani + vehiclesDryZone <= 30) &&
-                    (boatsKelani + boatsDryZone <= 20);
+        trucksDryZone >= 0 && vehiclesDryZone >= 0 && boatsDryZone >= 0 &&
+        (trucksKelani + trucksDryZone <= 20) &&
+        (vehiclesKelani + vehiclesDryZone <= 30) &&
+        (boatsKelani + boatsDryZone <= 20);
       const totalUnits = trucksKelani + vehiclesKelani + boatsKelani + trucksDryZone + vehiclesDryZone + boatsDryZone;
       if (valid && totalUnits > 0) {
         if (budget - 60 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
@@ -871,7 +871,7 @@ export function createFallbackDecision(
     // Deterministic Poor-Response Contingency Policy:
     // Defaults to Plan 4E (Held in Reserve, 0M fee), leaving rescue operations unserved during the surge
     return {
-      decision: { 
+      decision: {
         rankings: ['4E'],
         allocations: {
           trucks_flood: 0, trucks_dryzone: 0,
@@ -1032,8 +1032,8 @@ export function processDecision(
   const constraintCheck = validateConstraints(state.bucket, normDecision, state.resources?.emergencyBudget);
   if (!constraintCheck.valid) {
     const isEmergency = Boolean(
-      decisionMeta?.fallbackApplied || 
-      decisionMeta?.emergencyFallback || 
+      decisionMeta?.fallbackApplied ||
+      decisionMeta?.emergencyFallback ||
       decisionMeta?.timedOut
     );
     if (!isEmergency) {
@@ -1573,20 +1573,20 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
   // Community Trust: 15%
   const baselineWeightedSum = Math.round(
     (0.25 * floodPreparedness +
-     0.25 * droughtPreparedness +
-     0.20 * resourceScore +
-     0.15 * informationQuality +
-     0.15 * communityTrust) * 10
+      0.25 * droughtPreparedness +
+      0.20 * resourceScore +
+      0.15 * informationQuality +
+      0.15 * communityTrust) * 10
   ) / 10;
 
-  // Failure penalties: -12 points per breached crisis condition
-  const failurePenaltyPoints = breachedFailuresCount * 12;
+  // Failure penalties: -3 points per breached crisis condition
+  const failurePenaltyPoints = breachedFailuresCount * 3;
 
   // ---------------------------------------------------------------------------
   // TOURNAMENT SCORING FORMULA:
   // CPS = clamp(B - P - 10 * F, 0, 100) * (H / 6)
   // B: Weighted baseline sum (5 pillars)
-  // P: Crisis failure deductions (breachedFailuresCount * 12)
+  // P: Crisis failure deductions (breachedFailuresCount * 3)
   // F: Fallback interventions count (10 pts per fallback)
   // H: Human-authorized decisions count (between 0 and 6)
   // ---------------------------------------------------------------------------
