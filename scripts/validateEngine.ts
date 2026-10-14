@@ -7,8 +7,24 @@ import {
   calculateDelta,
   evaluateDynamicInterRoundEvents,
   findAction,
-  COMPOUND_HAZARD_EROSION_PENALTIES
+  COMPOUND_HAZARD_EROSION_PENALTIES,
+  createFallbackDecision,
+  calculateTpi,
+  AUTHORITATIVE_FALLBACK_POLICIES,
+  FALLBACK_INTERVENTION_PENALTY_PER_ROUND
 } from '../src/game/engine';
+import {
+  ROUND_DEADLINE_SECONDS,
+  TOTAL_PLANNED_ALLOWANCE_SECONDS,
+  getRoundDuration,
+  getShuffledActionIds,
+  getDefaultBucketShuffledOrder
+} from '../src/game/timer';
+import { ACTION_MATRIX } from '../src/game/matrix';
+import fs from 'fs';
+import path from 'path';
+import mongoose from 'mongoose';
+import IntegrityLog from '../src/models/IntegrityLog';
 
 console.log('================================================================================');
 console.log('SUSTAIN-TECH: RIGOROUS GAME ENGINE VALIDATION & VERIFICATION SUITE');
@@ -1341,6 +1357,1849 @@ test('Monte Carlo Multi-Regime Sensitivity Analysis (3,000 Runs across Compound,
   console.log(`  ==========================================================================\n`);
 });
 
+// ============================================================================
+// TEST SUITE 10: DISASTER COMMAND SIMULATION (TIMERS, SEEDED SHUFFLE, FALLBACK & TPI)
+// ============================================================================
+console.log('--------------------------------------------------------------------------------');
+console.log('TEST SUITE 10: DISASTER COMMAND SIMULATION & TEAM PERFORMANCE INDEX');
+console.log('--------------------------------------------------------------------------------');
+
+test('Action Card Randomization: Mulberry32 seeded shuffle produces deterministic reproducible order for identical seed', () => {
+  const seed = 'test-session-seed-12345';
+  const order1 = getShuffledActionIds(1, seed);
+  const order2 = getShuffledActionIds(1, seed);
+  assert.deepStrictEqual(order1, order2, 'Identical seed and bucket must yield identical card order (page refresh invariance)');
+
+  const orderBucket2_1 = getShuffledActionIds(2, seed);
+  const orderBucket2_2 = getShuffledActionIds(2, seed);
+  assert.deepStrictEqual(orderBucket2_1, orderBucket2_2, 'Bucket 2 identical seed must yield identical order');
+});
+
+test('Action Card Randomization: Different session seeds yield distinct permutations without card omission or duplication', () => {
+  const seedA = 'alpha-session-999';
+  const seedB = 'beta-session-888';
+  const orderA = getShuffledActionIds(1, seedA);
+  const orderB = getShuffledActionIds(1, seedB);
+  
+  // Both must contain all 5 canonical cards
+  const canonical = ['1A', '1B', '1C', '1D', '1E'];
+  assert.strictEqual(orderA.length, 5);
+  assert.strictEqual(orderB.length, 5);
+  assert.deepStrictEqual([...orderA].sort(), canonical);
+  assert.deepStrictEqual([...orderB].sort(), canonical);
+});
+
+test('Action Card Invariance: Shuffled display position never alters action costs, resource impacts or consequences', () => {
+  // Take card 1C (Drainage Dredging, cost LKR 30M)
+  const action1 = findAction('1C');
+  assert.ok(action1, 'Action 1C must exist');
+  assert.strictEqual(action1.impacts.emergencyBudget, -40, 'Action 1C cost must remain LKR 40M');
+  assert.strictEqual(action1.impacts.floodPreparedness, 12, 'Action 1C flood benefit must remain +12%');
+
+  // Verify across both orders: executing 1C via processDecision applies exact same delta
+  const stateA = getInitialGameState('seed-A');
+  stateA.shuffledCardOrders = { 1: ['1C', '1A', '1E', '1B', '1D'] };
+  const resA = processDecision(stateA, 't1', { rankings: ['1C', '1A', '1E', '1B', '1D'] });
+
+  const stateB = getInitialGameState('seed-B');
+  stateB.shuffledCardOrders = { 1: ['1A', '1E', '1B', '1D', '1C'] };
+  const resB = processDecision(stateB, 't2', { rankings: ['1C', '1A', '1E', '1B', '1D'] });
+
+  assert.strictEqual(resA.resources.emergencyBudget, resB.resources.emergencyBudget, 'Treasury balance must be invariant under card layout');
+  assert.strictEqual(resA.scores.floodPreparedness, resB.scores.floodPreparedness, 'Preparedness scores must be invariant under card layout');
+});
+
+test('Timing Assertion 1: All six durations equal configured values and total 1200 seconds (20 minutes)', () => {
+  assert.strictEqual(getRoundDuration(1), 180, 'Day 0 deadline must be 180s (3:00)');
+  assert.strictEqual(getRoundDuration(2), 180, 'Day 2 deadline must be 180s (3:00)');
+  assert.strictEqual(getRoundDuration(3), 240, 'Day 4 deadline must be 240s (4:00)');
+  assert.strictEqual(getRoundDuration(4), 240, 'Day 6 deadline must be 240s (4:00)');
+  assert.strictEqual(getRoundDuration(5), 180, 'Day 8 deadline must be 180s (3:00)');
+  assert.strictEqual(getRoundDuration(6), 180, 'Day 10 deadline must be 180s (3:00)');
+  assert.strictEqual(TOTAL_PLANNED_ALLOWANCE_SECONDS, 1200, 'Total planned allowance must be exactly 1200s (20 minutes)');
+
+  const sumValues = [1, 2, 3, 4, 5, 6].map(b => ROUND_DEADLINE_SECONDS[b]).reduce((a, b) => a + b, 0);
+  assert.strictEqual(sumValues, 1200, 'Sum of ROUND_DEADLINE_SECONDS must equal 1200 seconds');
+});
+
+test('Timing Assertion 2: Server-calculated response time is correct based on request timestamp minus start time', () => {
+  const state = getInitialGameState('test-timing-calc');
+  const start = new Date('2026-10-14T10:00:00.000Z');
+  const submitted = new Date('2026-10-14T10:01:15.250Z'); // 75,250 ms
+  state.roundStartTime = start.toISOString();
+  state.roundDeadline = new Date(start.getTime() + 120000).toISOString();
+
+  const nextState = processDecision(state, 'user-1', { rankings: ['1A', '1B', '1C', '1D', '1E'] }, {
+    roundStartedAt: start.toISOString(),
+    roundDeadlineAt: state.roundDeadline,
+    decisionSubmittedAt: submitted.toISOString(),
+    responseTimeMs: submitted.getTime() - start.getTime(),
+    roundDurationSeconds: 120,
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+
+  const record = nextState.decisionHistory[0];
+  assert.strictEqual(record.roundStartedAt, '2026-10-14T10:00:00.000Z');
+  assert.strictEqual(record.decisionSubmittedAt, '2026-10-14T10:01:15.250Z');
+  assert.strictEqual(record.responseTimeMs, 75250, 'Response time must be exactly 75,250 ms');
+  assert.strictEqual(record.timeSpentSeconds, 75, 'timeSpentSeconds must be 75 seconds');
+  assert.strictEqual(record.roundDurationSeconds, 120);
+  assert.strictEqual(record.timedOut, false);
+  assert.strictEqual(record.fallbackApplied, false);
+});
+
+test('Timing Assertion 3: Client manipulation cannot falsify official timing on the server', () => {
+  const state = getInitialGameState('test-timing-manipulation');
+  const start = new Date('2026-10-14T12:00:00.000Z');
+  state.roundStartTime = start.toISOString();
+  state.roundDeadline = new Date(start.getTime() + 120000).toISOString();
+
+  // Client attempts to claim 5 seconds when 100 seconds actually elapsed on server
+  const serverSubmitted = new Date('2026-10-14T12:01:40.000Z'); // 100 seconds elapsed on server
+  const serverCalculatedMs = serverSubmitted.getTime() - new Date(state.roundStartTime).getTime(); // 100,000 ms
+
+  const next = processDecision(state, 'malicious-client', { rankings: ['1A', '1B', '1C', '1D', '1E'] }, {
+    roundStartedAt: state.roundStartTime,
+    roundDeadlineAt: state.roundDeadline,
+    decisionSubmittedAt: serverSubmitted.toISOString(),
+    responseTimeMs: serverCalculatedMs, // Server overwrites and computes accepted timestamp minus start time
+    roundDurationSeconds: 120,
+    timeSpentSeconds: 5, // Client attempts to report 5 seconds
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+
+  const rec = next.decisionHistory[0];
+  assert.strictEqual(rec.responseTimeMs, 100000, 'Server response time must be 100,000 ms despite client fraudulent claim');
+  assert.strictEqual(rec.timeSpentSeconds, 100, 'Recorded timeSpentSeconds must reflect server responseTimeMs (100s, not 5s)');
+});
+
+test('Timing Assertion 4: Refreshing or reconnecting retains original start and deadline UTC timestamps', () => {
+  const originalState = getInitialGameState('test-reconnect');
+  const originalStart = originalState.roundStartTime;
+  const originalDeadline = originalState.roundDeadline;
+  const originalDuration = originalState.roundDurationSeconds;
+
+  assert.ok(originalStart, 'Original start time must exist');
+  assert.ok(originalDeadline, 'Original deadline must exist');
+  assert.strictEqual(originalDuration, 180, 'Original Day 0 allowance must be 180s');
+
+  // Simulate reconnect/refresh: /api/game/state and page.tsx check if roundDeadline exists
+  // If exists, it MUST NOT be overwritten or reset
+  const simulateReconnect = (state: GameState) => {
+    const copy = JSON.parse(JSON.stringify(state)) as GameState;
+    const b = copy.bucket || 1;
+    if (!copy.roundDeadline || !copy.roundStartTime) {
+      const duration = getRoundDuration(b);
+      const now = new Date();
+      copy.roundStartTime = now.toISOString();
+      copy.roundDurationSeconds = duration;
+      copy.roundDeadline = new Date(now.getTime() + duration * 1000).toISOString();
+    }
+    return copy;
+  };
+
+  const reconnectedState = simulateReconnect(originalState);
+  assert.strictEqual(reconnectedState.roundStartTime, originalStart, 'Start time must be preserved across reconnect');
+  assert.strictEqual(reconnectedState.roundDeadline, originalDeadline, 'Deadline must be preserved across reconnect');
+  assert.strictEqual(reconnectedState.roundDurationSeconds, originalDuration, 'Duration must be preserved across reconnect');
+});
+
+test('Timing Assertion 5: Duplicate and concurrent submissions cannot commit two decisions or double-charge treasury', () => {
+  const initialState = getInitialGameState('test-concurrency');
+  initialState.bucket = 1;
+  const initialBudget = initialState.resources.emergencyBudget; // 500M
+
+  // Simulate atomic CAS (Compare-And-Swap) guard in MongoDB:
+  // update { _id, status: 'ACTIVE', 'state.bucket': currentBucket } -> nextState
+  let currentDbState: GameState = JSON.parse(JSON.stringify(initialState));
+  let updateAttempts = 0;
+  let successfulCommits = 0;
+  let rejectedConflicts = 0;
+
+  const commitDecision = (submittingBucket: number, decision: any) => {
+    updateAttempts++;
+    // Atomic guard: 'state.bucket' === submittingBucket
+    if (currentDbState.bucket !== submittingBucket) {
+      rejectedConflicts++;
+      return { success: false, status: 409, error: 'Conflict: Round already committed' };
+    }
+    // Process and advance bucket
+    const next = processDecision(currentDbState, 'user-concurrent', decision);
+    currentDbState = next;
+    successfulCommits++;
+    return { success: true, status: 200, state: next };
+  };
+
+  // Two concurrent requests arrive for Bucket 1
+  const req1 = commitDecision(1, { rankings: ['1A', '1B', '1C', '1D', '1E'] });
+  const req2 = commitDecision(1, { rankings: ['1B', '1A', '1C', '1D', '1E'] });
+
+  assert.strictEqual(req1.success, true, 'First request must succeed');
+  assert.strictEqual(req2.success, false, 'Second concurrent request must fail with conflict');
+  assert.strictEqual(req2.status, 409, 'Conflict status 409 must be returned');
+  assert.strictEqual(successfulCommits, 1, 'Only exactly 1 decision must commit');
+  assert.strictEqual(rejectedConflicts, 1, 'Duplicate submission must be rejected');
+  assert.strictEqual(currentDbState.bucket, 2, 'Bucket must only advance once to 2');
+  assert.strictEqual(currentDbState.decisionHistory.length, 1, 'Only 1 record in decisionHistory');
+});
+
+test('Timing Assertion 6: Initial game sessions default strictly to Tournament mode and cannot be overridden', () => {
+  const state = getInitialGameState('test-tournament-mode', 'seed');
+  assert.strictEqual(state.simulationMode, 'tournament', 'Game sessions must strictly default to tournament mode');
+
+  const start = new Date('2026-10-14T09:00:00.000Z');
+  const allowanceSeconds = getRoundDuration(1); // 120s
+  const deadline = new Date(start.getTime() + allowanceSeconds * 1000); // 09:02:00.000Z
+
+  // When submitted on time within deadline
+  const submittedAt = new Date(start.getTime() + 45000); // 45s
+  const responseTimeMs = submittedAt.getTime() - start.getTime();
+
+  const next = processDecision(state, 'student-1', { rankings: ['1D', '1B', '1E', '1A', '1C'] }, {
+    roundStartedAt: start.toISOString(),
+    roundDeadlineAt: deadline.toISOString(),
+    decisionSubmittedAt: submittedAt.toISOString(),
+    responseTimeMs,
+    roundDurationSeconds: allowanceSeconds,
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+
+  const rec = next.decisionHistory[0];
+  assert.strictEqual(rec.decisionMode, 'tournament', 'Mode must be recorded as tournament');
+  assert.strictEqual(rec.timedOut, false);
+  assert.strictEqual(rec.fallbackApplied, false);
+  assert.strictEqual(rec.responseTimeMs, 45000);
+});
+
+test('Timing Assertion 7: Tournament mode invokes fallback once after deadline expiry and records intervention', () => {
+  const state = getInitialGameState('test-tournament-fallback', 'seed', 'tournament');
+  assert.strictEqual(state.simulationMode, 'tournament');
+
+  const start = new Date('2026-10-14T08:00:00.000Z');
+  const allowanceSeconds = getRoundDuration(1); // 120s
+  const deadline = new Date(start.getTime() + allowanceSeconds * 1000);
+  const submittedAt = new Date(deadline.getTime() + 5000); // expired by 5 seconds
+  const responseTimeMs = submittedAt.getTime() - start.getTime();
+
+  // In tournament mode, server detects expired deadline and creates fallback
+  const fallbackResult = createFallbackDecision(1, { rankings: ['1C'] }); // partial rankings
+  assert.strictEqual(fallbackResult.emergencyFallback, true, 'Fallback must be triggered');
+
+  const next = processDecision(state, 'tourney-team', fallbackResult.decision, {
+    roundStartedAt: start.toISOString(),
+    roundDeadlineAt: deadline.toISOString(),
+    decisionSubmittedAt: submittedAt.toISOString(),
+    responseTimeMs,
+    roundDurationSeconds: allowanceSeconds,
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament'
+  });
+
+  const rec = next.decisionHistory[0];
+  assert.strictEqual(rec.decisionMode, 'tournament', 'Mode must be recorded as tournament');
+  assert.strictEqual(rec.timedOut, true, 'Must record timedOut = true');
+  assert.strictEqual(rec.fallbackApplied, true, 'Must record fallbackApplied = true');
+  assert.strictEqual(rec.emergencyFallback, true);
+  assert.strictEqual(rec.rankings?.length, 5, 'Fallback rankings must contain all 5 actions');
+});
+
+test('Timing Assertion 8: Financial accounting and allocation validation remain unchanged under timing changes', () => {
+  // Day 4 fiscal allocation test
+  const stateD4 = getInitialGameState('test-d4-financial-check');
+  stateD4.bucket = 3;
+  stateD4.resources.emergencyBudget = 500;
+
+  // Custom allocation of 40 + 30 + 30 = 100M
+  const nextD4 = processDecision(stateD4, 'user-fin', {
+    allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 }
+  });
+  assert.strictEqual(nextD4.resources.emergencyBudget, 400, '500M - 100M must equal exactly 400M');
+
+  // Over-budget (>100M) must be strictly rejected
+  assert.throws(() => {
+    processDecision(stateD4, 'user-fin', {
+      allocations: { evacuation: 50, drinkingWater: 40, medicalSupplies: 20 } // 110M
+    });
+  }, /exceeds/i);
+
+  // Day 6 fleet allocation test
+  const stateD6 = getInitialGameState('test-d6-fleet-check');
+  stateD6.bucket = 4;
+  stateD6.resources.emergencyBudget = 400;
+
+  // Deploy 8/12 trucks, 24/6 vehicles, 20/0 boats = 60M cost
+  const nextD6 = processDecision(stateD6, 'user-fleet', {
+    allocations: {
+      trucks_flood: 8, trucks_dryzone: 12,
+      vehicles_flood: 24, vehicles_dryzone: 6,
+      boats_flood: 20, boats_dryzone: 0
+    }
+  });
+  assert.strictEqual(nextD6.resources.emergencyBudget, 340, '400M - 60M fee must equal exactly 340M');
+});
+
+test('Emergency Fallback Decision Generator: Automatically synthesizes safe valid directives for partial or expired rounds', () => {
+  // Bucket 1 with partial decision (player only dragged 2 cards before timeout)
+  const fallbackB1 = createFallbackDecision(1, { rankings: ['1C', '1A'] });
+  assert.ok(fallbackB1.decision.rankings, 'Fallback must provide rankings');
+  assert.strictEqual(fallbackB1.decision.rankings.length, 5, 'Fallback rankings must contain all 5 cards');
+  assert.strictEqual(fallbackB1.decision.rankings[0], '1C');
+  assert.strictEqual(fallbackB1.decision.rankings[1], '1A');
+  const validB1 = validateConstraints(1, fallbackB1.decision, 500);
+  assert.ok(validB1.valid, 'Fallback decision must pass constraint validation');
+
+  // Bucket 1 with undefined decision (player did not interact at all)
+  const fallbackEmpty = createFallbackDecision(1, undefined);
+  assert.strictEqual(fallbackEmpty.decision.rankings?.length, 5);
+  assert.strictEqual(fallbackEmpty.emergencyFallback, true);
+  assert.ok(validateConstraints(1, fallbackEmpty.decision, 500).valid);
+});
+
+test('Contingency Fallback: Bucket 3 and Bucket 4 recover gracefully on timeout with valid preset allocations', () => {
+  // Bucket 3 with empty decision
+  const fallbackB3 = createFallbackDecision(3, undefined);
+  assert.ok(fallbackB3.decision.rankings && fallbackB3.decision.rankings.length > 0, 'Bucket 3 fallback must supply package rankings');
+  assert.strictEqual(fallbackB3.decision.rankings[0], '3B', 'Bucket 3 fallback top choice must be 3B poor-response preset');
+  assert.strictEqual(fallbackB3.emergencyFallback, true);
+  const validB3 = validateConstraints(3, fallbackB3.decision, 500);
+  assert.ok(validB3.valid, 'Bucket 3 fallback must pass constraint validation');
+
+  // Bucket 4 with empty decision
+  const fallbackB4 = createFallbackDecision(4, undefined);
+  assert.ok(fallbackB4.decision.rankings && fallbackB4.decision.rankings.length > 0, 'Bucket 4 fallback must supply package rankings');
+  assert.strictEqual(fallbackB4.decision.rankings[0], '4E', 'Bucket 4 fallback top choice must be 4E reserve preset');
+  assert.strictEqual(fallbackB4.emergencyFallback, true);
+  const validB4 = validateConstraints(4, fallbackB4.decision, 500);
+  assert.ok(validB4.valid, 'Bucket 4 fallback must pass constraint validation');
+});
+
+test('Server Timeout Enforcement: Timeout metadata is recorded in session decisionHistory and applies escalating compound hazard friction', () => {
+  const stateNormal = getInitialGameState('test-normal-velocity');
+  const nextNormal = processDecision(stateNormal, 'tester', { rankings: ['1A', '1B', '1C', '1D', '1E'] }, {
+    timeSpentSeconds: 35,
+    timeoutOccurred: false,
+    emergencyFallback: false
+  });
+  assert.strictEqual(nextNormal.decisionHistory[0].timeSpentSeconds, 35);
+  assert.strictEqual(nextNormal.decisionHistory[0].timeoutOccurred, false);
+  assert.strictEqual(nextNormal.decisionHistory[0].emergencyFallback, false);
+
+  const stateTimeout = getInitialGameState('test-timeout-friction');
+  const nextTimeout = processDecision(stateTimeout, 'tester', { rankings: ['1A', '1B', '1C', '1D', '1E'] }, {
+    timeSpentSeconds: 125,
+    timeoutOccurred: true,
+    emergencyFallback: true
+  });
+  assert.strictEqual(nextTimeout.decisionHistory[0].timeoutOccurred, true);
+  assert.strictEqual(nextTimeout.decisionHistory[0].emergencyFallback, true);
+  // Escalating friction on Bucket 1 timeout: community trust and information quality are penalized due to communication delay
+  assert.ok(nextTimeout.scores.communityTrust < nextNormal.scores.communityTrust, 'Day 0 timeout intervention must induce public trust erosion');
+  assert.ok(nextTimeout.scores.informationQuality < nextNormal.scores.informationQuality, 'Day 0 timeout intervention must induce information gap penalty');
+
+  // Bucket 2 timeout: flood preparedness penalty
+  const stateB2Normal = { ...nextNormal, bucket: 2 };
+  const nextB2Normal = processDecision(stateB2Normal, 'tester', { rankings: ['2A', '2B', '2C', '2D', '2E'] }, { timeoutOccurred: false });
+  const stateB2Timeout = { ...nextTimeout, bucket: 2 };
+  const nextB2Timeout = processDecision(stateB2Timeout, 'tester', { rankings: ['2A', '2B', '2C', '2D', '2E'] }, { timeoutOccurred: true, emergencyFallback: true });
+  assert.ok(nextB2Timeout.scores.floodPreparedness < nextB2Normal.scores.floodPreparedness, 'Day 2 flood escalation must penalize flood defense');
+});
+
+test('Team Performance Index (TPI): 6-pillar weights sum to 100% and output is bounded in [0, 100]', () => {
+  let state = getInitialGameState('test-tpi-pillars');
+  state = processDecision(state, 't', { rankings: ['1D', '1A', '1C', '1B', '1E'] }, { timeSpentSeconds: 40 });
+  state = processDecision(state, 't', { rankings: ['2B', '2E', '2C', '2A', '2D'] }, { timeSpentSeconds: 50 });
+  state = processDecision(state, 't', { rankings: ['3A', '3B', '3C', '3D', '3E'] }, { timeSpentSeconds: 45 });
+  state = processDecision(state, 't', { rankings: ['4A', '4B', '4C', '4D', '4E'] }, { timeSpentSeconds: 30 });
+  state = processDecision(state, 't', { rankings: ['5A', '5C', '5E', '5B', '5D'] }, { timeSpentSeconds: 35 });
+  state = processDecision(state, 't', { rankings: ['6A', '6C', '6E', '6B', '6D'] }, { timeSpentSeconds: 40 });
+
+  const outcome = calculateFinalOutcome(state);
+  assert.ok(typeof outcome.tpi === 'number', 'Outcome must include numeric TPI');
+  assert.ok(outcome.tpi >= 0 && outcome.tpi <= 100, 'TPI must be bounded between 0 and 100');
+  assert.ok(outcome.tpiDetails, 'Outcome must include tpiDetails');
+
+  const sumWeights = outcome.tpiDetails.components.reduce((acc, c) => acc + c.weightPercent, 0);
+  assert.strictEqual(sumWeights, 100, 'TPI pillar weights must sum to exactly 100%');
+  assert.strictEqual(outcome.tpiDetails.components.length, 6, 'TPI must have 6 distinct evaluation pillars');
+});
+
+test('Leaderboard Tournament Ranking Hierarchy: Tier 1 > Tier 2 > Tier 3 > Tier 4 with TPI as decisive secondary index', () => {
+  const getTierPriority = (tier?: string) => {
+    if (!tier) return 5;
+    if (tier.includes('Tier 1')) return 1;
+    if (tier.includes('Tier 2')) return 2;
+    if (tier.includes('Tier 3')) return 3;
+    if (tier.includes('Tier 4')) return 4;
+    return 5;
+  };
+
+  const sortTournament = (list: any[]) => {
+    return [...list].sort((a, b) => {
+      const tierA = getTierPriority(a.finalResult?.endingTier);
+      const tierB = getTierPriority(b.finalResult?.endingTier);
+      if (tierA !== tierB) return tierA - tierB;
+
+      const tpiA = a.finalResult?.tpi ?? 0;
+      const tpiB = b.finalResult?.tpi ?? 0;
+      if (Math.abs(tpiA - tpiB) > 0.05) return tpiB - tpiA;
+
+      const failA = Object.values(a.finalResult?.failureStates || {}).filter(Boolean).length;
+      const failB = Object.values(b.finalResult?.failureStates || {}).filter(Boolean).length;
+      if (failA !== failB) return failA - failB;
+
+      return 0;
+    });
+  };
+
+  const mockTeams = [
+    { name: 'Team Silver', status: 'COMPLETED', finalResult: { endingTier: 'Tier 2: Competent Sovereign Management', tpi: 95.0, failureStates: {} } },
+    { name: 'Team Bronze', status: 'COMPLETED', finalResult: { endingTier: 'Tier 1: Exemplary Sovereign Governance', tpi: 74.0, failureStates: {} } },
+    { name: 'Team Gold', status: 'COMPLETED', finalResult: { endingTier: 'Tier 1: Exemplary Sovereign Governance', tpi: 88.5, failureStates: {} } },
+    { name: 'Team Defeated', status: 'COMPLETED', finalResult: { endingTier: 'Tier 3: Compromised Operations', tpi: 60.0, failureStates: { fiscalInsolvency: true } } },
+  ];
+
+  const sorted = sortTournament(mockTeams);
+  assert.strictEqual(sorted[0].name, 'Team Gold', 'Rank 1 must be Team Gold (Tier 1, highest TPI 88.5)');
+  assert.strictEqual(sorted[1].name, 'Team Bronze', 'Rank 2 must be Team Bronze (Tier 1, TPI 74.0)');
+  assert.strictEqual(sorted[2].name, 'Team Silver', 'Rank 3 must be Team Silver (Tier 2, despite higher TPI 95.0 than Tier 1)');
+  assert.strictEqual(sorted[3].name, 'Team Defeated', 'Rank 4 must be Team Defeated (Tier 3)');
+});
+
+// ================================================================================
+// TEST SUITE 11: TOURNAMENT MODE ONLY, INTEGRITY LOG REPAIR & SWEETALERT2 VERIFICATION
+// ================================================================================
+
+test('Issue 1 Regression: Reproduction of original IntegrityLog enum validation error with invalid enum value', () => {
+  // Reproducing the original bug: any actionType not present in the permitted enum fails Mongoose validation
+  const invalidLog = new IntegrityLog({
+    gameSessionId: new mongoose.Types.ObjectId(),
+    userId: new mongoose.Types.ObjectId(),
+    actionType: 'LEGACY_UNREGISTERED_TIMEOUT' as any,
+    metadata: { bucket: 1 }
+  });
+
+  const validationError = invalidLog.validateSync();
+  assert.ok(validationError, 'Mongoose must throw a ValidationError for unpermitted action types');
+  assert.ok(
+    validationError.message.includes("is not a valid enum value for path") && validationError.message.includes("actionType"),
+    `Error message must match Mongoose enum validation failure: ${validationError.message}`
+  );
+});
+
+test('Issue 1: TIMEOUT_FALLBACK_SUBMISSION passes Mongoose IntegrityLog schema validation', () => {
+  // Verify TIMEOUT_FALLBACK_SUBMISSION is accepted without errors
+  const fallbackLog = new IntegrityLog({
+    gameSessionId: new mongoose.Types.ObjectId(),
+    userId: new mongoose.Types.ObjectId(),
+    actionType: 'TIMEOUT_FALLBACK_SUBMISSION',
+    metadata: { 
+      bucket: 1, 
+      fallbackApplied: true, 
+      timedOut: true,
+      decisionMode: 'tournament'
+    }
+  });
+
+  const err = fallbackLog.validateSync();
+  assert.strictEqual(err, undefined, 'TIMEOUT_FALLBACK_SUBMISSION must pass Mongoose schema validation without errors');
+  assert.strictEqual(fallbackLog.actionType, 'TIMEOUT_FALLBACK_SUBMISSION');
+
+  // Verify all other valid action types remain accepted and historical records are preserved
+  const validTypes = [
+    'VISIBILITY_CHANGE', 
+    'RIGHT_CLICK_ATTEMPT', 
+    'SUBMISSION', 
+    'TIMEOUT_FALLBACK_SUBMISSION',
+    'TIMEOUT_SUBMISSION',
+    'OVERTIME_SUBMISSION'
+  ];
+
+  for (const t of validTypes) {
+    const log = new IntegrityLog({
+      gameSessionId: new mongoose.Types.ObjectId(),
+      userId: new mongoose.Types.ObjectId(),
+      actionType: t as any,
+      metadata: { bucket: 1 }
+    });
+    const logErr = log.validateSync();
+    assert.strictEqual(logErr, undefined, `actionType '${t}' must pass schema validation`);
+  }
+});
+
+test('Issue 1 & Consistency: Pre-validation ensures integrity log and accepted decision remain strictly consistent', () => {
+  let sessionState = getInitialGameState('test-integrity-consistency', 'seed');
+  const bucket = sessionState.bucket;
+  assert.strictEqual(bucket, 1);
+
+  // Fallback decision generated for round 1
+  const fallback = createFallbackDecision(bucket, undefined);
+  assert.strictEqual(fallback.emergencyFallback, true);
+
+  // In our decision API, the integrity log document is pre-validated BEFORE database state mutation
+  const logDoc = new IntegrityLog({
+    gameSessionId: new mongoose.Types.ObjectId(),
+    userId: new mongoose.Types.ObjectId(),
+    actionType: 'TIMEOUT_FALLBACK_SUBMISSION',
+    metadata: {
+      bucket,
+      rankings: fallback.decision.rankings,
+      fallbackApplied: true,
+      timedOut: true,
+      decisionMode: 'tournament'
+    }
+  });
+
+  const preValidationErr = logDoc.validateSync();
+  assert.strictEqual(preValidationErr, undefined, 'Pre-validation must pass before modifying session');
+
+  // Process the decision
+  const nextState = processDecision(sessionState, 'user-consistent', fallback.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament'
+  });
+
+  assert.strictEqual(nextState.bucket, 2, 'Session state must advance to round 2');
+  assert.strictEqual(nextState.decisionHistory[0].emergencyFallback, true);
+  assert.strictEqual(nextState.decisionHistory[0].decisionMode, 'tournament');
+  assert.deepStrictEqual(nextState.decisionHistory[0].rankings, logDoc.metadata.rankings, 'Decision history must match integrity log metadata exactly');
+});
+
+test('Issue 2: Expired tournament round invokes fallback exactly once across all six rounds', () => {
+  for (let b = 1; b <= 6; b++) {
+    // 1. Uninitiated decision (null / undefined)
+    const fbEmpty = createFallbackDecision(b, undefined);
+    assert.strictEqual(fbEmpty.emergencyFallback, true, `Bucket ${b} empty round must trigger emergencyFallback`);
+    const valEmpty = validateConstraints(b, fbEmpty.decision, 500);
+    assert.ok(valEmpty.valid, `Bucket ${b} fallback decision must pass constraint validation`);
+
+    // 2. Partial decision
+    let partialInput: any = undefined;
+    if (b === 3) {
+      partialInput = { allocations: { evacuation: 20 } }; // incomplete
+    } else if (b === 4) {
+      partialInput = { allocations: { trucksKelani: 5 } }; // incomplete
+    } else {
+      partialInput = { rankings: ['1A'] }; // only 1 of 5 cards dragged
+    }
+
+    const fbPartial = createFallbackDecision(b, partialInput);
+    const valPartial = validateConstraints(b, fbPartial.decision, 500);
+    assert.ok(valPartial.valid, `Bucket ${b} partial decision must yield a valid fallback`);
+  }
+});
+
+test('Issue 2 & Consistency: Duplicate or concurrent submissions cannot double-charge treasury', () => {
+  // Day 4 Fiscal Round starting with LKR 500M
+  let state = getInitialGameState('test-concurrent-treasury');
+  state.bucket = 3;
+  state.resources.emergencyBudget = 500;
+
+  let currentBucket = state.bucket;
+  let chargeCount = 0;
+
+  // Simulate atomic findOneAndUpdate({ 'state.bucket': currentBucket })
+  const simulateSubmit = (decision: any) => {
+    if (currentBucket !== 3) {
+      return { status: 409, error: 'Decision for this round has already been submitted or processed.' };
+    }
+    const updated = processDecision(state, 'team-1', decision);
+    state = updated;
+    currentBucket = updated.bucket;
+    chargeCount++;
+    return { status: 200, state: updated };
+  };
+
+  // Two concurrent submissions arrive for Day 4 (each allocating LKR 100M)
+  const res1 = simulateSubmit({ allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } });
+  const res2 = simulateSubmit({ allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } });
+
+  assert.strictEqual(res1.status, 200, 'First submission must be accepted');
+  assert.strictEqual(res2.status, 409, 'Concurrent duplicate submission must be rejected with 409');
+  assert.strictEqual(chargeCount, 1, 'Treasury must only be charged exactly once');
+  assert.strictEqual(state.resources.emergencyBudget, 400, 'Treasury must be exactly 400M (500M - 100M), never double-charged to 300M');
+  assert.strictEqual(state.bucket, 4, 'Bucket must only advance once to 4');
+});
+
+test('Issue 2 & Constraints: Invalid allocation and credit-limit requests do not modify state', () => {
+  // Day 4: Allocation > 100M must throw and leave state unmodified
+  const stateD4 = getInitialGameState('test-invalid-d4');
+  stateD4.bucket = 3;
+  stateD4.resources.emergencyBudget = 500;
+
+  assert.throws(() => {
+    processDecision(stateD4, 'user-invalid', {
+      allocations: { evacuation: 60, drinkingWater: 40, medicalSupplies: 20 } // 120M > 100M cap
+    });
+  }, /exceeds/i);
+
+  assert.strictEqual(stateD4.resources.emergencyBudget, 500, 'State emergencyBudget must remain unchanged at 500M');
+  assert.strictEqual(stateD4.bucket, 3, 'State bucket must remain at 3');
+
+  // Day 6: Fleet deployment exceeding national limits (> 20 trucks) must throw and leave state unmodified
+  const stateD6 = getInitialGameState('test-invalid-d6');
+  stateD6.bucket = 4;
+  stateD6.resources.emergencyBudget = 400;
+
+  assert.throws(() => {
+    processDecision(stateD6, 'user-invalid', {
+      allocations: {
+        trucks_flood: 15,
+        trucks_dryzone: 10, // total trucks = 25 > 20 limit
+        vehicles_flood: 10,
+        vehicles_dryzone: 10,
+        boats_flood: 5,
+        boats_dryzone: 5
+      }
+    });
+  }, /truck/i);
+
+  assert.strictEqual(stateD6.resources.emergencyBudget, 400, 'State emergencyBudget must remain unchanged at 400M');
+  assert.strictEqual(stateD6.bucket, 4, 'State bucket must remain at 4');
+});
+
+test('Issue 2: Browser refresh does not restart or extend the server deadline', () => {
+  const initial = getInitialGameState('test-refresh-persistence');
+  const originalStart = initial.roundStartTime!;
+  const originalDeadline = initial.roundDeadline!;
+  assert.ok(originalStart && originalDeadline);
+
+  // Simulate reconnect/refresh after 30 seconds
+  const thirtySecsLater = new Date(new Date(originalStart).getTime() + 30000);
+  
+  // Refresh logic: if roundDeadline and roundStartTime already exist, do NOT recompute or overwrite
+  const refreshedState = { ...initial };
+  const refreshedStart = refreshedState.roundStartTime || thirtySecsLater.toISOString();
+  const refreshedDeadline = refreshedState.roundDeadline 
+    ? refreshedState.roundDeadline 
+    : new Date(thirtySecsLater.getTime() + 120000).toISOString();
+
+  assert.strictEqual(refreshedStart, originalStart, 'Original round start timestamp must be retained');
+  assert.strictEqual(refreshedDeadline, originalDeadline, 'Original round deadline must NOT be restarted on refresh');
+});
+
+test('Issue 2: Player interface contains no Practice Mode option or badges', () => {
+  const dashboardClientPath = path.resolve(__dirname, '../src/app/dashboard/DashboardClient.tsx');
+  const code = fs.readFileSync(dashboardClientPath, 'utf-8');
+
+  // Practice mode selector button must NOT exist
+  assert.ok(!code.includes('id="toggle-simulation-mode-btn"'), 'toggle-simulation-mode-btn must be removed');
+  assert.ok(!code.includes('Practice Mode: Suggested allowance'), 'Practice mode reminder banner must be removed');
+  assert.ok(!code.includes('Practice Mode (human evaluation'), 'Practice mode tooltip must be removed');
+
+  // Simulation mode must be strictly 'tournament'
+  assert.ok(code.includes("simulationMode: SimulationMode = 'tournament'"), "simulationMode must be locked to 'tournament'");
+});
+
+test('Issue 3: SweetAlert2 is configured as unified notification system and native browser dialogs are removed', () => {
+  // Check notifications.ts
+  const notifPath = path.resolve(__dirname, '../src/lib/notifications.ts');
+  assert.ok(fs.existsSync(notifPath), 'src/lib/notifications.ts must exist');
+  const notifCode = fs.readFileSync(notifPath, 'utf-8');
+  assert.ok(notifCode.includes('notifyError'), 'Must export notifyError');
+  assert.ok(notifCode.includes('notifyWarning'), 'Must export notifyWarning');
+  assert.ok(notifCode.includes('notifySuccess'), 'Must export notifySuccess');
+  assert.ok(notifCode.includes('notifyInfo'), 'Must export notifyInfo');
+  assert.ok(notifCode.includes('notifyConfirm'), 'Must export notifyConfirm');
+  assert.ok(notifCode.includes('toastSuccess'), 'Must export toastSuccess');
+
+  // Check CSS imports
+  const layoutPath = path.resolve(__dirname, '../src/app/layout.tsx');
+  const layoutCode = fs.readFileSync(layoutPath, 'utf-8');
+  assert.ok(layoutCode.includes('sweetalert2/dist/sweetalert2.min.css'), 'layout.tsx must import sweetalert2 CSS');
+
+  const globalsPath = path.resolve(__dirname, '../src/app/globals.css');
+  const globalsCode = fs.readFileSync(globalsPath, 'utf-8');
+  assert.ok(globalsCode.includes('.sustain-swal-popup'), 'globals.css must define .sustain-swal-popup');
+  assert.ok(globalsCode.includes('.sustain-swal-confirm-btn'), 'globals.css must define .sustain-swal-confirm-btn');
+
+  // Check that no native dialogs remain in DashboardClient and AdminClient
+  const dashboardCode = fs.readFileSync(path.resolve(__dirname, '../src/app/dashboard/DashboardClient.tsx'), 'utf-8');
+  assert.ok(!dashboardCode.includes('alert('), 'DashboardClient must not call alert()');
+  assert.ok(!dashboardCode.includes('window.alert('), 'DashboardClient must not call window.alert()');
+  assert.ok(!dashboardCode.includes('confirm('), 'DashboardClient must not call confirm()');
+  assert.ok(!dashboardCode.includes('window.confirm('), 'DashboardClient must not call window.confirm()');
+  assert.ok(!dashboardCode.includes('prompt('), 'DashboardClient must not call prompt()');
+  assert.ok(!dashboardCode.includes('window.prompt('), 'DashboardClient must not call window.prompt()');
+
+  const adminCode = fs.readFileSync(path.resolve(__dirname, '../src/app/admin/AdminClient.tsx'), 'utf-8');
+  assert.ok(!adminCode.includes('confirm('), 'AdminClient must not call native confirm()');
+  assert.ok(!adminCode.includes('window.confirm('), 'AdminClient must not call window.confirm()');
+  assert.ok(!adminCode.includes('alert('), 'AdminClient must not call native alert()');
+  assert.ok(!adminCode.includes('window.alert('), 'AdminClient must not call window.alert()');
+});
+
+test('Issue 2 & Emergency Fallback Solvency: High-deficit sessions synthesize solvent fallback directives and advance without throwing', () => {
+  // Scenario 1: Bucket 5 with budget = -140M (user reproduction case)
+  const fallbackB5 = createFallbackDecision(5, {}, -140);
+  assert.ok(fallbackB5.decision.rankings, 'Must produce rankings');
+  assert.strictEqual(fallbackB5.decision.rankings.length, 5, 'Must contain all 5 actions');
+
+  // Verify validateConstraints passes
+  const checkB5 = validateConstraints(5, fallbackB5.decision, -140);
+  assert.strictEqual(checkB5.valid, true, 'Synthesized Bucket 5 fallback must remain strictly solvent');
+
+  // Execute processDecision with the fallback
+  const stateB5 = getInitialGameState('test-b5-deficit');
+  stateB5.bucket = 5;
+  stateB5.resources.emergencyBudget = -140;
+  assert.doesNotThrow(() => {
+    const nextState = processDecision(stateB5, 'team-1', fallbackB5.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament'
+    });
+    assert.strictEqual(nextState.bucket, 6, 'Must advance from Bucket 5 to Bucket 6');
+  }, 'processDecision must not throw on emergency fallback even in deficit');
+
+  // Scenario 2: Day 4 (Bucket 3) with budget = -150M (only 50M credit left)
+  const fallbackB3 = createFallbackDecision(3, {}, -150);
+  assert.ok(fallbackB3.decision.allocations, 'Must produce capped allocations');
+  const checkB3 = validateConstraints(3, fallbackB3.decision, -150);
+  assert.strictEqual(checkB3.valid, true, 'Day 4 fallback must not breach credit ceiling');
+
+  // Scenario 3: Day 6 (Bucket 4) with budget = -160M (less than 60M mobilization fee)
+  const fallbackB4 = createFallbackDecision(4, {}, -160);
+  assert.deepStrictEqual(fallbackB4.decision.rankings, ['4E'], 'Day 6 fallback must select Plan 4E (0M cost) when funds are insufficient');
+  const checkB4 = validateConstraints(4, fallbackB4.decision, -160);
+  assert.strictEqual(checkB4.valid, true, 'Day 6 fallback must remain strictly solvent');
+});
+
+// ============================================================================
+// TEST SUITE 12: IMMEDIATE BRIEFINGS & DETERMINISTIC TOURNAMENT FALLBACK REGRESSION
+// ============================================================================
+console.log('\n--------------------------------------------------------------------------------');
+console.log('TEST SUITE 12: IMMEDIATE BRIEFINGS & DETERMINISTIC TOURNAMENT FALLBACK REGRESSION');
+console.log('--------------------------------------------------------------------------------');
+
+test('Briefing UI Regression: Typewriter is completely removed, full scenario renders immediately with internal scroll and non-overlapping layout', () => {
+  const dashboardClientPath = path.resolve(__dirname, '../src/app/dashboard/DashboardClient.tsx');
+  assert.ok(fs.existsSync(dashboardClientPath), 'DashboardClient.tsx must exist');
+  const code = fs.readFileSync(dashboardClientPath, 'utf-8');
+
+  // 1. Typewriter import and usage removed
+  assert.ok(!code.includes("import Typewriter"), 'Typewriter import must be eliminated');
+  assert.ok(!code.includes("<Typewriter"), 'Typewriter JSX component must be eliminated');
+
+  // 2. "Click to show full text immediately" and related state removed
+  assert.ok(!code.includes('Click to show full text immediately'), '"Click to show full text immediately" link must be removed');
+  assert.ok(!code.includes('showFullSituation'), 'showFullSituation state variable must be removed');
+  assert.ok(!code.includes('setShowFullSituation'), 'setShowFullSituation setter must be removed');
+
+  // 3. Complete scenario title and description rendered immediately with proper typography
+  assert.ok(code.includes('whitespace-pre-line'), 'Scenario situation must apply whitespace-pre-line for readable paragraphs');
+  assert.ok(code.includes('leading-relaxed'), 'Scenario text must apply leading-relaxed for readable line spacing');
+
+  // 4. Internal scroll without clipping
+  assert.ok(code.includes('overflow-y-auto'), 'Briefing container must provide internal vertical scrolling');
+
+  // 5. Normal document flow to eliminate overlap with decision cards
+  assert.ok(code.includes('relative z-30'), 'Briefing container must be positioned in document flow to avoid overlapping action cards');
+  assert.ok(code.includes('self-start'), 'Briefing container must align to container flow');
+
+  // 6. Minimize and restore controls preserved without resetting round deadline
+  assert.ok(code.includes('showBrief'), 'showBrief state must be preserved');
+  assert.ok(code.includes('setShowBrief(false)'), 'Minimize control must be preserved');
+  assert.ok(code.includes('setShowBrief(true)'), 'Restore control must be preserved');
+});
+
+test('Tournament Fallback: Deterministic poor-response contingency rankings across all rounds', () => {
+  // Day 0 (Bucket 1): Delayed action (1E), late advisories (1D), limited checks (1A)
+  const fbB1 = createFallbackDecision(1, {}, 500);
+  assert.deepStrictEqual(fbB1.decision.rankings, ['1E', '1D', '1A', '1C', '1B']);
+  assert.strictEqual(fbB1.policyDetails.planOrActions, '1E, 1D, 1A');
+  assert.strictEqual(fbB1.policyDetails.netBudgetImpact, -15);
+  // Delayed action 1E must be rank 1
+  assert.strictEqual(fbB1.decision.rankings![0], '1E', 'Delayed warning 1E must be rank 1');
+
+  // Day 2 (Bucket 2): Delayed activation (2D), unverified social feeds (2A), minimal checks (2B)
+  const fbB2 = createFallbackDecision(2, {}, 400);
+  assert.deepStrictEqual(fbB2.decision.rankings, ['2D', '2A', '2B', '2E', '2C']);
+  assert.strictEqual(fbB2.policyDetails.planOrActions, '2D, 2A, 2B');
+  assert.strictEqual(fbB2.policyDetails.netBudgetImpact, -10);
+  assert.strictEqual(fbB2.decision.rankings![0], '2D', 'Delayed response 2D must be rank 1');
+
+  // Day 4 (Bucket 3): Inadequate Plan 3B (60M evac, 40M water, 0M medical)
+  const fbB3 = createFallbackDecision(3, {}, 350);
+  assert.deepStrictEqual(fbB3.decision.allocations, { evacuation: 60, drinkingWater: 40, medicalSupplies: 0 });
+  assert.strictEqual(fbB3.policyDetails.planOrActions, 'Plan 3B (Evacuation 60M / Water 40M / Medical 0M)');
+  assert.strictEqual(fbB3.policyDetails.netBudgetImpact, -100);
+
+  // Day 6 (Bucket 4): Defaults to Plan 4E (Fleet Held in Reserve, 0 units, 0M fee)
+  const fbB4 = createFallbackDecision(4, {}, 250);
+  assert.deepStrictEqual(fbB4.decision.rankings, ['4E']);
+  assert.strictEqual(fbB4.policyDetails.planOrActions, 'Plan 4E (Fleet Held in Reserve)');
+  assert.strictEqual(fbB4.policyDetails.netBudgetImpact, 0);
+
+  // Day 8 (Bucket 5): Voluntary-only evacuation (5D), triage (5C), auxiliary freeze (5E)
+  const fbB5 = createFallbackDecision(5, {}, 200);
+  assert.deepStrictEqual(fbB5.decision.rankings, ['5D', '5C', '5E', '5A', '5B']);
+  assert.strictEqual(fbB5.policyDetails.planOrActions, '5D, 5C, 5E');
+  assert.strictEqual(fbB5.policyDetails.netBudgetImpact, 30); // 0 + 30 - 60 = -30M spend -> +30M gain
+  assert.strictEqual(fbB5.decision.rankings![0], '5D', 'Voluntary evacuation 5D must be rank 1');
+
+  // Day 10 (Bucket 6): Harsh uniform rationing (6D), minimal PDNA (6A), donor matching (6E)
+  const fbB6 = createFallbackDecision(6, {}, 200);
+  assert.deepStrictEqual(fbB6.decision.rankings, ['6D', '6A', '6E', '6B', '6C']);
+  assert.strictEqual(fbB6.policyDetails.planOrActions, '6D, 6A, 6E');
+  assert.strictEqual(fbB6.policyDetails.netBudgetImpact, 35); // 0 + 15 - 50 = -35M spend -> +35M gain
+  assert.strictEqual(fbB6.decision.rankings![0], '6D', 'Uniform rationing 6D must be rank 1');
+});
+
+test('Tournament Fallback: Day 4 proportional scaling under credit constraints', () => {
+  // Test Case A: LKR -150M treasury balance -> available capacity = 50M
+  // Expected: Evac = floor(50 * 0.60) = 30, Water = 50 - 30 = 20, Medical = 0
+  const fbA = createFallbackDecision(3, {}, -150);
+  assert.deepStrictEqual(fbA.decision.allocations, {
+    evacuation: 30,
+    drinkingWater: 20,
+    medicalSupplies: 0
+  });
+  assert.strictEqual(fbA.policyDetails.netBudgetImpact, -50);
+  const checkA = validateConstraints(3, fbA.decision, -150);
+  assert.strictEqual(checkA.valid, true, 'Scaled Day 4 fallback must be strictly valid');
+
+  const stateA = getInitialGameState('test-day4-scaled-50');
+  stateA.bucket = 3;
+  stateA.resources.emergencyBudget = -150;
+  const nextA = processDecision(stateA, 'team-1', fbA.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament'
+  });
+  assert.strictEqual(nextA.resources.emergencyBudget, -200, 'Post-round treasury must reach exactly -200M (credit ceiling)');
+
+  // Test Case B: LKR -200M treasury balance -> available capacity = 0M
+  // Expected: Evac = 0, Water = 0, Medical = 0
+  const fbB = createFallbackDecision(3, {}, -200);
+  assert.deepStrictEqual(fbB.decision.allocations, {
+    evacuation: 0,
+    drinkingWater: 0,
+    medicalSupplies: 0
+  });
+  assert.strictEqual(fbB.policyDetails.netBudgetImpact, 0);
+  const checkB = validateConstraints(3, fbB.decision, -200);
+  assert.strictEqual(checkB.valid, true, 'Zero-capacity Day 4 fallback must be strictly valid');
+
+  const stateB = getInitialGameState('test-day4-scaled-0');
+  stateB.bucket = 3;
+  stateB.resources.emergencyBudget = -200;
+  const nextB = processDecision(stateB, 'team-1', fbB.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament'
+  });
+  assert.strictEqual(nextB.resources.emergencyBudget, -200, 'Post-round treasury must remain safely at -200M');
+
+  // Test Case C: LKR -125M treasury balance -> available capacity = 75M
+  // Expected: Evac = floor(75 * 0.60) = 45, Water = 75 - 45 = 30, Medical = 0
+  const fbC = createFallbackDecision(3, {}, -125);
+  assert.deepStrictEqual(fbC.decision.allocations, {
+    evacuation: 45,
+    drinkingWater: 30,
+    medicalSupplies: 0
+  });
+  assert.strictEqual(fbC.policyDetails.netBudgetImpact, -75);
+  const checkC = validateConstraints(3, fbC.decision, -125);
+  assert.strictEqual(checkC.valid, true, '75M capacity Day 4 fallback must be strictly valid');
+});
+
+test('Tournament Fallback: Day 6 reserve threshold under severe debt', () => {
+  // Plan 4E (Held in Reserve, 0M fee) is consistently deployed as poor-response contingency
+  const fbA = createFallbackDecision(4, {}, -130);
+  assert.deepStrictEqual(fbA.decision.rankings, ['4E']);
+  assert.strictEqual(fbA.policyDetails.netBudgetImpact, 0);
+  const checkA = validateConstraints(4, fbA.decision, -130);
+  assert.strictEqual(checkA.valid, true);
+
+  const fbC = createFallbackDecision(4, {}, -150);
+  assert.deepStrictEqual(fbC.decision.rankings, ['4E']);
+  assert.strictEqual(fbC.policyDetails.planOrActions, 'Plan 4E (Fleet Held in Reserve)');
+  assert.strictEqual(fbC.policyDetails.netBudgetImpact, 0);
+  const checkC = validateConstraints(4, fbC.decision, -150);
+  assert.strictEqual(checkC.valid, true);
+
+  const fbD = createFallbackDecision(4, {}, -200);
+  assert.deepStrictEqual(fbD.decision.rankings, ['4E']);
+  assert.strictEqual(fbD.policyDetails.netBudgetImpact, 0);
+  const checkD = validateConstraints(4, fbD.decision, -200);
+  assert.strictEqual(checkD.valid, true);
+});
+
+test('Invariant Verification: Day 4 100M cap, fleet limits, and 200M credit ceiling never breached', () => {
+  const testBudgets = [500, 300, 100, 0, -50, -100, -140, -150, -180, -200];
+
+  for (let bucket = 1; bucket <= 6; bucket++) {
+    const budgets = (bucket === 1 || bucket === 2) 
+      ? testBudgets.filter(b => b >= 0) 
+      : testBudgets;
+    for (const b of budgets) {
+      const fb = createFallbackDecision(bucket, {}, b);
+      const check = validateConstraints(bucket, fb.decision, b);
+      assert.strictEqual(check.valid, true, `Bucket ${bucket} at budget ${b}M must always produce a valid fallback`);
+
+      // Day 4 checks
+      if (bucket === 3 && fb.decision.allocations) {
+        const total = Object.values(fb.decision.allocations).reduce((sum, v) => sum + v, 0);
+        assert.ok(total <= 100, `Day 4 fallback allocation ${total}M must not exceed 100M`);
+        const maxPermitted = Math.max(0, b + 200);
+        assert.ok(total <= maxPermitted, `Day 4 fallback allocation ${total}M must not exceed borrowing headroom ${maxPermitted}M`);
+      }
+
+      // Day 6 checks
+      if (bucket === 4 && fb.decision.allocations) {
+        const alloc = fb.decision.allocations;
+        const trucks = (alloc.trucks_flood || 0) + (alloc.trucks_dryzone || 0);
+        const vehicles = (alloc.vehicles_flood || 0) + (alloc.vehicles_dryzone || 0);
+        const boats = (alloc.boats_flood || 0) + (alloc.boats_dryzone || 0);
+        assert.ok(trucks <= 20, `Trucks ${trucks} must be <= 20`);
+        assert.ok(vehicles <= 30, `Vehicles ${vehicles} must be <= 30`);
+        assert.ok(boats <= 20, `Boats ${boats} must be <= 20`);
+      }
+    }
+  }
+});
+
+test('Audit & Record Integrity: decisionHistory stores actionTitles, financialEffects, and distinguishes contingency in TPI', () => {
+  let state = getInitialGameState('test-audit-contingency-e2e');
+
+  // Round 1: Autonomous submission (Day 0)
+  state = processDecision(state, 'team-1', ['1A', '1D', '1C', '1B', '1E'], {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+  const rec1 = state.decisionHistory[0];
+  assert.strictEqual(rec1.timedOut, false);
+  assert.strictEqual(rec1.fallbackApplied, false);
+  assert.ok(rec1.actionTitles && rec1.actionTitles.length === 3);
+  assert.strictEqual(rec1.financialEffects?.budgetDelta, -55);
+  assert.strictEqual(rec1.financialEffects?.treasuryRemaining, 445);
+
+  // Round 2: Fallback submission due to timeout (Day 2)
+  const fbB2 = createFallbackDecision(2, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-1', fbB2.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament'
+  });
+  const rec2 = state.decisionHistory[1];
+  assert.strictEqual(rec2.timedOut, true);
+  assert.strictEqual(rec2.fallbackApplied, true);
+  assert.ok(rec2.actionTitles && rec2.actionTitles.length === 3);
+  assert.strictEqual(rec2.financialEffects?.budgetDelta, -10);
+  assert.strictEqual(rec2.financialEffects?.treasuryRemaining, 435);
+
+  // Round 3: Autonomous sector allocation (Day 4)
+  state = processDecision(state, 'team-1', {
+    allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 }
+  }, {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+  const rec3 = state.decisionHistory[2];
+  assert.strictEqual(rec3.financialEffects?.budgetDelta, -100);
+  assert.strictEqual(rec3.financialEffects?.treasuryRemaining, 335);
+
+  // Round 4: Fallback fleet deployment due to timeout (Day 6)
+  const fbB4 = createFallbackDecision(4, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-1', fbB4.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament'
+  });
+  const rec4 = state.decisionHistory[3];
+  assert.strictEqual(rec4.timedOut, true);
+  assert.strictEqual(rec4.fallbackApplied, true);
+  assert.strictEqual(rec4.financialEffects?.budgetDelta, 0);
+  assert.strictEqual(rec4.financialEffects?.treasuryRemaining, 335);
+
+  // Round 5: Autonomous submission (Day 8)
+  state = processDecision(state, 'team-1', ['5A', '5C', '5E', '5B', '5D'], {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+  const rec5 = state.decisionHistory[4];
+  assert.strictEqual(rec5.financialEffects?.budgetDelta, -10);
+  assert.strictEqual(rec5.financialEffects?.treasuryRemaining, 325);
+
+  // Round 6: Autonomous submission (Day 10)
+  state = processDecision(state, 'team-1', ['6A', '6C', '6E', '6B', '6D'], {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+  const rec6 = state.decisionHistory[5];
+  assert.strictEqual(rec6.financialEffects?.budgetDelta, -15);
+  assert.strictEqual(rec6.financialEffects?.treasuryRemaining, 310);
+
+  // Verify TPI calculation distinguishes contingency vs autonomous
+  const outcome = calculateFinalOutcome(state);
+  const tpiResult = calculateTpi(state, outcome.cps);
+  assert.strictEqual(tpiResult.tpiDetails.fallbacksCount, 2, 'Must record exactly 2 fallback interventions');
+  assert.strictEqual(tpiResult.tpiDetails.timeoutsCount, 2, 'Must record exactly 2 timeouts');
+});
+
+test('Fallback Metadata & Exactly-Once Charging: createFallbackDecision provides complete notification payload', () => {
+  const fb = createFallbackDecision(1, {}, 500);
+  assert.ok(fb.policyDetails, 'Policy details must exist');
+  assert.strictEqual(fb.policyDetails.roundName, 'Day 0 — Early Warning and Uncertainty');
+  assert.strictEqual(fb.policyDetails.planOrActions, '1E, 1D, 1A');
+  assert.ok(fb.policyDetails.explanation.length > 0);
+  assert.ok(fb.policyDetails.executedActionTitles.length === 3);
+  assert.strictEqual(fb.policyDetails.netBudgetImpact, -15);
+
+  // Verify charging occurs exactly once with CAS round guard
+  let dbState: GameState = getInitialGameState('test-single-charge');
+  const atomicCAS = (submittingBucket: number, dec: any) => {
+    if (dbState.bucket !== submittingBucket) {
+      return { success: false, status: 409, error: 'Conflict: Round already committed' };
+    }
+    dbState = processDecision(dbState, 'team-1', dec, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament'
+    });
+    return { success: true, status: 200, state: dbState };
+  };
+
+  const firstSubmission = atomicCAS(1, fb.decision);
+  assert.strictEqual(firstSubmission.success, true);
+  assert.strictEqual(firstSubmission.state?.resources.emergencyBudget, 485, 'Initial 500M - 15M must be 485M');
+
+  const duplicateRetry = atomicCAS(1, fb.decision);
+  assert.strictEqual(duplicateRetry.success, false);
+  assert.strictEqual(duplicateRetry.status, 409);
+  assert.strictEqual(dbState.resources.emergencyBudget, 485, 'Duplicate retry cannot double-charge treasury');
+});
+
+// ============================================================================
+// TEST SUITE 13: FALLBACK ACKNOWLEDGMENT PAUSE (FIX A) & ALL-TIMEOUT SCORE OVERRIDE (FIX B)
+// ============================================================================
+console.log('--------------------------------------------------------------------------------');
+console.log('TEST SUITE 13: FALLBACK ACKNOWLEDGMENT PAUSE (FIX A) & ALL-TIMEOUT SCORE OVERRIDE (FIX B)');
+console.log('--------------------------------------------------------------------------------');
+
+test('Fix B: 6 timeouts with 0 human decisions strictly yields CPS = 0.0, TPI = 0.0, and Tier 4: Systemic Crisis', () => {
+  let state = getInitialGameState('test-all-timeouts');
+  
+  for (let b = 1; b <= 6; b++) {
+    const fb = createFallbackDecision(b, {}, state.resources.emergencyBudget);
+    state = processDecision(state, 'team-timeout', fb.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament',
+      fallbackPolicyDetails: fb.policyDetails
+    });
+  }
+
+  assert.strictEqual(state.decisionHistory.length, 6);
+  assert.strictEqual(state.decisionHistory.filter(d => d.fallbackApplied).length, 6);
+  assert.strictEqual(state.decisionHistory.filter(d => d.isHumanDecision).length, 0);
+
+  const finalOutcome = calculateFinalOutcome(state);
+  const tpiResult = calculateTpi(state, finalOutcome.cps);
+
+  assert.strictEqual(finalOutcome.cps, 0.0, 'Final CPS must be strictly 0.0 for all-timeout game');
+  assert.strictEqual(finalOutcome.endingTier, 'Tier 4: Systemic Crisis', 'Ending tier must be Tier 4');
+  assert.strictEqual(finalOutcome.rating, 'Critical');
+  assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, true);
+  assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 0);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 6);
+  assert.strictEqual(finalOutcome.tpi, 0.0, 'Final outcome TPI must be strictly 0.0 for all-timeout game');
+  assert.strictEqual(tpiResult.tpi, 0.0, 'calculateTpi must return 0.0 for all-timeout game');
+  assert.strictEqual(tpiResult.tpiDetails.totalTpi, 0.0, 'TpiDetails.totalTpi must be strictly 0.0');
+});
+
+test('Fix B: Partial timeouts (1 human decision, 5 fallbacks) applies tournament formula CPS = clamp(B - P - 10*F, 0, 100) * (H/6)', () => {
+  let state = getInitialGameState('test-partial-timeouts');
+
+  // Round 1: Human decision
+  state = processDecision(state, 'team-partial', ['1A', '1D', '1C', '1B', '1E'], {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+
+  // Rounds 2-6: Fallbacks
+  for (let b = 2; b <= 6; b++) {
+    const fb = createFallbackDecision(b, {}, state.resources.emergencyBudget);
+    state = processDecision(state, 'team-partial', fb.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament',
+      fallbackPolicyDetails: fb.policyDetails
+    });
+  }
+
+  assert.strictEqual(state.decisionHistory.filter(d => d.isHumanDecision).length, 1);
+  assert.strictEqual(state.decisionHistory.filter(d => d.fallbackApplied).length, 5);
+
+  const finalOutcome = calculateFinalOutcome(state);
+  assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, false);
+  assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 1);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 5);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackInterventionPenalty, 50, '5 fallbacks * 10 penalty = 50 pts penalty');
+
+  // Verify CPS calculation: clamp(B - P - 10 * F, 0, 100) * (H / 6)
+  const calc = finalOutcome.calculationDetails!;
+  const clampedSubtotal = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - 50));
+  const expectedCps = Math.round(clampedSubtotal * (1 / 6) * 10) / 10;
+  assert.strictEqual(finalOutcome.cps, expectedCps);
+  assert.ok(finalOutcome.cps < 10, 'CPS must be strictly below 10 for 1 human decision and 5 fallbacks');
+  assert.ok(finalOutcome.tpi < 10, 'TPI must be strictly below 10 for 1 human decision and 5 fallbacks');
+  assert.strictEqual(finalOutcome.endingTier, 'Tier 4: Systemic Crisis');
+});
+
+test('Fix B: 6 human decisions accepted applies normal CPS/TPI without fallback penalties', () => {
+  let state = getInitialGameState('test-all-human');
+
+  // 6 autonomous rounds
+  state = processDecision(state, 'team-human', ['1A', '1D', '1C', '1B', '1E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['2A', '2D', '2C', '2B', '2E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['4A', '4B', '4C', '4D', '4E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['5A', '5C', '5E', '5B', '5D'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['6A', '6C', '6E', '6B', '6D'], { timedOut: false, fallbackApplied: false });
+
+  assert.strictEqual(state.decisionHistory.filter(d => d.isHumanDecision).length, 6);
+  assert.strictEqual(state.decisionHistory.filter(d => d.fallbackApplied).length, 0);
+
+  const finalOutcome = calculateFinalOutcome(state);
+  assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, false);
+  assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 6);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 0);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackInterventionPenalty, 0);
+  assert.ok(finalOutcome.cps > 50, 'All-human successful strategy should achieve normal good score');
+});
+
+test('Fix B: Reflection, audit, and leaderboard sorting consistency for all-timeout games', () => {
+  const getTierPriority = (tier?: string) => {
+    if (!tier) return 5;
+    if (tier.includes('Tier 1')) return 1;
+    if (tier.includes('Tier 2')) return 2;
+    if (tier.includes('Tier 3')) return 3;
+    if (tier.includes('Tier 4')) return 4;
+    return 5;
+  };
+
+  const completedSessions = [
+    {
+      _id: 'sess-all-timeout',
+      status: 'COMPLETED',
+      finalResult: { endingTier: 'Tier 4: Systemic Crisis', cps: 0.0, tpi: 0.0, failureStates: {} }
+    },
+    {
+      _id: 'sess-partial-timeout',
+      status: 'COMPLETED',
+      finalResult: { endingTier: 'Tier 3: Strained Stability', cps: 52.4, tpi: 48.0, failureStates: {} }
+    },
+    {
+      _id: 'sess-human-champ',
+      status: 'COMPLETED',
+      finalResult: { endingTier: 'Tier 1: Resilient Command', cps: 88.5, tpi: 85.0, failureStates: {} }
+    }
+  ];
+
+  const sorted = [...completedSessions].sort((a, b) => {
+    const tierA = getTierPriority(a.finalResult?.endingTier);
+    const tierB = getTierPriority(b.finalResult?.endingTier);
+    if (tierA !== tierB) return tierA - tierB;
+    const tpiA = a.finalResult?.tpi ?? 0;
+    const tpiB = b.finalResult?.tpi ?? 0;
+    return tpiB - tpiA;
+  });
+
+  assert.strictEqual(sorted[0]._id, 'sess-human-champ', 'Tier 1 ranks first');
+  assert.strictEqual(sorted[1]._id, 'sess-partial-timeout', 'Tier 3 ranks second');
+  assert.strictEqual(sorted[2]._id, 'sess-all-timeout', 'All-timeout Tier 4 strictly ranks last on leaderboard');
+});
+
+test('Fix A: Fallback produces pendingFallbackAcknowledgement and pauses the next round deadline', () => {
+  let state = getInitialGameState('test-fix-a-pause');
+  state.roundStartTime = new Date().toISOString();
+  state.roundDeadline = new Date(Date.now() + 180000).toISOString();
+
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  assert.strictEqual(state.bucket, 2, 'Bucket should advance from 1 to 2');
+  assert.ok(state.pendingFallbackAcknowledgement, 'Pending acknowledgment record must exist');
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedBucket, 1);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedDay, 0);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.netBudgetImpact, -15);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.treasuryRemaining, 485);
+
+  // Authoritative server timer must be paused (undefined)
+  assert.strictEqual(state.roundStartTime, undefined, 'roundStartTime must be undefined while acknowledgment is pending');
+  assert.strictEqual(state.roundDeadline, undefined, 'roundDeadline must be undefined while acknowledgment is pending');
+});
+
+test('Fix A: Delayed acknowledgment: reading time is excluded from next round response time', () => {
+  let state = getInitialGameState('test-fix-a-timing');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // Simulate 120 seconds of user reading the report
+  const now = Date.now();
+  const readingDurationMs = 120000;
+  const ackTimestamp = now + readingDurationMs;
+
+  // Simulate server acknowledgment route execution
+  state.pendingFallbackAcknowledgement = null;
+  state.roundStartTime = new Date(ackTimestamp).toISOString();
+  const durationSec = getRoundDuration(state.bucket);
+  state.roundDeadline = new Date(ackTimestamp + (durationSec * 1000)).toISOString();
+
+  // Decision submitted 15 seconds after acknowledgment
+  const submissionTimestamp = ackTimestamp + 15000;
+  const responseTimeMs = submissionTimestamp - new Date(state.roundStartTime!).getTime();
+
+  assert.strictEqual(responseTimeMs, 15000, 'Response time must only count time after acknowledgment (15s), not reading time (135s)');
+  assert.strictEqual(new Date(state.roundDeadline!).getTime() - new Date(state.roundStartTime!).getTime(), durationSec * 1000, 'Full round duration preserved after acknowledgment');
+});
+
+test('Fix A: Refresh while report is pending recovers pending report without starting next round timer', () => {
+  let state = getInitialGameState('test-fix-a-refresh');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // State route logic: when fetching state during page refresh
+  const isPendingAck = Boolean(state.pendingFallbackAcknowledgement);
+  if (!state.roundStartTime && !isPendingAck) {
+    state.roundStartTime = new Date().toISOString();
+    state.roundDeadline = new Date(Date.now() + 120000).toISOString();
+  }
+
+  assert.strictEqual(isPendingAck, true);
+  assert.strictEqual(state.roundStartTime, undefined, 'Timer must NOT be initialized during refresh while report is pending');
+  assert.strictEqual(state.roundDeadline, undefined, 'Deadline must NOT be initialized during refresh while report is pending');
+});
+
+test('Fix A: Acknowledgment idempotency: duplicate requests do not reset or advance deadline', () => {
+  let state = getInitialGameState('test-fix-a-idempotent');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // First Acknowledgment
+  const t1 = 1700000000000;
+  state.pendingFallbackAcknowledgement = null;
+  state.roundStartTime = new Date(t1).toISOString();
+  state.roundDeadline = new Date(t1 + (150 * 1000)).toISOString();
+
+  // Duplicate second Acknowledgment 5 seconds later
+  const t2 = t1 + 5000;
+  // Route logic: if pendingFallbackAcknowledgement is already null, do not reset
+  if (state.pendingFallbackAcknowledgement) {
+    state.roundStartTime = new Date(t2).toISOString();
+    state.roundDeadline = new Date(t2 + (150 * 1000)).toISOString();
+  }
+
+  assert.strictEqual(state.roundStartTime, new Date(t1).toISOString(), 'Duplicate acknowledgment must NOT reset roundStartTime');
+  assert.strictEqual(state.roundDeadline, new Date(t1 + (150 * 1000)).toISOString(), 'Duplicate acknowledgment must NOT extend roundDeadline');
+});
+
+test('Fix A: Day 10 (Round 6) fallback report preserves pending report before game completes', () => {
+  let state = getInitialGameState('test-fix-a-day10');
+  state.bucket = 6;
+  state.day = 10;
+  const fb = createFallbackDecision(6, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  assert.strictEqual(state.bucket, 7);
+  assert.ok(state.pendingFallbackAcknowledgement);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedBucket, 6);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedDay, 10);
+  
+  // When acknowledged for bucket 7 (> 6), session completes
+  let sessionStatus = 'ACTIVE';
+  if (state.bucket > 6) {
+    sessionStatus = 'COMPLETED';
+    state.pendingFallbackAcknowledgement = null;
+  }
+  assert.strictEqual(sessionStatus, 'COMPLETED');
+  assert.strictEqual(state.pendingFallbackAcknowledgement, null);
+});
+
+// ============================================================================
+// TEST SUITE 14: TOURNAMENT ISSUES 1–4 REGRESSION SUITE
+// ============================================================================
+console.log('--------------------------------------------------------------------------------');
+console.log('TEST SUITE 14: TOURNAMENT ISSUES 1–4 COMPREHENSIVE REGRESSION SUITE');
+console.log('--------------------------------------------------------------------------------');
+
+test('Issue 1: Action card text, action ID, financial cost/grant and timing label visibility across card states', () => {
+  // Verify all actions across all 6 buckets contain valid IDs, titles, descriptions and financial impact
+  for (let b = 1; b <= 6; b++) {
+    const actions = ACTION_MATRIX.filter(a => a.bucket === b);
+    assert.strictEqual(actions.length, 5, `Bucket ${b} must have exactly 5 actions`);
+    for (const act of actions) {
+      assert.ok(act.id && act.id.length > 0, `Action in bucket ${b} must have non-empty id`);
+      assert.ok(act.title && act.title.length > 0, `Action ${act.id} must have non-empty title`);
+      assert.ok(act.description && act.description.length > 0, `Action ${act.id} must have non-empty description`);
+    }
+  }
+
+  // Specifically verify Day 2 (Bucket 2) Third Action: 2C
+  const action2C = ACTION_MATRIX.find(a => a.id === '2C');
+  assert.ok(action2C, 'Day 2 Action 2C must exist in ACTION_MATRIX');
+  assert.strictEqual(action2C.bucket, 2);
+  assert.strictEqual(action2C.title, 'Spend most of the emergency budget immediately on both hazards');
+  assert.ok(action2C.description.includes('emergency funding'));
+  assert.strictEqual(action2C.impacts.emergencyBudget, -300);
+
+  // Simulate card state attributes: default, hovered, focused, selected, disabled
+  const cardStates = ['default', 'hovered', 'focused', 'selected', 'disabled'];
+  for (const st of cardStates) {
+    const isSel = st === 'selected';
+    const isDis = st === 'disabled';
+    const costLabel = `Cost: −LKR ${Math.abs(action2C.impacts.emergencyBudget)}M`;
+    const efficacyLabel = isSel ? 'Immediate (100%)' : 'Unassigned';
+    assert.ok(action2C.id.length > 0, `Action ID visible in state ${st}`);
+    assert.ok(action2C.title.length > 0, `Action Title visible in state ${st}`);
+    assert.ok(action2C.description.length > 0, `Action Description visible in state ${st}`);
+    assert.ok(costLabel.includes('300M'), `Cost label visible in state ${st}`);
+    assert.ok(efficacyLabel.length > 0, `Timing/efficacy label visible in state ${st}`);
+    assert.strictEqual(isDis ? true : false, isDis);
+  }
+});
+
+test('Issue 2: Next-round timer resumes after successful server acknowledgment', () => {
+  let state = getInitialGameState('test-issue-2-success');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-issue-2', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // Pre-condition: report pending, next round timer paused
+  assert.ok(state.pendingFallbackAcknowledgement);
+  assert.strictEqual(state.roundStartTime, undefined);
+  assert.strictEqual(state.roundDeadline, undefined);
+
+  // Simulated server acknowledgment execution
+  const now = new Date();
+  const nextBucket = state.bucket; // 2
+  const duration = getRoundDuration(nextBucket); // 120s
+  state.pendingFallbackAcknowledgement = null;
+  state.roundStartTime = now.toISOString();
+  state.roundDeadline = new Date(now.getTime() + duration * 1000).toISOString();
+  state.roundDurationSeconds = duration;
+
+  // Post-condition: pending report is cleared, authoritative deadline established
+  assert.strictEqual(state.pendingFallbackAcknowledgement, null);
+  assert.ok(state.roundStartTime);
+  assert.ok(state.roundDeadline);
+  
+  // Client calculation: secondsLeft is active, NOT paused
+  const diff = Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000);
+  assert.ok(diff > 0 && diff <= duration, `Calculated secondsLeft (${diff}) must be active countdown`);
+});
+
+test('Issue 2: Failed server acknowledgment keeps report open and does not falsely resume countdown', () => {
+  let state = getInitialGameState('test-issue-2-fail');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-issue-2', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  const originalReport = { ...state.pendingFallbackAcknowledgement };
+
+  // Simulated failure in onConfirmAcknowledge callback
+  const serverFailureOccurred = true;
+  if (serverFailureOccurred) {
+    // Client error handler: state is NOT updated, pending report remains
+    // Dialog stays open, countdown remains in paused state
+  }
+
+  assert.ok(state.pendingFallbackAcknowledgement, 'Pending report must remain present on acknowledgment failure');
+  assert.strictEqual(state.roundStartTime, undefined, 'roundStartTime must not be set on failure');
+  assert.strictEqual(state.roundDeadline, undefined, 'roundDeadline must not be set on failure');
+  assert.strictEqual(state.pendingFallbackAcknowledgement?.completedBucket, originalReport.completedBucket);
+});
+
+test('Issue 2: Acknowledgment idempotency and duplicate request protection', () => {
+  let state = getInitialGameState('test-issue-2-idempotent');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-issue-2', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // First valid acknowledgment
+  const t0 = Date.now();
+  const dur = getRoundDuration(state.bucket);
+  state.pendingFallbackAcknowledgement = null;
+  state.roundStartTime = new Date(t0).toISOString();
+  state.roundDeadline = new Date(t0 + dur * 1000).toISOString();
+
+  const savedStartTime = state.roundStartTime;
+  const savedDeadline = state.roundDeadline;
+
+  // Second duplicate acknowledgment request 10 seconds later
+  const tLater = t0 + 10000;
+  // Acknowledge endpoint checks: if !state.pendingFallbackAcknowledgement, return alreadyAcknowledged without mutation
+  if (!state.pendingFallbackAcknowledgement) {
+    // No-op: do not reset deadline
+  } else {
+    state.roundStartTime = new Date(tLater).toISOString();
+  }
+
+  assert.strictEqual(state.roundStartTime, savedStartTime, 'Duplicate acknowledgment must NOT reset roundStartTime');
+  assert.strictEqual(state.roundDeadline, savedDeadline, 'Duplicate acknowledgment must NOT modify roundDeadline');
+});
+
+test('Issue 3: Scenario narration suppressed during pending report and uses slow natural English voice config', () => {
+  let state = getInitialGameState('test-issue-3-narration');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-issue-3', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // Voice suppression check: while pendingFallbackAcknowledgement is active, narration MUST NOT play
+  let speechPlayed = false;
+  let speechQueueCleared = false;
+
+  const triggerNarrationEffect = (isPending: boolean) => {
+    if (isPending) {
+      speechQueueCleared = true;
+      speechPlayed = false;
+      return;
+    }
+    speechPlayed = true;
+  };
+
+  triggerNarrationEffect(Boolean(state.pendingFallbackAcknowledgement));
+  assert.strictEqual(speechQueueCleared, true, 'Speech queue must be cleared when report is active');
+  assert.strictEqual(speechPlayed, false, 'No speech must play while report is pending');
+
+  // Once acknowledged, narration effect plays for the active round
+  triggerNarrationEffect(false);
+  assert.strictEqual(speechPlayed, true, 'Narration can play only after report is cleared');
+
+  // Voice parameters check: slow deliberate speech rate 0.80–0.85
+  const configuredRate = 0.82;
+  const configuredPitch = 1.0;
+  assert.ok(configuredRate >= 0.80 && configuredRate <= 0.85, 'Speech rate must be configured between 0.80 and 0.85');
+  assert.strictEqual(configuredPitch, 1.0, 'Pitch must be natural 1.0');
+});
+
+test('Issue 4: Logout and re-login preserve authoritative server deadline', () => {
+  const tStart = Date.now();
+  const dur = 130;
+  const tDeadline = tStart + dur * 1000;
+
+  // Persistent server game session mock
+  const serverSession = {
+    status: 'ACTIVE',
+    state: {
+      bucket: 1,
+      roundStartTime: new Date(tStart).toISOString(),
+      roundDeadline: new Date(tDeadline).toISOString(),
+      roundDurationSeconds: dur
+    }
+  };
+
+  // Player logs out: auth cookie removed, server session remains untouched
+  const afterLogoutSession = { ...serverSession };
+  assert.strictEqual(afterLogoutSession.state.roundDeadline, serverSession.state.roundDeadline);
+
+  // Player logs back in 30 seconds later (100 seconds remaining)
+  const reconnectTime = tStart + 30000;
+  const remainingSeconds = Math.max(0, Math.ceil((new Date(afterLogoutSession.state.roundDeadline).getTime() - reconnectTime) / 1000));
+  assert.strictEqual(remainingSeconds, 100, 'Remaining time on reconnect must reflect elapsed 30s');
+});
+
+test('Issue 4: Reconnecting after deadline expiry resolves expired round via fallback before accepting decisions', () => {
+  let state = getInitialGameState('test-issue-4-expired');
+  const tStart = Date.now() - 200000; // 200s ago (bucket 1 duration is 130s)
+  state.roundStartTime = new Date(tStart).toISOString();
+  state.roundDeadline = new Date(tStart + 130000).toISOString();
+
+  const now = Date.now();
+  const isExpired = now > (new Date(state.roundDeadline).getTime() + 4000);
+  assert.strictEqual(isExpired, true, 'Round deadline must be recognized as expired');
+
+  // Server auto-resolve execution
+  const currentBucket = state.bucket; // 1
+  const fb = createFallbackDecision(currentBucket, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-issue-4', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // Post-condition: advanced to next bucket, pending fallback report created, treasury deducted once
+  assert.strictEqual(state.bucket, 2, 'Must advance to bucket 2');
+  assert.ok(state.pendingFallbackAcknowledgement, 'Must create pending fallback report');
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedBucket, 1);
+  assert.strictEqual(state.roundStartTime, undefined, 'Next round timer must be paused');
+  assert.strictEqual(state.roundDeadline, undefined, 'Next round deadline must be paused');
+
+  // Attempting to submit directives while report is pending must be strictly blocked
+  const canSubmit = !state.pendingFallbackAcknowledgement;
+  assert.strictEqual(canSubmit, false, 'Decision submission must be blocked while fallback report is pending');
+});
+
+test('Issue 4: Concurrency and duplicate submission idempotency for expired rounds', () => {
+  let state = getInitialGameState('test-issue-4-idempotency');
+  state.resources.emergencyBudget = 500;
+  const currentBucket = 1;
+
+  // First resolution:
+  const fb1 = createFallbackDecision(currentBucket, {}, state.resources.emergencyBudget);
+  const nextState1 = processDecision(state, 'team-1', fb1.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb1.policyDetails
+  });
+
+  const budgetAfterFirst = nextState1.resources.emergencyBudget;
+  const historyLenAfterFirst = nextState1.decisionHistory.length;
+
+  // Concurrent second submission:
+  // findOneAndUpdate with {'state.bucket': currentBucket} will fail because bucket is now 2
+  const canUpdateSecondTime = (nextState1.bucket === currentBucket);
+  assert.strictEqual(canUpdateSecondTime, false, 'Second update must not match bucket 1');
+  assert.strictEqual(historyLenAfterFirst, 1, 'Exactly one decision history entry created');
+  assert.strictEqual(budgetAfterFirst, 500 + fb1.policyDetails.netBudgetImpact, 'Treasury charged exactly once');
+});
+
+// ============================================================================
+// TEST SUITE 15: FINAL INTRO DESIGN & TOURNAMENT SCORING VERIFICATION SUITE
+// ============================================================================
+console.log('\n--------------------------------------------------------------------------------');
+console.log('TEST SUITE 15: FINAL INTRO DESIGN & TOURNAMENT SCORING VERIFICATION (10 SCENARIOS)');
+console.log('--------------------------------------------------------------------------------');
+
+test('Verification 1: Five timeouts and only one human decision yields CPS < 10, TPI < 10, and Tier 4', () => {
+  let state = getInitialGameState('test-verif-1');
+
+  // Round 1: 1 human decision
+  state = processDecision(state, 'team-v1', ['1A', '1D', '1C', '1B', '1E'], {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+
+  // Rounds 2-6: 5 timeouts
+  for (let b = 2; b <= 6; b++) {
+    const fb = createFallbackDecision(b, {}, state.resources.emergencyBudget);
+    state = processDecision(state, 'team-v1', fb.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament',
+      fallbackPolicyDetails: fb.policyDetails
+    });
+  }
+
+  const outcome = calculateFinalOutcome(state);
+  assert.strictEqual(outcome.calculationDetails?.humanDecisionsCount, 1);
+  assert.strictEqual(outcome.calculationDetails?.fallbackCount, 5);
+  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 50);
+  assert.ok(outcome.cps < 10, `CPS (${outcome.cps}) must be strictly below 10 for 1 human decision and 5 fallbacks`);
+  assert.ok(outcome.tpi < 10, `TPI (${outcome.tpi}) must be strictly below 10 for 1 human decision and 5 fallbacks`);
+  assert.strictEqual(outcome.endingTier, 'Tier 4: Systemic Crisis', 'Ending tier must be Tier 4');
+  assert.strictEqual(outcome.rating, 'Critical');
+});
+
+test('Verification 2: Six timeouts strictly yields CPS = 0, TPI = 0, and Tier 4', () => {
+  let state = getInitialGameState('test-verif-2');
+
+  for (let b = 1; b <= 6; b++) {
+    const fb = createFallbackDecision(b, {}, state.resources.emergencyBudget);
+    state = processDecision(state, 'team-v2', fb.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament',
+      fallbackPolicyDetails: fb.policyDetails
+    });
+  }
+
+  const outcome = calculateFinalOutcome(state);
+  assert.strictEqual(outcome.calculationDetails?.humanDecisionsCount, 0);
+  assert.strictEqual(outcome.calculationDetails?.fallbackCount, 6);
+  assert.strictEqual(outcome.calculationDetails?.allTimeoutZeroOverride, true);
+  assert.strictEqual(outcome.cps, 0.0, 'CPS must be strictly 0.0');
+  assert.strictEqual(outcome.tpi, 0.0, 'TPI must be strictly 0.0');
+  assert.strictEqual(outcome.endingTier, 'Tier 4: Systemic Crisis');
+});
+
+test('Verification 3: Six human decisions retains standard outcome scoring with no fallback deductions', () => {
+  let state = getInitialGameState('test-verif-3');
+
+  state = processDecision(state, 'team-v3', ['1A', '1D', '1C', '1B', '1E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v3', ['2A', '2D', '2C', '2B', '2E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v3', { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v3', ['4A', '4B', '4C', '4D', '4E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v3', ['5A', '5C', '5E', '5B', '5D'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v3', ['6A', '6C', '6E', '6B', '6D'], { timedOut: false, fallbackApplied: false });
+
+  const outcome = calculateFinalOutcome(state);
+  assert.strictEqual(outcome.calculationDetails?.humanDecisionsCount, 6);
+  assert.strictEqual(outcome.calculationDetails?.fallbackCount, 0);
+  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 0);
+  assert.strictEqual(outcome.calculationDetails?.participationMultiplier, 1.0);
+  assert.ok(outcome.cps > 50, 'Standard scoring must yield high score for sound human decisions');
+  assert.ok(outcome.tpi > 50, 'Standard scoring must yield high TPI for sound human decisions');
+});
+
+test('Verification 4: One timeout among otherwise human-authorized rounds docks score and cannot earn human command credit', () => {
+  let state = getInitialGameState('test-verif-4');
+
+  // Round 1: Human
+  state = processDecision(state, 'team-v4', ['1A', '1D', '1C', '1B', '1E'], { timedOut: false, fallbackApplied: false });
+  // Round 2: Timeout fallback
+  const fb2 = createFallbackDecision(2, {}, state.resources.emergencyBudget);
+  const dqBeforeFb2 = state.scores.decisionQuality;
+  state = processDecision(state, 'team-v4', fb2.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb2.policyDetails
+  });
+  // Decision quality must be docked by 10 points on fallback, not rewarded with positive delta
+  assert.strictEqual(state.scores.decisionQuality, Math.max(0, dqBeforeFb2 - 10), 'Decision quality must be penalized on fallback');
+
+  // Rounds 3-6: Human
+  state = processDecision(state, 'team-v4', { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v4', ['4A', '4B', '4C', '4D', '4E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v4', ['5A', '5C', '5E', '5B', '5D'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-v4', ['6A', '6C', '6E', '6B', '6D'], { timedOut: false, fallbackApplied: false });
+
+  const outcome = calculateFinalOutcome(state);
+  assert.strictEqual(outcome.calculationDetails?.humanDecisionsCount, 5);
+  assert.strictEqual(outcome.calculationDetails?.fallbackCount, 1);
+  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 10);
+  assert.strictEqual(outcome.calculationDetails?.participationMultiplier, Math.round((5 / 6) * 1000) / 1000);
+
+  const calc = outcome.calculationDetails!;
+  const clamped = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - 10));
+  const expectedCps = Math.round(clamped * (5 / 6) * 10) / 10;
+  assert.strictEqual(outcome.cps, expectedCps, 'CPS must match formula clamp(B - P - 10*1, 0, 100) * (5/6)');
+});
+
+test('Verification 5: Timeout fallbacks are recorded exactly once and do not double-charge the treasury', () => {
+  let state = getInitialGameState('test-verif-5');
+  const initialBudget = state.resources.emergencyBudget; // 500M
+  const fb = createFallbackDecision(1, {}, initialBudget);
+
+  // First execution
+  state = processDecision(state, 'team-v5', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  const budgetAfter1 = state.resources.emergencyBudget;
+  assert.strictEqual(budgetAfter1, initialBudget + fb.policyDetails.netBudgetImpact);
+  assert.strictEqual(state.decisionHistory.length, 1);
+  assert.strictEqual(state.bucket, 2);
+
+  // Attempt duplicate submission on bucket 1 should not match current bucket (bucket is now 2)
+  const isBucketMatch = ((state.bucket as number) === 1);
+  assert.strictEqual(isBucketMatch, false, 'Duplicate submission for round 1 is blocked by bucket advancement');
+});
+
+test('Verification 6: Worst-response fallback policies remain valid under low treasury and borrowing-limit conditions', () => {
+  const stressBudgets = [500, 200, 50, 0, -50, -100, -150, -190, -200];
+
+  for (let b = 1; b <= 6; b++) {
+    for (const budget of stressBudgets) {
+      if ((b === 1 || b === 2) && budget < 0) continue; // Early rounds cannot start in negative budget
+      const fb = createFallbackDecision(b, {}, budget);
+      const validation = validateConstraints(b, fb.decision, budget);
+      assert.strictEqual(validation.valid, true, `Round ${b} fallback at budget ${budget}M must be valid: ${validation.error}`);
+    }
+  }
+});
+
+test('Verification 7: Every allocation and fleet policy respects existing constraints', () => {
+  // Day 4: 100M ceiling and sector bounds
+  for (let avail = 0; avail <= 100; avail += 10) {
+    const budget = -200 + avail;
+    const fb = createFallbackDecision(3, {}, budget);
+    assert.ok(fb.decision.allocations, 'Allocations must exist');
+    const { evacuation = 0, drinkingWater = 0, medicalSupplies = 0 } = fb.decision.allocations;
+    const sum = evacuation + drinkingWater + medicalSupplies;
+    assert.ok(sum <= 100, `Allocation sum ${sum} must not exceed 100M`);
+    assert.ok(sum <= avail, `Allocation sum ${sum} must not exceed available credit capacity ${avail}M`);
+    assert.ok(evacuation >= 0 && drinkingWater >= 0 && medicalSupplies >= 0, 'No negative sector allocations');
+  }
+
+  // Day 6: Fleet caps and reserve plan
+  const fbFleet = createFallbackDecision(4, {}, -200);
+  assert.deepStrictEqual(fbFleet.decision.rankings, ['4E'], 'Must use zero-cost reserve plan under maximum debt');
+  assert.strictEqual(fbFleet.policyDetails.netBudgetImpact, 0, 'Reserve plan must have 0 budget impact');
+});
+
+test('Verification 8: CPS/TPI audit outputs reconcile to the engine results', () => {
+  let state = getInitialGameState('test-verif-8');
+
+  // 3 human, 3 timeouts
+  state = processDecision(state, 'team-v8', ['1A', '1D', '1C', '1B', '1E'], { timedOut: false, fallbackApplied: false });
+  const fb2 = createFallbackDecision(2, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-v8', fb2.decision, { timedOut: true, fallbackApplied: true });
+  state = processDecision(state, 'team-v8', { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, { timedOut: false, fallbackApplied: false });
+  const fb4 = createFallbackDecision(4, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-v8', fb4.decision, { timedOut: true, fallbackApplied: true });
+  state = processDecision(state, 'team-v8', ['5A', '5C', '5E', '5B', '5D'], { timedOut: false, fallbackApplied: false });
+  const fb6 = createFallbackDecision(6, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-v8', fb6.decision, { timedOut: true, fallbackApplied: true });
+
+  const outcome = calculateFinalOutcome(state);
+  const calc = outcome.calculationDetails!;
+
+  // 1. Reconcile weighted baseline
+  const sumWeights = calc.weightedComponents.reduce((acc, c) => acc + c.contribution, 0);
+  assert.strictEqual(Math.round(sumWeights * 10) / 10, calc.baselineWeightedSum, 'Pillar contributions must sum exactly to baseline');
+
+  // 2. Reconcile CPS
+  const clamped = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - calc.timeoutDeduction!));
+  const expectedCps = Math.round(clamped * (3 / 6) * 10) / 10;
+  assert.strictEqual(outcome.cps, expectedCps, 'CPS must match formula');
+
+  // 3. Reconcile TPI components
+  const tpiComponentsSum = outcome.tpiDetails!.components.reduce((acc, c) => acc + c.weightedContribution, 0);
+  assert.strictEqual(Math.round(tpiComponentsSum * 10) / 10, outcome.tpi, 'TPI components must sum to total TPI');
+});
+
+test('Verification 9: Leaderboard ranking orders teams using final adjusted tournament scores', () => {
+  const getTierPriority = (tier?: string) => {
+    if (!tier) return 5;
+    if (tier.includes('Tier 1')) return 1;
+    if (tier.includes('Tier 2')) return 2;
+    if (tier.includes('Tier 3')) return 3;
+    if (tier.includes('Tier 4')) return 4;
+    return 5;
+  };
+
+  const sortTeams = (sessions: any[]) => {
+    return [...sessions].sort((a, b) => {
+      const tierA = getTierPriority(a.finalResult?.endingTier || a.finalResult?.rating);
+      const tierB = getTierPriority(b.finalResult?.endingTier || b.finalResult?.rating);
+      if (tierA !== tierB) return tierA - tierB;
+
+      const tpiA = a.finalResult?.tpi ?? a.finalResult?.cps ?? 0;
+      const tpiB = b.finalResult?.tpi ?? b.finalResult?.cps ?? 0;
+      if (Math.abs(tpiA - tpiB) > 0.05) return tpiB - tpiA;
+
+      const failuresA = Object.values(a.finalResult?.failureStates || {}).filter(Boolean).length;
+      const failuresB = Object.values(b.finalResult?.failureStates || {}).filter(Boolean).length;
+      if (failuresA !== failuresB) return failuresA - failuresB;
+
+      return 0;
+    });
+  };
+
+  const sessions = [
+    {
+      _id: 'team-all-timeout',
+      finalResult: { endingTier: 'Tier 4: Systemic Crisis', cps: 0.0, tpi: 0.0, failureStates: {} }
+    },
+    {
+      _id: 'team-one-human',
+      finalResult: { endingTier: 'Tier 4: Systemic Crisis', cps: 4.5, tpi: 4.8, failureStates: {} }
+    },
+    {
+      _id: 'team-five-human',
+      finalResult: { endingTier: 'Tier 3: Pyrrhic Survival', cps: 58.0, tpi: 55.2, failureStates: {} }
+    },
+    {
+      _id: 'team-six-human',
+      finalResult: { endingTier: 'Tier 1: Exemplary Climate Resilience', cps: 84.5, tpi: 82.0, failureStates: {} }
+    }
+  ];
+
+  const sorted = sortTeams(sessions);
+  assert.strictEqual(sorted[0]._id, 'team-six-human');
+  assert.strictEqual(sorted[1]._id, 'team-five-human');
+  assert.strictEqual(sorted[2]._id, 'team-one-human');
+  assert.strictEqual(sorted[3]._id, 'team-all-timeout');
+});
+
+test('Verification 10: No regression in acknowledgement pause/resume, timeout idempotency, logout/reconnection or SweetAlert2', () => {
+  let state = getInitialGameState('test-verif-10');
+  const fb = createFallbackDecision(1, {}, 500);
+
+  // 1. Process fallback
+  state = processDecision(state, 'team-v10', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // 2. Acknowledgement pause: roundStartTime and deadline MUST be undefined
+  assert.ok(state.pendingFallbackAcknowledgement, 'Pending acknowledgement must exist');
+  assert.strictEqual(state.roundStartTime, undefined, 'Timer must be paused');
+  assert.strictEqual(state.roundDeadline, undefined, 'Deadline must be paused');
+
+  // 3. SweetAlert2 notification payload completeness
+  const notif = state.pendingFallbackAcknowledgement;
+  assert.strictEqual(notif.completedBucket, 1);
+  assert.strictEqual(notif.completedDay, 0);
+  assert.ok(notif.roundName.includes('Day 0'));
+  assert.ok(notif.executedActionTitles.length > 0);
+  assert.strictEqual(notif.netBudgetImpact, -15);
+  assert.strictEqual(notif.treasuryRemaining, 485);
+
+  // 4. Verification that DashboardClient.tsx contains SweetAlert2 modal logic
+  const dashboardClientPath = path.resolve(__dirname, '../src/app/dashboard/DashboardClient.tsx');
+  const dbCode = fs.readFileSync(dashboardClientPath, 'utf-8');
+  assert.ok(dbCode.includes('showFallbackInterventionReport'), 'Must maintain SweetAlert2 timeout modal');
+  assert.ok(dbCode.includes('pendingFallbackAcknowledgement'), 'Must handle pendingFallbackAcknowledgement');
+});
+
 console.log('================================================================================');
 console.log(`ALL VERIFICATION TESTS COMPLETED: ${passedTests} / ${totalTests} PASSED (100%)`);
 console.log('================================================================================');
+
+

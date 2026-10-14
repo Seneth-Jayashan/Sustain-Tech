@@ -7,16 +7,32 @@ import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
 import { findAction } from '@/game/engine';
 import { ACTION_MATRIX } from '@/game/matrix';
+import { getRoundDuration } from '@/game/timer';
+import { SimulationMode } from '@/game/types';
 import WeatherOverlay from '@/components/WeatherOverlay';
-import Typewriter from '@/components/Typewriter';
-import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
+import { 
+  playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking,
+  playScenarioAudio, pauseScenarioAudio, resumeScenarioAudio, stopScenarioAudio, seekScenarioAudio,
+  SCENARIO_AUDIO_MAP
+} from '@/lib/audio';
 import { 
   Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
-  ChevronDown, ChevronUp, Eye
+  ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX
 } from 'lucide-react';
 import Image from 'next/image';
+import { 
+  notifyError, 
+  notifyWarning, 
+  notifySuccess, 
+  notifyInfo, 
+  notifyConfirm,
+  showFallbackInterventionReport,
+  toastSuccess,
+  toastWarning,
+  toastInfo
+} from '@/lib/notifications';
 
 // Advanced Visualizers
 
@@ -197,9 +213,9 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       whileTap={{ scale: 0.96 }}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      style={{ rotateX, rotateY }}
       onClick={onClick}
-      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[195px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none ${
+      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[195px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed ${
         isSelected
           ? is3E
             ? 'border-red-500 bg-red-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(239,68,68,0.4)]'
@@ -222,84 +238,107 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
         />
       )}
 
-      {/* Cyberpunk Tech Lines */}
-      <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{ transform: 'translateZ(20px)' }}></div>
-      <div className={`absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{ transform: 'translateZ(20px)' }}></div>
+      {/* Cyberpunk Tech Lines (2D layered to avoid 3D clip occlusion in Gecko/WebRender) */}
+      <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
+      <div className={`absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
 
-      <div className="flex justify-between items-start mb-3" style={{ transform: 'translateZ(30px)' }}>
-        <div className={`p-2.5 rounded-xl backdrop-blur-md border ${
-          isSelected 
-            ? is3E 
-              ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-              : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
-            : is3E
-            ? 'bg-red-950/40 border-red-800 text-red-400'
-            : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
-        }`}>
-          {is3E ? <AlertTriangle size={18} /> : <Terminal size={18} />}
-        </div>
-        
-        {/* Selection Badge */}
-        <AnimatePresence>
-          {isSingleSelect ? (
-            isSelected ? (
-              <motion.div
-                initial={{ scale: 0, rotate: 90 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0 }}
-                className={`w-7 h-7 rounded-full flex items-center justify-center font-black shadow-lg text-sm ${
-                  is3E ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)]'
-                }`}
-              >
-                {is3E ? '✕' : <CheckCircle2 size={16} />}
-              </motion.div>
-            ) : is3E ? (
-              <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
-                REJECTED
+      {/* Card Body - Contained in relative z-10 stacking context */}
+      <div className="relative z-10 flex flex-col justify-between h-full">
+        <div>
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-xl backdrop-blur-md border ${
+                isSelected 
+                  ? is3E 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
+                  : is3E
+                  ? 'bg-red-950/40 border-red-800 text-red-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
+              }`}>
+                {is3E ? <AlertTriangle size={18} /> : <Terminal size={18} />}
+              </div>
+              
+              {/* Action ID Badge */}
+              <span className={`font-mono text-xs font-black px-2 py-0.5 rounded border tracking-wider select-none ${
+                is3E
+                  ? 'bg-red-950/80 border-red-500/50 text-red-300'
+                  : isSelected
+                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                  : 'bg-slate-950/80 border-slate-700/80 text-cyan-400 group-hover:border-cyan-500/60'
+              }`}>
+                {canonicalAction.id || action.id}
               </span>
-            ) : (
-              <span className="text-[9px] font-mono text-slate-500 group-hover:text-cyan-400 transition-colors uppercase font-bold">
-                Select
-              </span>
-            )
-          ) : (
-            isSelected && (
-              <motion.div
-                initial={{ scale: 0, rotate: 180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: -180 }}
-                className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
-              >
-                {rankIndex + 1}
-              </motion.div>
-            )
+            </div>
+            
+            {/* Selection Badge */}
+            <AnimatePresence>
+              {isSingleSelect ? (
+                isSelected ? (
+                  <motion.div
+                    initial={{ scale: 0, rotate: 90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center font-black shadow-lg text-sm ${
+                      is3E ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)]'
+                    }`}
+                  >
+                    {is3E ? '✕' : <CheckCircle2 size={16} />}
+                  </motion.div>
+                ) : is3E ? (
+                  <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                    REJECTED
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-mono text-slate-400 group-hover:text-cyan-400 transition-colors uppercase font-bold">
+                    Select
+                  </span>
+                )
+              ) : (
+                isSelected && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: 180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: -180 }}
+                    className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
+                  >
+                    {rankIndex + 1}
+                  </motion.div>
+                )
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Action Title */}
+          <span className={`font-bold block leading-tight text-[13px] tracking-wide transition-colors ${
+            isSelected ? 'text-white' : 'text-slate-100 group-hover:text-white'
+          }`}>
+            {action.title}
+          </span>
+
+          {/* Action Description */}
+          {action.description && (
+            <span className="text-[11px] font-mono text-slate-300 mt-1.5 block line-clamp-2 leading-relaxed">
+              {action.description}
+            </span>
           )}
-        </AnimatePresence>
-      </div>
+        </div>
 
-      <span className={`font-bold block leading-tight text-[13px] tracking-wide ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`} style={{ transform: 'translateZ(40px)' }}>
-        {action.title}
-      </span>
-      {action.description && (
-        <span className="text-[10px] font-mono text-slate-400 mt-1.5 block line-clamp-2 leading-relaxed" style={{ transform: 'translateZ(20px)' }}>
-          {action.description}
-        </span>
-      )}
-
-      {/* Real Financial Cost & Priority / Status Efficacy */}
-      <div className="mt-3.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2.5" style={{ transform: 'translateZ(30px)' }}>
-        <span className={`font-bold px-2.5 py-0.5 rounded-md border text-[10px] sm:text-[11px] ${costBadgeClass}`}>
-          {costLabel}
-        </span>
-        <span className={`font-bold px-2 py-0.5 rounded-md border text-[10px] truncate max-w-[140px] ${
-          is3E 
-            ? 'text-red-300 bg-red-950/80 border-red-500/40'
-            : isSelected 
-            ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
-            : 'text-slate-500 border-transparent'
-        }`}>
-          {efficacyLabel}
-        </span>
+        {/* Real Financial Cost & Priority / Status Efficacy */}
+        <div className="mt-3.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2.5">
+          <span className={`font-bold px-2.5 py-0.5 rounded-md border text-[10px] sm:text-[11px] ${costBadgeClass}`}>
+            {costLabel}
+          </span>
+          <span className={`font-bold px-2 py-0.5 rounded-md border text-[10px] truncate max-w-[140px] ${
+            is3E 
+              ? 'text-red-300 bg-red-950/80 border-red-500/40'
+              : isSelected 
+              ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
+              : 'text-slate-400 border-slate-800'
+          }`}>
+            {efficacyLabel}
+          </span>
+        </div>
       </div>
     </motion.button>
   );
@@ -354,8 +393,125 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [submitting, setSubmitting] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showBrief, setShowBrief] = useState(true);
-  const [showFullSituation, setShowFullSituation] = useState(false);
   const [mobileMetricsOpen, setMobileMetricsOpen] = useState(false);
+
+  // Authentic Scenario Audio Playback State
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  const formatAudioTime = (sec: number) => {
+    if (!sec || isNaN(sec) || sec < 0) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const handleToggleScenarioAudio = (forceStart = false) => {
+    if (audioPlaying && !forceStart) {
+      pauseScenarioAudio();
+      setAudioPlaying(false);
+    } else {
+      if (state.pendingFallbackAcknowledgement) return;
+      setAudioError(null);
+      playScenarioAudio(state.day, {
+        onProgress: (cur, dur) => {
+          setAudioCurrentTime(cur);
+          setAudioDuration(dur);
+        },
+        onEnded: () => {
+          setAudioPlaying(false);
+          setAudioCurrentTime(0);
+        },
+        onStateChange: (isPlaying) => {
+          setAudioPlaying(isPlaying);
+        },
+        onError: (err) => {
+          setAudioPlaying(false);
+          setAudioError(err.message || 'Audio recording unavailable');
+          notifyWarning('Scenario Audio Notice', `Day ${state.day} audio recording could not be loaded: ${err.message}. Written scenario briefing is available below.`);
+        }
+      });
+    }
+  };
+
+  const roundAllowance = state.roundDurationSeconds || getRoundDuration(state.bucket);
+  const simulationMode: SimulationMode = 'tournament';
+
+  // Real-time Emergency Countdown Timer (Server-Enforced Tournament Deadlines)
+  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
+    if (state.pendingFallbackAcknowledgement || !state.roundDeadline) return roundAllowance;
+    return Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
+  });
+  const [interventionAlert, setInterventionAlert] = useState<string | null>(null);
+
+  const warned60Ref = useRef(false);
+  const warned15Ref = useRef(false);
+  const timeoutHandledRef = useRef<number | null>(null);
+  const handleSubmitRef = useRef<((isTimeout?: boolean) => Promise<void>) | null>(null);
+  const acknowledgingRef = useRef(false);
+
+  const lastSpokenBucketRef = useRef<number | null>(null);
+
+  // ISSUE 2: If a fallback acknowledgment is pending, pause timer and display SweetAlert2 report
+  useEffect(() => {
+    if (!state.pendingFallbackAcknowledgement || acknowledgingRef.current) return;
+
+    const acknowledgePending = async () => {
+      acknowledgingRef.current = true;
+      stopSpeaking(); // Immediately clear any audio/speech queue
+      try {
+        const swalResult = await showFallbackInterventionReport(
+          state.pendingFallbackAcknowledgement!,
+          async () => {
+            const res = await fetch('/api/game/acknowledge-fallback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              return { success: false, error: errData.error || 'Server error acknowledging report. Please try again.' };
+            }
+            const ackData = await res.json();
+            if (!ackData.success) {
+              return { success: false, error: ackData.error || 'Failed to acknowledge report. Please try again.' };
+            }
+            return { success: true, data: ackData };
+          }
+        );
+
+        if (swalResult.isConfirmed && swalResult.value) {
+          const ackData = swalResult.value;
+          if (ackData.gameSession?.status === 'COMPLETED' || ackData.isCompleted) {
+            router.push('/reflection');
+          } else if (ackData.gameSession?.state) {
+            const serverState = ackData.gameSession.state;
+            setState(serverState);
+            if (ackData.nextScenario) {
+              setCurrentScenario(ackData.nextScenario);
+            }
+            if (serverState.roundDeadline) {
+              const diff = Math.max(0, Math.ceil((new Date(serverState.roundDeadline).getTime() - Date.now()) / 1000));
+              setSecondsLeft(diff);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error acknowledging fallback report:', err);
+      } finally {
+        acknowledgingRef.current = false;
+      }
+    };
+
+    acknowledgePending();
+  }, [state.pendingFallbackAcknowledgement, router]);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   // Preset Fleet Logistics Profiles
   const PRESET_FLEET_DISTRIBUTIONS: Record<string, { flood: number; dryZone: number; reserve: number; cost: number; title: string }> = {
@@ -366,19 +522,192 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     '4E': { flood: 0, dryZone: 0, reserve: 70, cost: 0, title: '0 deployed, 70 in reserve' },
   };
 
+  // Authentic Recorded Scenario Voice Narration
   useEffect(() => {
-    if (!currentScenario) return;
-    playRadarPing();
-    setShowBrief(true);
-    setShowFullSituation(false);
-
-    if (voiceEnabled) {
-      const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
-      speakText(fullBriefing);
+    // If pending acknowledgment report is active, immediately cancel audio/speech and return
+    if (state.pendingFallbackAcknowledgement) {
+      stopSpeaking();
+      stopScenarioAudio();
+      setAudioPlaying(false);
+      return;
     }
 
-    return () => stopSpeaking();
-  }, [state.bucket, currentScenario, state.day, voiceEnabled]);
+    if (!currentScenario) return;
+
+    // Trigger recorded audio once per round when voice is enabled
+    if (voiceEnabled && lastSpokenBucketRef.current !== state.bucket) {
+      lastSpokenBucketRef.current = state.bucket;
+      playRadarPing();
+      setShowBrief(true);
+      setAudioError(null);
+      setAudioCurrentTime(0);
+
+      // Play recorded audio file for this scenario day
+      handleToggleScenarioAudio(true);
+    } else if (!voiceEnabled) {
+      stopSpeaking();
+      stopScenarioAudio();
+      setAudioPlaying(false);
+    }
+
+    return () => {
+      stopSpeaking();
+      stopScenarioAudio();
+      setAudioPlaying(false);
+    };
+  }, [state.bucket, state.pendingFallbackAcknowledgement, currentScenario, state.day, voiceEnabled]);
+
+  // Tournament Integrity Telemetry Listeners (Review Signals)
+  useEffect(() => {
+    let hiddenStart: number | null = null;
+    let blurStart: number | null = null;
+    let lastEventTime = 0;
+
+    const sendTelemetry = (
+      actionType: string, 
+      metadata: Record<string, any> = {}, 
+      severity?: 'info' | 'review_signal' | 'high_priority'
+    ) => {
+      const now = Date.now();
+      // Throttle rapid repeated events of same type within 1.5s
+      if (now - lastEventTime < 1500 && metadata.operation !== 'paste') {
+        return;
+      }
+      lastEventTime = now;
+
+      fetch('/api/game/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType,
+          round: state.bucket,
+          day: state.day,
+          metadata: {
+            ...metadata,
+            clientTimestamp: new Date().toISOString()
+          },
+          severity
+        })
+      }).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        hiddenStart = Date.now();
+      } else if (hiddenStart) {
+        const durationMs = Date.now() - hiddenStart;
+        hiddenStart = null;
+        sendTelemetry('VISIBILITY_CHANGE', {
+          state: 'visible_after_hidden',
+          hiddenDurationMs: durationMs,
+          hiddenDurationSeconds: Math.round(durationMs / 1000)
+        }, 'review_signal');
+      }
+    };
+
+    const handleBlur = () => {
+      blurStart = Date.now();
+    };
+
+    const handleFocus = () => {
+      if (blurStart) {
+        const durationMs = Date.now() - blurStart;
+        blurStart = null;
+        if (durationMs > 2500) {
+          sendTelemetry('WINDOW_BLUR', {
+            blurDurationMs: durationMs,
+            blurDurationSeconds: Math.round(durationMs / 1000)
+          }, 'review_signal');
+        }
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      const targetTag = (e.target as HTMLElement)?.tagName || 'UNKNOWN';
+      sendTelemetry('RIGHT_CLICK_ATTEMPT', { targetTag }, 'review_signal');
+    };
+
+    const handleCopy = () => {
+      sendTelemetry('COPY_PASTE_ATTEMPT', { operation: 'copy' }, 'review_signal');
+    };
+
+    const handlePaste = () => {
+      sendTelemetry('COPY_PASTE_ATTEMPT', { operation: 'paste' }, 'review_signal');
+    };
+
+    const handleOnline = () => {
+      sendTelemetry('RECONNECT', { event: 'online_reconnected' }, 'info');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('paste', handlePaste);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handlePaste);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [state.bucket, state.day]);
+
+  const submittingRef = useRef(submitting);
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
+
+  // Reset round-specific countdown warnings and timeout guards when bucket advances
+  useEffect(() => {
+    warned60Ref.current = false;
+    warned15Ref.current = false;
+    timeoutHandledRef.current = null;
+  }, [state.bucket]);
+
+  // Real-time Emergency Timer Countdown Loop
+  useEffect(() => {
+    const tick = () => {
+      // Pause countdown while acknowledgment is pending or deadline not yet set
+      if (state.pendingFallbackAcknowledgement || !state.roundDeadline) {
+        setSecondsLeft(roundAllowance);
+        return;
+      }
+      const now = Date.now();
+      const deadline = new Date(state.roundDeadline).getTime();
+      const diff = Math.ceil((deadline - now) / 1000);
+      const rem = Math.max(0, diff);
+      setSecondsLeft(rem);
+
+      // Subtle warning at 60s
+      if (rem <= 60 && rem > 15 && !warned60Ref.current) {
+        warned60Ref.current = true;
+        playWarningBeep(false);
+      }
+
+      // Clearer but calm reminder at 15s
+      if (rem <= 15 && rem > 0 && !warned15Ref.current) {
+        warned15Ref.current = true;
+        playWarningBeep(true);
+      }
+
+      // Tournament deadline arrival: invoke fallback procedure exactly once per round
+      if (rem === 0 && !submittingRef.current && timeoutHandledRef.current !== state.bucket) {
+        timeoutHandledRef.current = state.bucket;
+        playTimeoutBuzzer();
+        handleSubmitRef.current?.(true);
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 500);
+    return () => clearInterval(timer);
+  }, [state.roundDeadline, state.bucket, state.pendingFallbackAcknowledgement, roundAllowance]);
 
   const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
@@ -460,90 +789,135 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const operationalRemainingCredit = operationalProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(operationalProjectedTreasury)) : 200;
 
   // Submit Handler
-  const handleSubmitDecision = async () => {
-    let payload: { rankings?: string[]; allocations?: Record<string, number> } = {};
+  const handleSubmitDecision = async (isTimeout = false) => {
+    let payload: { rankings?: string[]; allocations?: Record<string, number>; timeout?: boolean } = {};
 
-    if (state.bucket === 3) {
-      if (day4Mode === 'preset') {
-        if (!day4PresetPlan) {
-          alert('Please select a preset fiscal plan to authorize.');
-          return;
+    if (isTimeout) {
+      if (state.bucket === 3) {
+        if (day4Mode === 'preset') {
+          payload = { rankings: day4PresetPlan ? [day4PresetPlan] : [], timeout: true };
+        } else {
+          payload = {
+            allocations: {
+              evacuation: day4Custom.evacuation,
+              drinkingWater: day4Custom.drinkingWater,
+              medicalSupplies: day4Custom.medicalSupplies
+            },
+            timeout: true
+          };
         }
-        if (day4PresetPlan === '3E') {
-          alert('Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
-          return;
+      } else if (state.bucket === 4) {
+        if (day6Mode === 'preset') {
+          payload = { rankings: day6PresetPlan ? [day6PresetPlan] : [], timeout: true };
+        } else {
+          payload = {
+            allocations: {
+              trucks_flood: day6TrucksFlood,
+              trucks_dryzone: day6TrucksDry,
+              vehicles_flood: day6VehiclesFlood,
+              vehicles_dryzone: day6VehiclesDry,
+              boats_flood: day6BoatsFlood,
+              boats_dryzone: day6BoatsDry
+            },
+            timeout: true
+          };
         }
-        payload = { rankings: [day4PresetPlan] };
       } else {
-        if (day4HasNegative) {
-          alert('Allocation amounts cannot be negative.');
-          return;
-        }
-        if (day4AllocatedTotal > 100) {
-          alert(`Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
-          return;
-        }
-        if (day4AllocatedTotal <= 0) {
-          alert('Please allocate emergency funds across sectors.');
-          return;
-        }
-        if (day4IsCreditBreached) {
-          alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
-          return;
-        }
-        payload = {
-          allocations: {
-            evacuation: day4Custom.evacuation,
-            drinkingWater: day4Custom.drinkingWater,
-            medicalSupplies: day4Custom.medicalSupplies
-          }
-        };
-      }
-    } else if (state.bucket === 4) {
-      if (day6Mode === 'preset') {
-        if (!day6PresetPlan) {
-          alert('Please select a preset fleet plan to authorize.');
-          return;
-        }
-        payload = { rankings: [day6PresetPlan] };
-      } else {
-        if (day6HasNegative) {
-          alert('Fleet allocations cannot be negative.');
-          return;
-        }
-        if (day6TrucksTotal > 20) {
-          alert(`Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
-          return;
-        }
-        if (day6VehiclesTotal > 30) {
-          alert(`Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
-          return;
-        }
-        if (day6BoatsTotal > 20) {
-          alert(`Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
-          return;
-        }
-        if (day6IsCreditBreached) {
-          alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
-          return;
-        }
-        payload = {
-          allocations: {
-            trucks_flood: day6TrucksFlood,
-            trucks_dryzone: day6TrucksDry,
-            vehicles_flood: day6VehiclesFlood,
-            vehicles_dryzone: day6VehiclesDry,
-            boats_flood: day6BoatsFlood,
-            boats_dryzone: day6BoatsDry
-          }
-        };
+        payload = { rankings: selectedOrder, timeout: true };
       }
     } else {
-      if (selectedOrder.length !== 5) {
-        alert('Please rank all 5 actions in priority order.');
+      if (state.bucket === 3) {
+        if (day4Mode === 'preset') {
+          if (!day4PresetPlan) {
+            await notifyWarning('Plan Selection Required', 'Please select a preset fiscal plan to authorize.');
+            return;
+          }
+          if (day4PresetPlan === '3E') {
+            await notifyError('Statutory Limit Exceeded', 'Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
+            return;
+          }
+          payload = { rankings: [day4PresetPlan] };
+        } else {
+          if (day4HasNegative) {
+            await notifyError('Invalid Allocation', 'Allocation amounts cannot be negative.');
+            return;
+          }
+          if (day4AllocatedTotal > 100) {
+            await notifyError('Budget Ceiling Exceeded', `Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
+            return;
+          }
+          if (day4AllocatedTotal <= 0) {
+            await notifyWarning('Allocation Required', 'Please allocate emergency funds across sectors.');
+            return;
+          }
+          if (day4IsCreditBreached) {
+            await notifyError('Credit Facility Exceeded', 'Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+            return;
+          }
+          payload = {
+            allocations: {
+              evacuation: day4Custom.evacuation,
+              drinkingWater: day4Custom.drinkingWater,
+              medicalSupplies: day4Custom.medicalSupplies
+            }
+          };
+        }
+      } else if (state.bucket === 4) {
+        if (day6Mode === 'preset') {
+          if (!day6PresetPlan) {
+            await notifyWarning('Plan Selection Required', 'Please select a preset fleet plan to authorize.');
+            return;
+          }
+          payload = { rankings: [day6PresetPlan] };
+        } else {
+          if (day6HasNegative) {
+            await notifyError('Invalid Allocation', 'Fleet allocations cannot be negative.');
+            return;
+          }
+          if (day6TrucksTotal > 20) {
+            await notifyError('National Fleet Exceeded', `Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
+            return;
+          }
+          if (day6VehiclesTotal > 30) {
+            await notifyError('National Fleet Exceeded', `Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
+            return;
+          }
+          if (day6BoatsTotal > 20) {
+            await notifyError('National Fleet Exceeded', `Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
+            return;
+          }
+          if (day6IsCreditBreached) {
+            await notifyError('Credit Facility Exceeded', 'Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+            return;
+          }
+          payload = {
+            allocations: {
+              trucks_flood: day6TrucksFlood,
+              trucks_dryzone: day6TrucksDry,
+              vehicles_flood: day6VehiclesFlood,
+              vehicles_dryzone: day6VehiclesDry,
+              boats_flood: day6BoatsFlood,
+              boats_dryzone: day6BoatsDry
+            }
+          };
+        }
+      } else {
+        if (selectedOrder.length !== 5) {
+          await notifyWarning('Priority Ranking Incomplete', 'Please rank all 5 actions in priority order.');
+          return;
+        }
+        payload = { rankings: selectedOrder };
+      }
+
+      // Consequential action confirmation
+      const confirmed = await notifyConfirm(
+        'Authorize Operational Directives?',
+        `Confirm authorization of operational directives for Day ${(state.bucket - 1) * 2}. This will commit provincial resources and advance the timeline.`,
+        { confirmText: 'Authorize Now', cancelText: 'Review Directives' }
+      );
+      if (!confirmed) {
         return;
       }
-      payload = { rankings: selectedOrder };
     }
 
     setSubmitting(true);
@@ -556,33 +930,70 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         body: JSON.stringify(payload)
       });
 
+      if (res.status === 409) {
+        // Concurrency / Duplicate submission guard: Refresh session to show latest state
+        await notifyInfo('Decision Already Authorized', 'A decision for this round has already been authorized.');
+        const stateRes = await fetch('/api/game/state');
+        const stateData = await stateRes.json();
+        if (stateData.success && stateData.gameSession) {
+          if (stateData.gameSession.status === 'COMPLETED') {
+            router.push('/reflection');
+          } else {
+            setState(stateData.gameSession.state);
+          }
+        }
+        setSubmitting(false);
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
-        if (data.gameSession.status === 'COMPLETED') {
-          router.push('/reflection');
-        } else {
+        if (data.gameSession?.state?.pendingFallbackAcknowledgement) {
+          // Timeout contingency committed: update state with pending report
+          // Note: timer remains paused until player acknowledges the report
           setState(data.gameSession.state);
           if (data.nextScenario) {
             setCurrentScenario(data.nextScenario);
           }
-          // Reset states for subsequent round
           setSelectedOrder([]);
           setDay4PresetPlan(null);
           setDay6PresetPlan(null);
           setDay4Mode('preset');
           setDay6Mode('preset');
           setSubmitting(false);
+          // Acknowledgment effect triggers showFallbackInterventionReport and calls acknowledge endpoint
+        } else {
+          setInterventionAlert(null);
+          toastSuccess('Directives Authorized', `Day ${(state.bucket - 1) * 2} directives successfully committed.`);
+          if (data.gameSession.status === 'COMPLETED') {
+            router.push('/reflection');
+          } else {
+            setState(data.gameSession.state);
+            if (data.nextScenario) {
+              setCurrentScenario(data.nextScenario);
+            }
+            setSelectedOrder([]);
+            setDay4PresetPlan(null);
+            setDay6PresetPlan(null);
+            setDay4Mode('preset');
+            setDay6Mode('preset');
+            setSubmitting(false);
+          }
         }
       } else {
-        alert(data.error || 'Failed to submit decision.');
+        await notifyError('Authorization Error', data.error || 'Failed to submit decision.');
         setSubmitting(false);
       }
     } catch (error) {
       console.error(error);
-      alert('Failed to submit decision.');
+      await notifyError('Submission Failed', 'Failed to submit decision. Please check your network connection.');
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmitDecision;
+  });
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -684,11 +1095,30 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             </div>
 
             <button
-              onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); playUIBlip(); }}
-              className={`flex items-center justify-center h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border backdrop-blur-xl transition-all shadow-lg text-sm sm:text-base ${voiceEnabled ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'}`}
-              title={voiceEnabled ? 'Mute advisor' : 'Unmute advisor'}
+              onClick={() => {
+                if (voiceEnabled) {
+                  if (audioPlaying) {
+                    pauseScenarioAudio();
+                    setAudioPlaying(false);
+                  } else {
+                    handleToggleScenarioAudio();
+                  }
+                } else {
+                  setVoiceEnabled(true);
+                  handleToggleScenarioAudio(true);
+                }
+                playUIBlip();
+              }}
+              className={`flex items-center justify-center h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border backdrop-blur-xl transition-all shadow-lg text-sm sm:text-base cursor-pointer ${
+                audioPlaying 
+                  ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                  : voiceEnabled 
+                  ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+                  : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'
+              }`}
+              title={audioPlaying ? 'Pause scenario recording' : voiceEnabled ? 'Play scenario recording' : 'Unmute voice recording'}
             >
-              {voiceEnabled ? '🔊' : '🔈'}
+              {audioPlaying ? '⏸️' : voiceEnabled ? '🔊' : '🔈'}
             </button>
 
             {/* Mobile HUD Toggle Button */}
@@ -820,21 +1250,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       {/* Narrative HUD - Advisor Briefing */}
       <AnimatePresence>
         {showBrief && (
-          <motion.div
-            initial={{ x: -400, opacity: 0, rotateY: 30 }}
-            animate={{ x: 0, opacity: 1, rotateY: 0 }}
-            exit={{ x: -400, opacity: 0, rotateY: 30 }}
-            transition={{ type: "spring", damping: 20, stiffness: 100 }}
-            className="fixed sm:absolute top-[75px] sm:top-[120px] md:top-[130px] left-3 right-3 sm:left-6 sm:right-auto md:left-8 z-40 max-w-xl perspective-[1000px]"
-          >
-            <div className="relative flex flex-col gap-2 sm:gap-3">
+          <div className="relative z-30 w-full max-w-xl xl:max-w-2xl px-3 sm:px-6 md:px-8 pt-1 pb-3 pointer-events-auto self-start">
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -200, opacity: 0 }}
+              transition={{ type: "spring", damping: 22, stiffness: 120 }}
+              className="relative flex flex-col gap-2 sm:gap-3"
+            >
               {/* Advisor Avatar Pop-in with Collapse Action */}
-              <motion.div 
-                initial={{ y: 50, opacity: 0 }} 
-                animate={{ y: 0, opacity: 1 }} 
-                transition={{ delay: 0.3, type: "spring" }}
-                className="flex items-end justify-between gap-3 sm:gap-4"
-              >
+              <div className="flex items-end justify-between gap-3 sm:gap-4">
                 <div className="flex items-end gap-3 sm:gap-4">
                   <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 sm:border-4 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-black z-20 shrink-0">
                     <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
@@ -850,54 +1275,97 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
                 <button 
                   onClick={() => setShowBrief(false)} 
-                  className="mb-1 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/90 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 hover:bg-slate-800 transition-all"
+                  className="mb-1 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/90 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 hover:bg-slate-800 transition-all cursor-pointer"
                   title="Minimize briefing to focus on allocation decisions"
                 >
                   <ChevronUp size={14} />
                   <span>Minimize</span>
                 </button>
-              </motion.div>
+              </div>
 
               {/* Message Box */}
-              <motion.div 
-                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[55vh] sm:max-h-[65vh] overflow-y-auto"
+              <div 
+                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[38vh] sm:max-h-[46vh] overflow-y-auto"
                 style={{ scrollbarWidth: 'thin' }}
               >
                 <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl rounded-full pointer-events-none"></div>
                 
                 <div className="flex justify-between items-start mb-2 gap-2">
                   <h2 className="text-base sm:text-lg font-black text-white tracking-tight">{currentScenario.title}</h2>
-                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0">
+                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0 cursor-pointer" title="Minimize briefing">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 </div>
 
-                <div 
-                  onClick={() => setShowFullSituation(true)} 
-                  className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed min-h-[50px] cursor-pointer select-text"
-                  title="Click to instantly reveal full text"
-                >
-                  {showFullSituation ? (
-                    <p className="whitespace-pre-line">{currentScenario.situation}</p>
-                  ) : (
-                    <Typewriter 
-                      text={currentScenario.situation} 
-                      speed={12} 
-                      onComplete={() => setShowFullSituation(true)} 
+                {/* Authentic Scenario Voice Audio Player */}
+                <div className="my-2.5 p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleScenarioAudio()}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer font-bold shrink-0 shadow-md ${
+                          audioPlaying 
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30' 
+                            : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 hover:bg-cyan-500/30'
+                        }`}
+                        title={audioPlaying ? 'Pause scenario recording' : 'Play scenario recording'}
+                      >
+                        {audioPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+                      </button>
+
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-mono font-bold text-white flex items-center gap-1.5 truncate">
+                          <Volume2 size={12} className="text-cyan-400 shrink-0" />
+                          <span className="truncate">Day {state.day} Voice Dispatch</span>
+                          {audioPlaying && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping ml-1 shrink-0"></span>
+                          )}
+                        </span>
+                        <span className="text-[9px] font-mono text-slate-400 truncate">
+                          Authentic scenario recording • {SCENARIO_AUDIO_MAP[state.day]?.filename || `Day ${state.day}.mp3`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono text-[10px] sm:text-[11px] text-cyan-300 shrink-0">
+                      <span>{formatAudioTime(audioCurrentTime)}</span>
+                      <span className="text-slate-500 mx-1">/</span>
+                      <span className="text-slate-400">{formatAudioTime(audioDuration)}</span>
+                    </div>
+                  </div>
+
+                  {/* Audio Progress Scrubber */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={audioDuration || 100}
+                      step={0.5}
+                      value={audioCurrentTime}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setAudioCurrentTime(val);
+                        seekScenarioAudio(val);
+                      }}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                      title="Audio timeline scrubber"
                     />
+                  </div>
+
+                  {audioError && (
+                    <div className="text-[10px] font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded px-2 py-1">
+                      Notice: {audioError}. Full scenario text is available below.
+                    </div>
                   )}
                 </div>
-                {!showFullSituation && (
-                  <button 
-                    onClick={() => setShowFullSituation(true)} 
-                    className="mt-1 text-[10px] font-mono text-cyan-400/80 hover:text-cyan-300 underline"
-                  >
-                    Click to show full text immediately
-                  </button>
-                )}
+
+                <div className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed select-text">
+                  <p className="whitespace-pre-line leading-relaxed">{currentScenario.situation}</p>
+                </div>
 
                 {currentScenario.events && currentScenario.events.length > 0 && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-3 pt-2.5 border-t border-slate-800">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800">
                     <div className="flex flex-col gap-1.5">
                       {currentScenario.events.map((ev: string, i: number) => (
                         <div key={i} className="text-[10px] sm:text-[11px] font-mono text-cyan-200/90 flex items-start gap-2">
@@ -906,7 +1374,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                         </div>
                       ))}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Bottom Dismiss / Proceed Button */}
@@ -919,41 +1387,42 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       setShowBrief(false);
                       playUIBlip();
                     }}
-                    className="w-full xs:w-auto px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ml-auto shadow-md"
+                    className="w-full xs:w-auto px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ml-auto shadow-md cursor-pointer"
                   >
                     <span>Proceed to Allocation & Decisions</span>
                     <ChevronDown size={14} />
                   </button>
                 </div>
-              </motion.div>
-            </div>
-          </motion.div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {!showBrief && (
-        <motion.button
-          initial={{ scale: 0, x: -50 }}
-          animate={{ scale: 1, x: 0 }}
-          whileHover={{ scale: 1.05 }}
-          onClick={() => {
-            setShowBrief(true);
-            setShowFullSituation(true);
-            playUIBlip();
-          }}
-          className="fixed sm:absolute top-[80px] sm:top-[130px] md:top-[140px] left-3 sm:left-6 md:left-8 z-40 bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1.5 sm:p-2 rounded-2xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 group"
-        >
-          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
-            <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
-          </div>
-          <div className="flex flex-col items-start text-left">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
-              <span>Scenario Briefing</span>
-              <span className="text-cyan-400 text-[9px] font-mono font-normal">Day {state.day}</span>
-            </span>
-            <span className="text-[9px] font-mono text-cyan-400/80">Click to expand briefing</span>
-          </div>
-        </motion.button>
+        <div className="relative z-30 px-3 sm:px-6 md:px-8 pt-1 pb-3 pointer-events-auto self-start">
+          <motion.button
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{ scale: 1.03 }}
+            onClick={() => {
+              setShowBrief(true);
+              playUIBlip();
+            }}
+            className="bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1.5 sm:p-2 rounded-2xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 group cursor-pointer"
+          >
+            <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+              <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
+            </div>
+            <div className="flex flex-col items-start text-left">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
+                <span>Scenario Briefing</span>
+                <span className="text-cyan-400 text-[9px] font-mono font-normal">Day {state.day}</span>
+              </span>
+              <span className="text-[9px] font-mono text-cyan-400/80">Click to expand briefing</span>
+            </div>
+          </motion.button>
+        </div>
       )}
 
       {/* Submission Overlay HUD */}
@@ -1891,6 +2360,47 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </motion.div>
         )}
 
+        {/* Intervention Alert Banner if Emergency Fallback Engaged */}
+        {interventionAlert && (
+          <div className="mb-3 p-3.5 rounded-xl border border-red-500/80 bg-red-950/70 text-red-200 flex items-center justify-between gap-3 text-xs font-mono shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert size={18} className="text-red-400 shrink-0 animate-pulse" />
+              <span>{interventionAlert}</span>
+            </div>
+            <button 
+              onClick={() => setInterventionAlert(null)}
+              className="px-2.5 py-1 bg-red-900/80 hover:bg-red-800 text-white rounded text-[10px] font-bold uppercase shrink-0 transition-colors"
+            >
+              Acknowledge
+            </button>
+          </div>
+        )}
+
+        {/* Deliberation Warning Banners (Calm indicators at 60s and 15s) */}
+        {secondsLeft <= 60 && secondsLeft > 0 && (
+          <div className={`mb-3 p-2.5 sm:p-3 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-mono font-medium transition-all ${
+            secondsLeft <= 15
+              ? 'border-amber-500/60 bg-amber-950/40 text-amber-200'
+              : 'border-slate-700 bg-slate-900/60 text-slate-300'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={16} className={secondsLeft <= 15 ? 'text-amber-400 shrink-0' : 'text-slate-400 shrink-0'} />
+              <span className="truncate">
+                {secondsLeft <= 15
+                  ? `Notice: ${secondsLeft}s remaining before round deadline. Automated contingency fallback will deploy if not authorized.`
+                  : `Deliberation notice: ${secondsLeft}s remaining in round allowance. Finalize priority directives before deadline.`}
+              </span>
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${
+              secondsLeft <= 15
+                ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                : 'border-slate-700 bg-slate-800 text-slate-400'
+            }`}>
+              {secondsLeft <= 15 ? '15s Reminder' : '60s Window'}
+            </span>
+          </div>
+        )}
+
         {/* ========================================================================= */}
         {/* ACTION CARDS TRACK & AUTHORIZE SUBMIT BUTTON                              */}
         {/* ========================================================================= */}
@@ -1918,120 +2428,152 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             )}
           </div>
 
-          {/* Authorize Action Button */}
-          <AnimatePresence>
-            {state.bucket === 3 ? (
-              <motion.button
-                id="day4-authorize-btn"
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
-                whileTap={{ scale: 0.96 }}
-                disabled={submitting || (
-                  day4Mode === 'preset'
-                    ? (!day4PresetPlan || day4PresetPlan === '3E')
-                    : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
-                )}
-                onClick={handleSubmitDecision}
-                className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
-                  (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                    : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+          {/* Right Action Bar: Emergency Countdown Timer + Authorize Action Button */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+            {/* Authoritative Tournament Decision Clock */}
+            <div className="flex items-center gap-2">
+              <div 
+                id="emergency-decision-clock"
+                className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border backdrop-blur-xl transition-all font-mono select-none ${
+                  state.pendingFallbackAcknowledgement || secondsLeft <= 15
+                    ? 'border-amber-500/50 bg-amber-950/30 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                    : 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
                 }`}
               >
-                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
-                    {submitting 
-                      ? 'EXECUTING...' 
-                      : day4Mode === 'preset'
-                      ? day4PresetPlan === '3E'
-                        ? 'PLAN 3E REJECTED (OVER CAP)'
-                        : day4PresetPlan
-                        ? `AUTHORIZE PLAN [${day4PresetPlan}]`
-                        : 'SELECT A PLAN'
-                      : day4AllocatedTotal > 100
-                      ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
-                      : day4AllocatedTotal === 0
-                      ? 'ALLOCATE FUNDS'
-                      : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
-                    {day4Mode === 'preset'
-                      ? day4PresetPlan ? `costs LKR ${day4PresetPlan === '3E' ? '120' : '100'}M against round cap` : 'select exactly one option from 3A–3E'
-                      : `total spend: LKR ${day4AllocatedTotal.toFixed(0)}M / 100M`}
+                <Clock size={16} className={state.pendingFallbackAcknowledgement || secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
+                <div className="flex flex-col leading-none">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400">
+                      {state.pendingFallbackAcknowledgement ? 'PAUSED' : 'REMAINING'}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500">
+                      (Cap: {formatTime(roundAllowance)})
+                    </span>
+                  </div>
+                  <span className={`text-base sm:text-lg font-black font-mono tracking-wider ${
+                    state.pendingFallbackAcknowledgement ? 'text-amber-300' : (secondsLeft <= 15 ? 'text-amber-300' : 'text-white')
+                  }`}>
+                    {state.pendingFallbackAcknowledgement ? 'PAUSED' : formatTime(secondsLeft)}
                   </span>
                 </div>
-                <Send size={18} className="shrink-0" />
-              </motion.button>
-            ) : state.bucket === 4 ? (
-              <motion.button
-                id="day6-authorize-btn"
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
-                whileTap={{ scale: 0.96 }}
-                disabled={submitting || (
-                  day6Mode === 'preset'
-                    ? !day6PresetPlan
-                    : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
-                )}
-                onClick={handleSubmitDecision}
-                className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
-                  (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                    : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
-                }`}
-              >
-                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
-                    {submitting 
-                      ? 'EXECUTING...' 
-                      : day6Mode === 'preset'
-                      ? day6PresetPlan === '4E'
-                        ? 'HOLD FLEET IN RESERVE (LKR 0M)'
-                        : day6PresetPlan
-                        ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
-                        : 'SELECT A FLEET PLAN'
-                      : day6HasLimitViolation
-                      ? 'RESOLVE FLEET LIMIT VIOLATIONS'
-                      : day6TotalDeployed > 0
-                      ? 'DEPLOY FLEET (FEE: LKR 60M)'
-                      : 'HOLD IN RESERVE (COST: LKR 0M)'}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
-                    {day6Mode === 'preset'
-                      ? day6PresetPlan ? `deployment fee: LKR ${day6PresetPlan === '4E' ? '0' : '60'}M` : 'select exactly one option from 4A–4E'
-                      : `deployed: ${day6TotalDeployed} units | fee: LKR ${day6Cost}M`}
-                  </span>
-                </div>
-                <Send size={18} className="shrink-0" />
-              </motion.button>
-            ) : (
-              selectedOrder.length === 5 && (
+              </div>
+            </div>
+
+            {/* Authorize Action Button */}
+            <AnimatePresence>
+              {state.bucket === 3 ? (
                 <motion.button
+                  id="day4-authorize-btn"
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
                   whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
                   whileTap={{ scale: 0.96 }}
-                  disabled={submitting}
-                  onClick={handleSubmitDecision}
-                  className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto cursor-pointer"
+                  disabled={submitting || (
+                    day4Mode === 'preset'
+                      ? (!day4PresetPlan || day4PresetPlan === '3E')
+                      : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
+                  )}
+                  onClick={() => handleSubmitDecision(false)}
+                  className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                    (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
+                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                  }`}
                 >
                   <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
-                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
-                      {`executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
+                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                      {submitting 
+                        ? 'EXECUTING...' 
+                        : day4Mode === 'preset'
+                        ? day4PresetPlan === '3E'
+                          ? 'PLAN 3E REJECTED (OVER CAP)'
+                          : day4PresetPlan
+                          ? `AUTHORIZE PLAN [${day4PresetPlan}]`
+                          : 'SELECT A PLAN'
+                        : day4AllocatedTotal > 100
+                        ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
+                        : day4AllocatedTotal === 0
+                        ? 'ALLOCATE FUNDS'
+                        : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                      {day4Mode === 'preset'
+                        ? day4PresetPlan ? `costs LKR ${day4PresetPlan === '3E' ? '120' : '100'}M against round cap` : 'select exactly one option from 3A–3E'
+                        : `total spend: LKR ${day4AllocatedTotal.toFixed(0)}M / 100M`}
                     </span>
                   </div>
                   <Send size={18} className="shrink-0" />
                 </motion.button>
-              )
-            )}
-          </AnimatePresence>
+              ) : state.bucket === 4 ? (
+                <motion.button
+                  id="day6-authorize-btn"
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                  whileTap={{ scale: 0.96 }}
+                  disabled={submitting || (
+                    day6Mode === 'preset'
+                      ? !day6PresetPlan
+                      : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
+                  )}
+                  onClick={() => handleSubmitDecision(false)}
+                  className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                    (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
+                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                      {submitting 
+                        ? 'EXECUTING...' 
+                        : day6Mode === 'preset'
+                        ? day6PresetPlan === '4E'
+                          ? 'HOLD FLEET IN RESERVE (LKR 0M)'
+                          : day6PresetPlan
+                          ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
+                          : 'SELECT A FLEET PLAN'
+                        : day6HasLimitViolation
+                        ? 'RESOLVE FLEET LIMIT VIOLATIONS'
+                        : day6TotalDeployed > 0
+                        ? 'DEPLOY FLEET (FEE: LKR 60M)'
+                        : 'HOLD IN RESERVE (COST: LKR 0M)'}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                      {day6Mode === 'preset'
+                        ? day6PresetPlan ? `deployment fee: LKR ${day6PresetPlan === '4E' ? '0' : '60'}M` : 'select exactly one option from 4A–4E'
+                        : `deployed: ${day6TotalDeployed} units | fee: LKR ${day6Cost}M`}
+                    </span>
+                  </div>
+                  <Send size={18} className="shrink-0" />
+                </motion.button>
+              ) : (
+                selectedOrder.length === 5 && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                    whileTap={{ scale: 0.96 }}
+                    disabled={submitting}
+                    onClick={() => handleSubmitDecision(false)}
+                    className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto cursor-pointer"
+                  >
+                    <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
+                      <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
+                        {`executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
+                      </span>
+                    </div>
+                    <Send size={18} className="shrink-0" />
+                  </motion.button>
+                )
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Cinematic Card Track: Shown when in Preset mode or in Operational rounds */}

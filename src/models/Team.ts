@@ -12,9 +12,15 @@ const TeamSchema: Schema = new Schema({
 
 const Team = mongoose.models.Team || mongoose.model<ITeam>('Team', TeamSchema);
 
-// Automatically drop legacy email index if present from historical schema
-if (mongoose.connection) {
-  Team.collection.dropIndex('email_1').catch(() => {});
+// Automatically drop legacy email index if present from historical schema once connection is established
+if (typeof window === 'undefined') {
+  if (mongoose.connection.readyState === 1) {
+    Team.collection.dropIndex('email_1').catch(() => {});
+  } else {
+    mongoose.connection.once('connected', () => {
+      Team.collection.dropIndex('email_1').catch(() => {});
+    });
+  }
 }
 
 export default Team;

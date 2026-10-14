@@ -1,11 +1,15 @@
 import { 
   ActionId, FinalResult, PreparednessRating, ScenarioOutcome, 
-  EndingTier, FailureStates, DynamicEventTrigger, BucketDecision, Action,
-  ScoreCalculationDetails
+  EndingTier, FailureStates, DynamicEventTrigger, Action,
+  ScoreCalculationDetails, TpiComponent, TpiCalculationDetails, SimulationMode
 } from './types';
 import { ACTION_MATRIX } from './matrix';
 import { SCENARIOS, BucketScenario } from './scenario';
 import { GameState, getInitialGameState } from './state';
+import { getRoundDuration, getDefaultBucketShuffledOrder } from './timer';
+
+export const FALLBACK_INTERVENTION_PENALTY_PER_ROUND = 10; // Documented deduction of 10 points per fallback intervention
+
 
 export interface DecisionDelta {
   floodPreparedness: number;
@@ -403,7 +407,11 @@ export function calculateDelta(
         } else if (spent < 70) {
           delta.decisionQuality = -6; // Severe under-utilization during acute emergency
         }
-        delta.executedActionIds = Object.keys(normDecision.allocations);
+        if (normDecision.rankings && normDecision.rankings.length > 0) {
+          delta.executedActionIds = [normDecision.rankings[0]];
+        } else {
+          delta.executedActionIds = Object.keys(normDecision.allocations);
+        }
       } else if (normDecision.rankings && normDecision.rankings.length > 0) {
         // Selection of pre-formulated package (3A, 3D, 3C, 3B, 3E)
         // Exactly ONE package executes based on top rank!
@@ -475,6 +483,11 @@ export function calculateDelta(
           delta.communityTrust += (plan4A / 30) * 8 + (plan4B / 30) * 4 - (plan4E / 30) * 10;
           delta.informationQuality += 2;
           delta.decisionQuality = 8;
+        }
+        if (normDecision.rankings && normDecision.rankings.length > 0) {
+          delta.executedActionIds = [normDecision.rankings[0]];
+        } else {
+          delta.executedActionIds = Object.keys(normDecision.allocations);
         }
       } else if (normDecision.rankings && normDecision.rankings.length > 0) {
         // Selection of pre-formulated fleet package (4A, 4B, 4C, 4D, 4E)
@@ -550,7 +563,7 @@ export function calculateDelta(
 
   let floodDecay = baseDecay.floodPreparednessDecay;
   let droughtDecay = baseDecay.droughtPreparednessDecay;
-  let trustDecay = baseDecay.communityTrustErosion;
+  const trustDecay = baseDecay.communityTrustErosion;
 
   // Contextual Sensitivity: Evaluate initial hazard regime
   if (currentState) {
@@ -601,20 +614,431 @@ export function calculateDelta(
 }
 
 /**
+ * Generates an emergency fallback decision if the deliberation countdown expires.
+ * - For operational rounds (1, 2, 5, 6): preserves user ranks if partially chosen, fills remaining with canonical actions.
+ * - For Day 4 (3): if no valid preset or custom allocation, falls back to standard Plan 3A.
+ * - For Day 6 (4): if no valid fleet preset or custom allocation, falls back to standard Plan 4A.
+ */
+export interface FallbackPolicyDetails {
+  roundName: string;
+  planOrActions: string;
+  explanation: string;
+  executedActionTitles: string[];
+  netBudgetImpact: number;
+}
+
+/**
+ * Authoritative, documented fallback strategies for Tournament Mode across all 6 rounds.
+ * Deterministic poor-response contingency policies modeling realistic consequences
+ * of command inaction (delayed warnings, poor verification, neglected critical needs,
+ * and unserved rescue operations) while strictly respecting the 100M Day 4 cap,
+ * fleet limits, and the LKR 200M emergency credit facility ceiling.
+ */
+export const AUTHORITATIVE_FALLBACK_POLICIES = {
+  1: {
+    roundName: 'Day 0 — Early Warning and Uncertainty',
+    rankings: ['1E', '1D', '1A', '1C', '1B'],
+    top3Actions: ['1E', '1D', '1A'],
+    totalCost: 15, // 0 + 5 + 10
+    rationale: 'Contingency holding action: Delayed operational decisions (1E) while issuing late general advisories (1D) and limited baseline checks (1A). Left critical drainage channels (1C) uncleared, delaying early flood mitigation.'
+  },
+  2: {
+    roundName: 'Day 2 — Compound Hazard',
+    rankings: ['2D', '2A', '2B', '2E', '2C'],
+    top3Actions: ['2D', '2A', '2B'],
+    totalCost: 10, // 0 + 2 + 8
+    rationale: 'Contingency holding action: Delayed activation until severe flooding (2D) and relied on unverified social feeds (2A) alongside minimal official checks (2B). Omitted comprehensive monitoring network (2E), degrading information quality and public trust.'
+  },
+  3: {
+    roundName: 'Day 4 — Fiscal Allocation',
+    defaultPlan: '3B',
+    defaultAllocations: { evacuation: 60, drinkingWater: 40, medicalSupplies: 0 },
+    defaultCost: 100,
+    rationale: 'Contingency holding action: Inadequate allocation Plan 3B (Evac 60M, Water 40M, Medical 0M) completely starves emergency medical supplies, causing acute clinic stockouts and public distress.'
+  },
+  4: {
+    roundName: 'Day 6 — Emergency Fleet Distribution',
+    primaryPlan: '4E',
+    reservePlan: '4E',
+    cost: 0,
+    rationale: 'Contingency holding action: Fleet held in depot reserves (Plan 4E) at LKR 0M cost. Left flood rescue and dry-zone water operations unserved during the critical surge window, severely eroding civic trust and survival margins.'
+  },
+  5: {
+    roundName: 'Day 8 — Crisis Escalation',
+    solventRankings: ['5D', '5C', '5E', '5A', '5B'],
+    constrainedRankings: ['5D', '5C', '5E', '5A', '5B'],
+    totalCost: -30, // 0 + 30 - 60 = -30M net spend (+30M gain)
+    rationale: 'Contingency holding action: Evacuate only residents who volunteer (5D) while setting up minimal triage (5C) and freezing auxiliary budgets (5E). Omitted mandatory evacuation in high-risk landslide zones (5A), leading to severe preventable casualties.'
+  },
+  6: {
+    roundName: 'Day 10 — Recovery & Rehabilitation',
+    solventRankings: ['6D', '6A', '6E', '6B', '6C'],
+    constrainedRankings: ['6D', '6A', '6E', '6B', '6C'],
+    totalCost: -35, // 0 + 15 - 50 = -35M net spend (+35M gain)
+    rationale: 'Contingency holding action: Enforced harsh uniform rationing without reassessing community needs (6D) while executing minimal PDNA (6A) and donor matching (6E). Omitted disease surveillance (6C) and infrastructure reconstruction (6B), sparking public resentment.'
+  }
+};
+
+/**
+ * Generates an emergency fallback decision if the deliberation countdown expires in Tournament Mode.
+ * Implements deterministic, poor-response contingency policies for each of the six rounds:
+ * - Day 0: Delayed warning action (1E) prioritized, drainage clearing omitted.
+ * - Day 2: Delayed response (2D) and rumor dependency (2A) prioritized.
+ * - Day 4: Inadequate Plan 3B (60M evac, 40M water, 0M medical) starving critical healthcare.
+ * - Day 6: Plan 4E holding all rescue vehicles and boats in depot reserves (0M cost), leaving rescue unserved.
+ * - Day 8: Voluntary-only evacuation (5D) prioritized, neglecting mandatory life-safety evacuation (5A).
+ * - Day 10: Harsh food/water rationing (6D) prioritized without reassessing surviving community needs.
+ * Always respects the 100M Day 4 cap, fleet limits, and the LKR 200M emergency credit facility ceiling.
+ */
+export function createFallbackDecision(
+  bucket: number,
+  partialDecision?: { rankings?: ActionId[]; allocations?: Record<string, number> },
+  currentBudget?: number
+): {
+  decision: { rankings?: ActionId[]; allocations?: Record<string, number> };
+  emergencyFallback: boolean;
+  policyDetails: FallbackPolicyDetails;
+} {
+  const norm = partialDecision || {};
+  const budget = currentBudget ?? 400;
+
+  // ---------------------------------------------------------------------------
+  // Day 4 (Bucket 3): Fiscal Allocation
+  // ---------------------------------------------------------------------------
+  if (bucket === 3) {
+    // If player had entered a valid custom allocation within budget, preserve it
+    if (norm.allocations && typeof norm.allocations === 'object') {
+      const sum = (Number(norm.allocations.evacuation) || 0) +
+                  (Number(norm.allocations.drinkingWater) || 0) +
+                  (Number(norm.allocations.medicalSupplies) || 0);
+      const hasNegative = (Number(norm.allocations.evacuation) < 0) ||
+                          (Number(norm.allocations.drinkingWater) < 0) ||
+                          (Number(norm.allocations.medicalSupplies) < 0);
+      if (sum > 0 && sum <= 100 && !hasNegative && (budget - sum >= -EMERGENCY_CREDIT_FACILITY_CAP)) {
+        return {
+          decision: norm,
+          emergencyFallback: false,
+          policyDetails: {
+            roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+            planOrActions: `Custom Allocation (Evac ${norm.allocations.evacuation}M, Water ${norm.allocations.drinkingWater}M, Med ${norm.allocations.medicalSupplies}M)`,
+            explanation: 'Player-configured custom fiscal allocation preserved within statutory and credit limits.',
+            executedActionTitles: [
+              `Evacuation: LKR ${norm.allocations.evacuation}M`,
+              `Drinking Water: LKR ${norm.allocations.drinkingWater}M`,
+              `Medical Supplies: LKR ${norm.allocations.medicalSupplies}M`
+            ],
+            netBudgetImpact: -sum
+          }
+        };
+      }
+    }
+    // If player had selected a valid affordable preset plan (3A - 3D), preserve it
+    if (norm.rankings && norm.rankings.length > 0) {
+      const firstPlan = norm.rankings[0];
+      if (['3A', '3B', '3C', '3D'].includes(firstPlan)) {
+        if (budget - 100 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+          const act = findAction(firstPlan, 3);
+          return {
+            decision: { rankings: [firstPlan] },
+            emergencyFallback: false,
+            policyDetails: {
+              roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+              planOrActions: `Preset Plan ${firstPlan}`,
+              explanation: act?.rationale || 'Player-selected preset plan committed within credit facility.',
+              executedActionTitles: [act?.title || `Preset Plan ${firstPlan}`],
+              netBudgetImpact: -100
+            }
+          };
+        }
+      }
+    }
+
+    // Deterministic Poor-Response Contingency Policy:
+    // Available credit capacity before reaching hard -200M limit:
+    const availableCapacity = Math.max(0, Math.min(100, Math.floor(budget + EMERGENCY_CREDIT_FACILITY_CAP)));
+
+    if (availableCapacity >= 100) {
+      // Inadequate Plan 3B (100M: 60 Evac, 40 Water, 0 Medical)
+      return {
+        decision: { 
+          rankings: ['3B'],
+          allocations: { evacuation: 60, drinkingWater: 40, medicalSupplies: 0 }
+        },
+        emergencyFallback: true,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+          planOrActions: 'Plan 3B (Evacuation 60M / Water 40M / Medical 0M)',
+          explanation: 'Contingency holding action: Inadequate Plan 3B (Evac 60M, Water 40M, Medical 0M) completely starves emergency medical supplies, causing acute clinic stockouts and public distress.',
+          executedActionTitles: [
+            'Evacuation 60 / Water 40 / Medical 0 (LKR 100M)'
+          ],
+          netBudgetImpact: -100
+        }
+      };
+    } else {
+      // Reduced inadequate allocation formula proportional to Plan 3B:
+      // 60% Evacuation, 40% Drinking Water, 0% Medical Supplies (starving healthcare)
+      const evac = Math.floor(availableCapacity * 0.60);
+      const water = availableCapacity - evac;
+      const med = 0;
+
+      return {
+        decision: {
+          allocations: {
+            evacuation: evac,
+            drinkingWater: water,
+            medicalSupplies: med
+          }
+        },
+        emergencyFallback: true,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+          planOrActions: `Reduced Inadequate Allocation (Evac ${evac}M, Water ${water}M, Med 0M)`,
+          explanation: `Credit capacity constrained to LKR ${availableCapacity}M. Applied inadequate 60/40/0 sector-allocation rule strictly respecting the -LKR 200M Emergency Credit Facility ceiling while completely neglecting medical needs.`,
+          executedActionTitles: [
+            `Emergency Evacuation: LKR ${evac}M`,
+            `Drinking Water Distribution: LKR ${water}M`,
+            `Medical Supplies & Triage: LKR 0M (Starved)`
+          ],
+          netBudgetImpact: availableCapacity === 0 ? 0 : -availableCapacity
+        }
+      };
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Day 6 (Bucket 4): Fleet Distribution
+  // ---------------------------------------------------------------------------
+  if (bucket === 4) {
+    // If player had valid custom fleet allocation within budget, preserve it
+    if (norm.allocations && typeof norm.allocations === 'object') {
+      const { trucksKelani = 0, vehiclesKelani = 0, boatsKelani = 0, trucksDryZone = 0, vehiclesDryZone = 0, boatsDryZone = 0 } = norm.allocations;
+      const valid = trucksKelani >= 0 && vehiclesKelani >= 0 && boatsKelani >= 0 &&
+                    trucksDryZone >= 0 && vehiclesDryZone >= 0 && boatsDryZone >= 0 &&
+                    (trucksKelani + trucksDryZone <= 20) &&
+                    (vehiclesKelani + vehiclesDryZone <= 30) &&
+                    (boatsKelani + boatsDryZone <= 20);
+      const totalUnits = trucksKelani + vehiclesKelani + boatsKelani + trucksDryZone + vehiclesDryZone + boatsDryZone;
+      if (valid && totalUnits > 0) {
+        if (budget - 60 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+          return {
+            decision: norm,
+            emergencyFallback: false,
+            policyDetails: {
+              roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+              planOrActions: 'Custom Fleet Distribution',
+              explanation: 'Player-configured fleet distribution committed with LKR 60M mobilization fee.',
+              executedActionTitles: ['Custom Fleet Distribution (LKR 60M fee)'],
+              netBudgetImpact: -60
+            }
+          };
+        }
+      }
+    }
+    // If player had selected a valid preset plan, preserve it
+    if (norm.rankings && norm.rankings.length > 0) {
+      const firstPlan = norm.rankings[0];
+      if (['4A', '4B', '4C', '4D'].includes(firstPlan)) {
+        if (budget - 60 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+          const act = findAction(firstPlan, 4);
+          return {
+            decision: { rankings: [firstPlan] },
+            emergencyFallback: false,
+            policyDetails: {
+              roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+              planOrActions: `Preset Fleet Plan ${firstPlan}`,
+              explanation: act?.rationale || 'Player-selected fleet preset committed with LKR 60M mobilization fee.',
+              executedActionTitles: [act?.title || `Fleet Plan ${firstPlan}`],
+              netBudgetImpact: -60
+            }
+          };
+        }
+      } else if (firstPlan === '4E') {
+        return {
+          decision: { rankings: ['4E'] },
+          emergencyFallback: false,
+          policyDetails: {
+            roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+            planOrActions: 'Plan 4E (Held in Reserve)',
+            explanation: 'Fleet held in depot reserves awaiting external humanitarian support (LKR 0M fee).',
+            executedActionTitles: ['Hold all resources in reserve (LKR 0M)'],
+            netBudgetImpact: 0
+          }
+        };
+      }
+    }
+
+    // Deterministic Poor-Response Contingency Policy:
+    // Defaults to Plan 4E (Held in Reserve, 0M fee), leaving rescue operations unserved during the surge
+    return {
+      decision: { 
+        rankings: ['4E'],
+        allocations: {
+          trucks_flood: 0, trucks_dryzone: 0,
+          vehicles_flood: 0, vehicles_dryzone: 0,
+          boats_flood: 0, boats_dryzone: 0
+        }
+      },
+      emergencyFallback: true,
+      policyDetails: {
+        roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+        planOrActions: 'Plan 4E (Fleet Held in Reserve)',
+        explanation: 'Contingency holding action: Entire 70-unit fleet held in depot reserves (Plan 4E) at LKR 0M cost. Left flood rescue and dry-zone water operations unserved during the critical surge window, severely eroding civic trust and survival margins.',
+        executedActionTitles: [
+          'Hold all resources in reserve and wait for external assistance (LKR 0M)'
+        ],
+        netBudgetImpact: 0
+      }
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Operational Rounds: Day 0 (B1), Day 2 (B2), Day 8 (B5), Day 10 (B6)
+  // ---------------------------------------------------------------------------
+  let fallbackRankings: string[];
+  let rationale: string;
+  let netDrain: number;
+
+  if (bucket === 1) {
+    fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[1].rankings];
+    rationale = AUTHORITATIVE_FALLBACK_POLICIES[1].rationale;
+    netDrain = AUTHORITATIVE_FALLBACK_POLICIES[1].totalCost; // 15M (0 + 5 + 10)
+  } else if (bucket === 2) {
+    fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[2].rankings];
+    rationale = AUTHORITATIVE_FALLBACK_POLICIES[2].rationale;
+    netDrain = AUTHORITATIVE_FALLBACK_POLICIES[2].totalCost; // 10M (0 + 2 + 8)
+  } else if (bucket === 5) {
+    fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[5].solventRankings];
+    rationale = AUTHORITATIVE_FALLBACK_POLICIES[5].rationale;
+    netDrain = AUTHORITATIVE_FALLBACK_POLICIES[5].totalCost; // -30M net spend (+30M gain)
+  } else {
+    // Day 10 (Bucket 6)
+    fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[6].solventRankings];
+    rationale = AUTHORITATIVE_FALLBACK_POLICIES[6].rationale;
+    netDrain = AUTHORITATIVE_FALLBACK_POLICIES[6].totalCost; // -35M net spend (+35M gain)
+  }
+
+  // If user provided a complete 5-item permutation and it is solvent, evaluate it
+  const canonicalIds: Record<number, string[]> = {
+    1: ['1A', '1B', '1C', '1D', '1E'],
+    2: ['2A', '2B', '2C', '2D', '2E'],
+    5: ['5A', '5B', '5C', '5D', '5E'],
+    6: ['6A', '6B', '6C', '6D', '6E']
+  };
+  const fullCanonical = canonicalIds[bucket] || fallbackRankings;
+  const userRanks = (norm.rankings || []).filter(id => fullCanonical.includes(id));
+  const uniqueUserRanks = Array.from(new Set(userRanks));
+
+  const getTop3Drain = (ranks: string[]) => {
+    let drain = 0;
+    ranks.slice(0, 3).forEach(id => {
+      const act = findAction(id, bucket);
+      if (act) {
+        drain -= (act.impacts?.emergencyBudget ?? 0);
+      }
+    });
+    return drain;
+  };
+
+  if (uniqueUserRanks.length === 5) {
+    const drain = getTop3Drain(uniqueUserRanks);
+    if (budget - drain >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+      const executed = uniqueUserRanks.slice(0, 3);
+      const actionTitles = executed.map(id => {
+        const act = findAction(id, bucket);
+        return act ? `${id}: ${act.title}` : id;
+      });
+      return {
+        decision: { rankings: uniqueUserRanks },
+        emergencyFallback: false,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[bucket as keyof typeof AUTHORITATIVE_FALLBACK_POLICIES]?.roundName || `Day ${(bucket - 1) * 2}`,
+          planOrActions: `Autonomous Directives: ${executed.join(', ')}`,
+          explanation: 'Player-ranked directives authorized within provincial treasury limits.',
+          executedActionTitles: actionTitles,
+          netBudgetImpact: -drain
+        }
+      };
+    }
+  }
+
+  let finalRankings = fallbackRankings;
+  let finalDrain = netDrain;
+  let finalExplanation = rationale;
+
+  if (uniqueUserRanks.length > 0 && uniqueUserRanks.length < 5) {
+    const merged = [
+      ...uniqueUserRanks,
+      ...fallbackRankings.filter(id => !uniqueUserRanks.includes(id))
+    ];
+    if (merged.length === 5) {
+      const mergedDrain = getTop3Drain(merged);
+      if (budget - mergedDrain >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+        finalRankings = merged;
+        finalDrain = mergedDrain;
+        finalExplanation = 'Deliberation deadline expired with partial selections. Contingency policy preserved player directives and completed safe ranking within credit limits.';
+      }
+    }
+  }
+
+  // Emergency Fallback: commit the deterministic fallback rankings
+  const top3Executed = finalRankings.slice(0, 3);
+  const top3Titles = top3Executed.map(id => {
+    const act = findAction(id, bucket);
+    return act ? `${id}: ${act.title}` : id;
+  });
+
+  return {
+    decision: { rankings: finalRankings },
+    emergencyFallback: true,
+    policyDetails: {
+      roundName: AUTHORITATIVE_FALLBACK_POLICIES[bucket as keyof typeof AUTHORITATIVE_FALLBACK_POLICIES]?.roundName || `Day ${(bucket - 1) * 2}`,
+      planOrActions: top3Executed.join(', '),
+      explanation: finalExplanation,
+      executedActionTitles: top3Titles,
+      netBudgetImpact: finalDrain === 0 ? 0 : -finalDrain
+    }
+  };
+}
+
+/**
  * Applies a player's decision to the current GameState, mutating scores, resources,
  * community, and telemetry synchronously and advancing the timeline.
  */
 export function processDecision(
   state: GameState,
   userId: string,
-  decision: { rankings?: ActionId[]; allocations?: Record<string, number> } | ActionId[]
+  decision: { rankings?: ActionId[]; allocations?: Record<string, number> } | ActionId[],
+  decisionMeta?: {
+    timeSpentSeconds?: number;
+    timeoutOccurred?: boolean;
+    emergencyFallback?: boolean;
+    roundStartedAt?: string;
+    roundDeadlineAt?: string;
+    decisionSubmittedAt?: string;
+    responseTimeMs?: number;
+    roundDurationSeconds?: number;
+    timedOut?: boolean;
+    fallbackApplied?: boolean;
+    userId?: string;
+    userName?: string;
+    decisionMode?: SimulationMode;
+    fallbackPolicyDetails?: FallbackPolicyDetails;
+  }
 ): GameState {
   const normDecision = Array.isArray(decision) ? { rankings: decision } : decision;
 
   // Validate constraints for resource rounds and Emergency Credit Facility
   const constraintCheck = validateConstraints(state.bucket, normDecision, state.resources?.emergencyBudget);
   if (!constraintCheck.valid) {
-    throw new Error(constraintCheck.error || 'Decision violates operational constraints.');
+    const isEmergency = Boolean(
+      decisionMeta?.fallbackApplied || 
+      decisionMeta?.emergencyFallback || 
+      decisionMeta?.timedOut
+    );
+    if (!isEmergency) {
+      throw new Error(constraintCheck.error || 'Decision violates operational constraints.');
+    }
   }
 
   const delta = calculateDelta(normDecision, state.bucket, state);
@@ -653,11 +1077,23 @@ export function processDecision(
   );
   newState.scores.informationQuality = newState.information.informationQuality;
 
-  // 5. Update Decision Quality
-  newState.scores.decisionQuality = Math.max(
-    0,
-    Math.min(100, Math.round(newState.scores.decisionQuality + delta.decisionQuality))
-  );
+  // Escalating command friction consequences if emergency fallback was engaged due to timeout
+  const isTimeout = decisionMeta?.timedOut ?? decisionMeta?.timeoutOccurred ?? false;
+  const isFallback = decisionMeta?.fallbackApplied ?? decisionMeta?.emergencyFallback ?? false;
+
+  // 5. Update Decision Quality: System interventions must not count as human decision achievements
+  if (isFallback) {
+    // Dock decision quality by 10 points for automated contingency intervention (floor 0)
+    newState.scores.decisionQuality = Math.max(
+      0,
+      Math.min(100, Math.round(newState.scores.decisionQuality - 10))
+    );
+  } else {
+    newState.scores.decisionQuality = Math.max(
+      0,
+      Math.min(100, Math.round(newState.scores.decisionQuality + delta.decisionQuality))
+    );
+  }
 
   // 6. Lifeline Operations Synchronization
   newState.operations.communication = newState.information.informationQuality;
@@ -669,21 +1105,163 @@ export function processDecision(
   // 7. Dynamic Events Tracking
   newState.activeDynamicEvents = delta.triggeredEvents || [];
 
-  // 8. Record in Decision History
+  if (isTimeout && isFallback) {
+    if (state.bucket === 1) {
+      newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 4);
+      newState.scores.communityTrust = newState.community.communityTrust;
+      newState.information.informationQuality = Math.max(0, newState.information.informationQuality - 3);
+      newState.scores.informationQuality = newState.information.informationQuality;
+    } else if (state.bucket === 2) {
+      newState.scores.floodPreparedness = Math.max(0, newState.scores.floodPreparedness - 4);
+      newState.risks.floodRisk = Math.min(95, newState.risks.floodRisk + 5);
+    } else if (state.bucket === 3) {
+      newState.resources.emergencySupplies = Math.max(0, newState.resources.emergencySupplies - 5);
+      newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 3);
+      newState.scores.communityTrust = newState.community.communityTrust;
+    } else if (state.bucket === 4) {
+      newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 4);
+      newState.scores.communityTrust = newState.community.communityTrust;
+      newState.community.panicLevel = Math.min(100, newState.community.panicLevel + 5);
+    } else if (state.bucket === 5) {
+      newState.operations.sanitation = Math.max(0, newState.operations.sanitation - 5);
+      newState.risks.healthRisk = Math.min(95, newState.risks.healthRisk + 5);
+    } else if (state.bucket === 6) {
+      newState.community.householdsSupported = Math.max(0, newState.community.householdsSupported - 100);
+    }
+  }
+
+  // 8. Record in Official Decision History
+  const roundStartedAt = decisionMeta?.roundStartedAt || state.roundStartTime || new Date().toISOString();
+  const roundDurationSeconds = decisionMeta?.roundDurationSeconds || state.roundDurationSeconds || getRoundDuration(state.bucket);
+  const roundDeadlineAt = decisionMeta?.roundDeadlineAt || state.roundDeadline || new Date(new Date(roundStartedAt).getTime() + roundDurationSeconds * 1000).toISOString();
+  const decisionSubmittedAt = decisionMeta?.decisionSubmittedAt || new Date().toISOString();
+  const responseTimeMs = decisionMeta?.responseTimeMs !== undefined
+    ? decisionMeta.responseTimeMs
+    : (decisionMeta?.timeSpentSeconds !== undefined ? decisionMeta.timeSpentSeconds * 1000 : Math.max(0, new Date(decisionSubmittedAt).getTime() - new Date(roundStartedAt).getTime()));
+  const timeSpentSeconds = Math.round(responseTimeMs / 1000);
+  const decisionMode: SimulationMode = decisionMeta?.decisionMode || state.simulationMode || 'tournament';
+
+  // Compute action titles for executed directives
+  let actionTitles: string[] = [];
+  if (state.bucket === 3) {
+    if (normDecision.rankings?.[0]) {
+      const plan = normDecision.rankings[0];
+      const act = findAction(plan, 3);
+      actionTitles = [act ? `${plan}: ${act.title}` : `Preset Plan ${plan}`];
+    } else if (normDecision.allocations) {
+      actionTitles = [
+        `Emergency Evacuation: LKR ${normDecision.allocations.evacuation ?? 0}M`,
+        `Drinking Water Distribution: LKR ${normDecision.allocations.drinkingWater ?? 0}M`,
+        `Medical Supplies & Triage: LKR ${normDecision.allocations.medicalSupplies ?? 0}M`
+      ];
+    }
+  } else if (state.bucket === 4) {
+    if (normDecision.rankings?.[0]) {
+      const plan = normDecision.rankings[0];
+      const act = findAction(plan, 4);
+      actionTitles = [act ? `${plan}: ${act.title}` : `Preset Fleet Plan ${plan}`];
+    } else if (normDecision.allocations) {
+      actionTitles = [
+        'Custom Fleet Distribution (Flood / Dry Zone Deployment)'
+      ];
+    }
+  } else {
+    actionTitles = (delta.executedActionIds || []).map(id => {
+      const act = findAction(id, state.bucket);
+      return act ? `${id}: ${act.title}` : id;
+    });
+  }
+
   newState.decisionHistory.push({
     bucket: state.bucket,
     day: state.day,
-    userId,
+    userId: decisionMeta?.userId || userId,
+    userName: decisionMeta?.userName || (userId !== 'System Automated Fallback' && userId !== 'Contingency Autopilot' ? userId : 'Contingency Autopilot'),
+    scenarioTitle: SCENARIOS[state.bucket]?.title,
+    actionTitles,
     rankings: normDecision.rankings,
     allocations: normDecision.allocations,
     executedActionIds: delta.executedActionIds,
     triggeredEvents: delta.triggeredEvents?.map(e => e.id),
-    timestamp: new Date()
+    timestamp: new Date(decisionSubmittedAt),
+    timeSpentSeconds,
+    timeoutOccurred: isTimeout,
+    emergencyFallback: isFallback,
+    isSystemContingency: isFallback,
+    isHumanDecision: !isFallback,
+    roundStartedAt,
+    roundDeadlineAt,
+    decisionSubmittedAt,
+    responseTimeMs,
+    roundDurationSeconds,
+    timedOut: isTimeout,
+    fallbackApplied: isFallback,
+    decisionMode,
+    financialEffects: {
+      budgetDelta: delta.emergencyBudget,
+      treasuryRemaining: newState.resources.emergencyBudget
+    }
   });
 
   // 9. Advance Bucket & Day
   newState.bucket += 1;
   newState.day = (newState.bucket - 1) * 2;
+
+  // Setup round deadline and shuffled card orders for next bucket if active
+  if (isFallback) {
+    // FIX A: A timeout contingency fallback was committed.
+    // Persist a pendingFallbackAcknowledgement record associated with completed round and fallback details.
+    const completedBucket = state.bucket;
+    const completedDay = state.day;
+    const policy = AUTHORITATIVE_FALLBACK_POLICIES[completedBucket as keyof typeof AUTHORITATIVE_FALLBACK_POLICIES];
+    const roundName = decisionMeta?.fallbackPolicyDetails?.roundName || (policy ? policy.roundName : `Round ${completedBucket}`);
+    const executedTitles = actionTitles.length > 0
+      ? actionTitles
+      : (decisionMeta?.fallbackPolicyDetails?.executedActionTitles || []);
+
+    newState.pendingFallbackAcknowledgement = {
+      completedBucket,
+      completedDay,
+      roundName,
+      reason: decisionMeta?.fallbackPolicyDetails?.explanation || `Authoritative round deadline elapsed (${roundDurationSeconds}s). Emergency contingency protocol authorized.`,
+      planOrActions: decisionMeta?.fallbackPolicyDetails?.planOrActions,
+      executedActionTitles: executedTitles,
+      netBudgetImpact: delta.emergencyBudget,
+      treasuryRemaining: newState.resources.emergencyBudget,
+      timestamp: decisionSubmittedAt
+    };
+
+    // Official decision timer for the next round remains PAUSED until player explicitly acknowledges the report!
+    newState.roundStartTime = undefined;
+    newState.roundDeadline = undefined;
+
+    if (newState.bucket <= 6) {
+      newState.roundDurationSeconds = getRoundDuration(newState.bucket);
+      if (!newState.shuffledCardOrders) {
+        newState.shuffledCardOrders = {};
+      }
+      if (!newState.shuffledCardOrders[newState.bucket]) {
+        newState.shuffledCardOrders[newState.bucket] = getDefaultBucketShuffledOrder(newState.seed || 'seed', newState.bucket);
+      }
+    }
+  } else {
+    newState.pendingFallbackAcknowledgement = null;
+    // Normal human-submitted decision: start next round's official decision timer immediately
+    if (newState.bucket <= 6) {
+      const nextDuration = getRoundDuration(newState.bucket);
+      const now = new Date();
+      newState.roundStartTime = now.toISOString();
+      newState.roundDeadline = new Date(now.getTime() + nextDuration * 1000).toISOString();
+      newState.roundDurationSeconds = nextDuration;
+
+      if (!newState.shuffledCardOrders) {
+        newState.shuffledCardOrders = {};
+      }
+      if (!newState.shuffledCardOrders[newState.bucket]) {
+        newState.shuffledCardOrders[newState.bucket] = getDefaultBucketShuffledOrder(newState.seed || 'seed', newState.bucket);
+      }
+    }
+  }
 
   return newState;
 }
@@ -693,6 +1271,260 @@ export function processDecision(
  */
 export function determineScenarioForBucket(bucket: number): BucketScenario | null {
   return SCENARIOS[bucket] || null;
+}
+
+/**
+ * Calculates Team Performance Index (TPI) for competitive assessment.
+ * Evaluates execution quality across six rigorous disaster management pillars:
+ * 1. Disaster Outcomes and Preparedness (35%): Driven by Composite Preparedness Score (CPS)
+ * 2. Decision Quality (20%): Strategic appropriateness of chosen operational directives
+ * 3. Resource and Financial Management (15%): Macro treasury stewardship, credit facility discipline, and allocation efficiency
+ * 4. Response Speed & Command Agility (10%): Velocity and composure under countdown pressure without timeouts
+ * 5. Community Protection and Equity (10%): Civic trust, public compliance, and public health preservation
+ * 6. Recovery Readiness (10%): Operational capacity, logistical resilience, and reconstruction reserves on Day 10
+ */
+export function calculateTpi(
+  state: GameState,
+  cps: number
+): { tpi: number; tpiDetails: TpiCalculationDetails } {
+  const { scores, resources, community, operations, decisionHistory = [] } = state;
+
+  const totalRounds = decisionHistory.length;
+  let timeoutsCount = 0;
+  let fallbacksCount = 0;
+  let humanDecisionsCount = decisionHistory.length === 0 ? 6 : 0;
+  let totalTimeSpent = 0;
+  const speedScores: number[] = [];
+
+  if (decisionHistory.length > 0) {
+    for (const h of decisionHistory) {
+      const isTimeout = h.timedOut ?? h.timeoutOccurred ?? false;
+      const isFallback = h.fallbackApplied ?? h.emergencyFallback ?? h.isSystemContingency ?? false;
+      if (isTimeout) timeoutsCount++;
+      if (isFallback) fallbacksCount++;
+      if (!isFallback) humanDecisionsCount++;
+      const timeSpent = typeof h.responseTimeMs === 'number'
+        ? Math.round(h.responseTimeMs / 1000)
+        : (typeof h.timeSpentSeconds === 'number' ? h.timeSpentSeconds : 45);
+      totalTimeSpent += timeSpent;
+
+      const maxDuration = h.roundDurationSeconds || getRoundDuration(h.bucket);
+      const ratio = timeSpent / maxDuration;
+
+      let roundSpeedScore = 75;
+      if (isTimeout && isFallback) {
+        roundSpeedScore = 40; // Severe timeout intervention penalty
+      } else if (isTimeout && !isFallback) {
+        roundSpeedScore = 65; // Buzzer-beater / deliberate overtime submission
+      } else if (ratio <= 0.15) {
+        roundSpeedScore = 80; // Hasty decision
+      } else if (ratio <= 0.70) {
+        roundSpeedScore = 100; // Optimal deliberation speed
+      } else if (ratio <= 0.90) {
+        roundSpeedScore = 85; // Good command pacing
+      } else {
+        roundSpeedScore = 70; // Delayed submission under warning
+      }
+      speedScores.push(roundSpeedScore);
+    }
+  }
+
+  const avgSpeed = speedScores.length > 0
+    ? speedScores.reduce((a, b) => a + b, 0) / speedScores.length
+    : 75;
+  const speedRaw = Math.max(0, Math.min(100, Math.round(avgSpeed)));
+  const speedContrib = Math.round(speedRaw * 0.10 * 10) / 10;
+  const avgDecisionTimeSeconds = decisionHistory.length > 0
+    ? Math.round(totalTimeSpent / decisionHistory.length)
+    : 45;
+
+  // Zero human-authorized rounds: CPS 0, TPI 0, Tier 4
+  const isZeroHuman = totalRounds > 0 && humanDecisionsCount === 0;
+
+  if (isZeroHuman) {
+    const zeroComponents: TpiComponent[] = [
+      {
+        pillar: 'Disaster Outcomes & Preparedness',
+        weightPercent: 35,
+        rawScore: 0,
+        weightedContribution: 0,
+        description: 'Command autopilot override: Zero human decisions submitted across 6 rounds'
+      },
+      {
+        pillar: 'Decision Quality',
+        weightPercent: 20,
+        rawScore: 0,
+        weightedContribution: 0,
+        description: 'Command autopilot override: Zero human decisions submitted across 6 rounds'
+      },
+      {
+        pillar: 'Resource & Financial Management',
+        weightPercent: 15,
+        rawScore: 0,
+        weightedContribution: 0,
+        description: 'Command autopilot override: Zero human decisions submitted across 6 rounds'
+      },
+      {
+        pillar: 'Response Speed & Command Agility',
+        weightPercent: 10,
+        rawScore: 0,
+        weightedContribution: 0,
+        description: 'Command autopilot override: Zero human decisions submitted across 6 rounds'
+      },
+      {
+        pillar: 'Community Protection & Equity',
+        weightPercent: 10,
+        rawScore: 0,
+        weightedContribution: 0,
+        description: 'Command autopilot override: Zero human decisions submitted across 6 rounds'
+      },
+      {
+        pillar: 'Recovery Readiness',
+        weightPercent: 10,
+        rawScore: 0,
+        weightedContribution: 0,
+        description: 'Command autopilot override: Zero human decisions submitted across 6 rounds'
+      }
+    ];
+
+    return {
+      tpi: 0.0,
+      tpiDetails: {
+        components: zeroComponents,
+        totalTpi: 0.0,
+        averageDecisionTimeSeconds: avgDecisionTimeSeconds,
+        totalDecisionTimeSeconds: Math.round(totalTimeSpent),
+        timeoutsCount,
+        fallbacksCount,
+        humanDecisionsCount: 0,
+        participationMultiplier: 0,
+        unadjustedTpi: 0,
+        timeoutPenaltyPoints: fallbacksCount * 10
+      }
+    };
+  }
+
+  // Pillar 1: Disaster Outcomes and Preparedness (35%)
+  const outcomeRaw = Math.max(0, Math.min(100, cps));
+  const outcomeContrib = Math.round(outcomeRaw * 0.35 * 10) / 10;
+
+  // Pillar 2: Decision Quality (20%)
+  const dqRaw = Math.max(0, Math.min(100, scores.decisionQuality));
+  const dqContrib = Math.round(dqRaw * 0.20 * 10) / 10;
+
+  // Pillar 3: Resource & Financial Management (15%)
+  let finRaw = scores.resourceScore;
+  if (resources.emergencyBudget < 0) {
+    const debt = Math.abs(resources.emergencyBudget);
+    finRaw = Math.max(0, finRaw - Math.min(40, (debt / 200) * 40));
+  } else if (resources.emergencyBudget >= 50 && resources.emergencyBudget <= 250) {
+    finRaw = Math.min(100, finRaw + 5); // Fiscal buffer bonus
+  }
+  finRaw = Math.max(0, Math.min(100, Math.round(finRaw)));
+  const finContrib = Math.round(finRaw * 0.15 * 10) / 10;
+
+  // Pillar 5: Community Protection & Equity (10%)
+  const healthVal = operations?.health ?? 60;
+  const commRaw = Math.max(0, Math.min(100, Math.round(
+    0.40 * community.communityTrust +
+    0.30 * community.publicCompliance +
+    0.30 * healthVal
+  )));
+  const commContrib = Math.round(commRaw * 0.10 * 10) / 10;
+
+  // Pillar 6: Recovery Readiness (10%)
+  const transVal = operations?.transportation ?? 70;
+  const sanitVal = operations?.sanitation ?? 50;
+  const suppliesVal = resources?.emergencySupplies ?? 50;
+  const medVal = resources?.medicalSupplies ?? 50;
+  const recRaw = Math.max(0, Math.min(100, Math.round(
+    0.30 * transVal +
+    0.25 * suppliesVal +
+    0.25 * medVal +
+    0.20 * sanitVal
+  )));
+  const recContrib = Math.round(recRaw * 0.10 * 10) / 10;
+
+  const unadjustedTpi = Math.max(0, Math.min(100, Math.round(
+    (outcomeContrib + dqContrib + finContrib + speedContrib + commContrib + recContrib) * 10
+  ) / 10));
+
+  // Transparent tournament participation & timeout adjustment:
+  // TPI = clamp(unadjustedTpi - 10 * F, 0, 100) * (H / 6)
+  const timeoutPenaltyPoints = fallbacksCount * 10;
+  const participationMultiplier = humanDecisionsCount / 6;
+  const clampedTpiSubtotal = Math.max(0, Math.min(100, unadjustedTpi - timeoutPenaltyPoints));
+  const finalTpi = Math.max(0, Math.min(100, Math.round(clampedTpiSubtotal * participationMultiplier * 10) / 10));
+
+  // Scale components so their sum equals finalTpi
+  const scaleRatio = unadjustedTpi > 0 ? (finalTpi / unadjustedTpi) : 0;
+  const components: TpiComponent[] = [
+    {
+      pillar: 'Disaster Outcomes & Preparedness',
+      weightPercent: 35,
+      rawScore: outcomeRaw,
+      weightedContribution: Math.round(outcomeContrib * scaleRatio * 10) / 10,
+      description: 'Flood & drought resilience and survival stability under compound hazard pressure'
+    },
+    {
+      pillar: 'Decision Quality',
+      weightPercent: 20,
+      rawScore: dqRaw,
+      weightedContribution: Math.round(dqContrib * scaleRatio * 10) / 10,
+      description: 'Appropriateness, coherence, and efficacy of prioritized command actions'
+    },
+    {
+      pillar: 'Resource & Financial Management',
+      weightPercent: 15,
+      rawScore: finRaw,
+      weightedContribution: Math.round(finContrib * scaleRatio * 10) / 10,
+      description: 'Macro treasury stewardship, credit facility discipline, and allocation efficiency'
+    },
+    {
+      pillar: 'Response Speed & Command Agility',
+      weightPercent: 10,
+      rawScore: speedRaw,
+      weightedContribution: Math.round(speedContrib * scaleRatio * 10) / 10,
+      description: 'Composure and prompt decision delivery without incurring emergency timeouts'
+    },
+    {
+      pillar: 'Community Protection & Equity',
+      weightPercent: 10,
+      rawScore: commRaw,
+      weightedContribution: Math.round(commContrib * scaleRatio * 10) / 10,
+      description: 'Civic trust, public order compliance, and lifeline healthcare protection'
+    },
+    {
+      pillar: 'Recovery Readiness',
+      weightPercent: 10,
+      rawScore: recRaw,
+      weightedContribution: Math.round(recContrib * scaleRatio * 10) / 10,
+      description: 'Residual transport capacity, supply buffers, and reconstruction foundation'
+    }
+  ];
+
+  // Balance rounding residual so sum of components equals finalTpi exactly
+  const tpiCompSum = Math.round(components.reduce((sum, c) => sum + c.weightedContribution, 0) * 10) / 10;
+  const tpiResidual = Math.round((finalTpi - tpiCompSum) * 10) / 10;
+  if (tpiResidual !== 0 && components.length > 0) {
+    components[0].weightedContribution = Math.round((components[0].weightedContribution + tpiResidual) * 10) / 10;
+  }
+
+  return {
+    tpi: finalTpi,
+    tpiDetails: {
+      components,
+      totalTpi: finalTpi,
+      averageDecisionTimeSeconds: avgDecisionTimeSeconds,
+      totalDecisionTimeSeconds: Math.round(totalTimeSpent),
+      timeoutsCount,
+      fallbacksCount,
+      humanDecisionsCount,
+      participationMultiplier: Math.round(participationMultiplier * 1000) / 1000,
+      unadjustedTpi,
+      timeoutPenaltyPoints
+    }
+  };
 }
 
 /**
@@ -710,6 +1542,16 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
   } = state.scores;
 
   const emergencyBudget = state.resources.emergencyBudget;
+  const decisionHistory = state.decisionHistory || [];
+  const totalRounds = decisionHistory.length;
+  const timeoutsCount = decisionHistory.filter(h => h.timedOut ?? h.timeoutOccurred ?? false).length;
+  const fallbacksCount = decisionHistory.filter(h => h.fallbackApplied ?? h.emergencyFallback ?? h.isSystemContingency ?? false).length;
+  const humanDecisionsCount = decisionHistory.length === 0
+    ? 6 // Standalone mock state for unit testing without history: standard 6-round human baseline
+    : decisionHistory.filter(h => !(h.fallbackApplied ?? h.emergencyFallback ?? h.isSystemContingency ?? false)).length;
+
+  // FIX B: All-timeout failure rule (all rounds resolved through fallback intervention and zero human decisions accepted)
+  const isAllTimeoutFailure = totalRounds > 0 && humanDecisionsCount === 0;
 
   // ---------------------------------------------------------------------------
   // EXPLICIT FAILURE THRESHOLDS (CRISIS CONDITIONS)
@@ -723,7 +1565,6 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
 
   const breachedFailuresCount = Object.values(failureStates).filter(Boolean).length;
 
-  // Multi-pillar weighted preparedness baseline:
   // Multi-pillar weighted preparedness baseline:
   // Flood Preparedness: 25%
   // Drought Preparedness: 25%
@@ -740,24 +1581,28 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
 
   // Failure penalties: -12 points per breached crisis condition
   const failurePenaltyPoints = breachedFailuresCount * 12;
-  const scoreAfterPenalties = Math.max(10, Math.round((baselineWeightedSum - failurePenaltyPoints) * 10) / 10);
-  const cps = Math.max(0, Math.min(100, scoreAfterPenalties));
-
-  const pathway: ScenarioOutcome = droughtPreparedness < floodPreparedness ? 'Flood' : 'Drought';
 
   // ---------------------------------------------------------------------------
-  // ENDING TIERS CLASSIFICATION (COMPLETE 4-STEP DECISION SEQUENCE WATERFALL)
-  // Evaluated strictly in order so crisis states cannot be overridden by raw scores:
-  // 1. Two or more failure states, OR CPS < 40 -> Tier 4: Systemic Crisis
-  // 2. Exactly one failure state, OR CPS < 65  -> Tier 3: Pyrrhic Survival
-  // 3. CPS >= 80, zero failures, Decision Quality >= 65 -> Tier 1: Exemplary Climate Resilience
-  // 4. All remaining outcomes (zero failures, CPS >= 65) -> Tier 2: Competent Emergency Response
-  //    (Covers 65 <= CPS < 80 with 0 failures, as well as CPS >= 80 with Decision Quality < 65 and 0 failures)
+  // TOURNAMENT SCORING FORMULA:
+  // CPS = clamp(B - P - 10 * F, 0, 100) * (H / 6)
+  // B: Weighted baseline sum (5 pillars)
+  // P: Crisis failure deductions (breachedFailuresCount * 12)
+  // F: Fallback interventions count (10 pts per fallback)
+  // H: Human-authorized decisions count (between 0 and 6)
   // ---------------------------------------------------------------------------
+  const timeoutDeduction = fallbacksCount * FALLBACK_INTERVENTION_PENALTY_PER_ROUND;
+  const participationMultiplier = humanDecisionsCount / 6;
+  const clampedSubtotal = Math.max(0, Math.min(100, baselineWeightedSum - failurePenaltyPoints - timeoutDeduction));
+  const unroundedCps = clampedSubtotal * participationMultiplier;
+  const cps = Math.round(unroundedCps * 10) / 10;
+
   let endingTier: EndingTier;
   let rating: PreparednessRating;
 
-  if (breachedFailuresCount >= 2 || cps < 40) {
+  if (humanDecisionsCount === 0) {
+    endingTier = 'Tier 4: Systemic Crisis';
+    rating = 'Critical';
+  } else if (breachedFailuresCount >= 2 || cps < 40) {
     endingTier = 'Tier 4: Systemic Crisis';
     rating = 'Critical';
   } else if (breachedFailuresCount === 1 || cps < 65) {
@@ -771,10 +1616,16 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
     rating = 'Good';
   }
 
+  const pathway: ScenarioOutcome = droughtPreparedness < floodPreparedness ? 'Flood' : 'Drought';
+
   // ---------------------------------------------------------------------------
   // TRADE-OFFS & DEBRIEF NARRATIVE
   // ---------------------------------------------------------------------------
   const tradeoffs: string[] = [];
+
+  if (isAllTimeoutFailure) {
+    tradeoffs.push('Total Command Default: Zero operational decisions were authorized by the command team across all six decision cycles. Automated contingencies executed autopilot holding actions.');
+  }
 
   if (floodPreparedness >= 75 && droughtPreparedness < 45) {
     tradeoffs.push('Flood-Biased Protection: Kelani flood basin secured, but aggressive reservoir releases induced dry-zone water stress.');
@@ -817,32 +1668,54 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
     { label: 'Community Trust', rawScore: Math.round(communityTrust), weightPercent: 15, contribution: Math.round(0.15 * communityTrust * 10) / 10 },
   ];
 
-  const curveAdjustment = 0;
+  // Balance rounding residual so sum of pillar contributions equals baselineWeightedSum exactly
+  const compSum = Math.round(weightedComponents.reduce((sum, c) => sum + c.contribution, 0) * 10) / 10;
+  const residual = Math.round((baselineWeightedSum - compSum) * 10) / 10;
+  if (residual !== 0 && weightedComponents.length > 0) {
+    weightedComponents[0].contribution = Math.round((weightedComponents[0].contribution + residual) * 10) / 10;
+  }
 
   const arithmeticMean = Math.round(
     ((floodPreparedness + droughtPreparedness + resourceScore + informationQuality + communityTrust + decisionQuality) / 6) * 10
   ) / 10;
+
+  let explanation = '';
+  if (humanDecisionsCount === 0) {
+    explanation = 'Command failure: Zero human decisions were authorized across the six decision windows (6 fallback interventions). The automated contingency system executed holding actions, resulting in a command score of 0.0 / 100 (Tier 4).';
+  } else if (fallbacksCount > 0) {
+    explanation = `Baseline (${baselineWeightedSum.toFixed(1)}) minus ${failurePenaltyPoints.toFixed(1)} pts crisis deductions and minus ${timeoutDeduction.toFixed(1)} pts timeout deductions (${fallbacksCount} @ 10 pts) = ${clampedSubtotal.toFixed(1)} pts subtotal, multiplied by human participation ratio ${humanDecisionsCount}/6 (${(participationMultiplier * 100).toFixed(1)}%) yields ${cps.toFixed(1)} pts.`;
+  } else if (failurePenaltyPoints > 0) {
+    explanation = `Baseline (${baselineWeightedSum.toFixed(1)}) minus ${failurePenaltyPoints.toFixed(1)} pts crisis deductions across 6 human-authorized rounds yields ${cps.toFixed(1)} pts.`;
+  } else {
+    explanation = `Baseline is ${baselineWeightedSum.toFixed(1)} pts across 6 human-authorized rounds with zero crisis or timeout deductions.`;
+  }
 
   const calculationDetails: ScoreCalculationDetails = {
     weightedComponents,
     baselineWeightedSum,
     breachedFailuresCount,
     failurePenaltyPoints,
-    scoreAfterPenalties,
+    humanDecisionsCount,
+    fallbackCount: fallbacksCount,
+    fallbackInterventionPenalty: timeoutDeduction,
+    timeoutDeduction,
+    participationMultiplier: Math.round(participationMultiplier * 1000) / 1000,
+    clampedSubtotal,
+    allTimeoutZeroOverride: humanDecisionsCount === 0,
+    scoreAfterPenalties: clampedSubtotal,
     curveAdjustment: 0,
     finalCps: cps,
     arithmeticMean,
-    explanation: breachedFailuresCount > 0
-      ? `Weighted baseline (${baselineWeightedSum}) minus ${failurePenaltyPoints} pts from ${breachedFailuresCount} crisis failure condition(s) yields ${cps} pts.`
-      : `Weighted baseline is ${baselineWeightedSum} pts with zero crisis penalties.`
+    explanation
   };
 
   // ---------------------------------------------------------------------------
   // EXECUTIVE MISSION ANALYSIS NARRATIVE
-  // Accurately reflects the specific combination of failure states and CPS
   // ---------------------------------------------------------------------------
   let summary = '';
-  if (endingTier === 'Tier 1: Exemplary Climate Resilience') {
+  if (isAllTimeoutFailure) {
+    summary = 'Systemic disaster crisis. The command team did not submit decisions within any of the six decision windows, so the contingency system completed the campaign and the team\'s command-performance score is zero.';
+  } else if (endingTier === 'Tier 1: Exemplary Climate Resilience') {
     summary = 'Outstanding multi-hazard crisis leadership. Your strategic balance of rapid telemetry, disciplined capital allocation, and balanced reservoir control protected life and public trust across both the Kelani flood basin and the Dry Zone without exhausting provincial reserves.';
   } else if (endingTier === 'Tier 2: Competent Emergency Response') {
     summary = 'Competent disaster response. Frontline teams prevented catastrophic dam failure and maintained key lifelines, though minor trade-offs between flood mitigation and drought storage surfaced.';
@@ -878,8 +1751,13 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
     }
   }
 
+  // Calculate Team Performance Index (TPI)
+  const { tpi, tpiDetails } = calculateTpi(state, cps);
+
   return {
     cps,
+    tpi,
+    tpiDetails,
     pathway,
     rating,
     endingTier,
@@ -894,9 +1772,15 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
     },
     tradeoffs,
     summary,
-    calculationDetails
+    explanation,
+    calculationDetails,
+    humanDecisionsCount,
+    fallbackInterventionsCount: fallbacksCount,
+    timeoutsCount,
+    isAllTimeoutFailure
   };
 }
 
 // Backwards-compatible initial state getter
 export const getInitialState = getInitialGameState;
+
