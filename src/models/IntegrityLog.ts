@@ -6,7 +6,8 @@ export type IntegrityActionType =
   | 'SUBMISSION' 
   | 'TIMEOUT_FALLBACK_SUBMISSION'
   | 'TIMEOUT_SUBMISSION'
-  | 'OVERTIME_SUBMISSION';
+  | 'OVERTIME_SUBMISSION'
+  | 'FALLBACK_ACKNOWLEDGEMENT';
 
 export interface IIntegrityLog extends Document {
   gameSessionId: mongoose.Types.ObjectId;
@@ -27,7 +28,8 @@ const IntegrityLogSchema: Schema = new Schema({
       'SUBMISSION', 
       'TIMEOUT_FALLBACK_SUBMISSION',
       'TIMEOUT_SUBMISSION',
-      'OVERTIME_SUBMISSION'
+      'OVERTIME_SUBMISSION',
+      'FALLBACK_ACKNOWLEDGEMENT'
     ], 
     required: true 
   },

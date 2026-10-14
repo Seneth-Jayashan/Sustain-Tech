@@ -119,7 +119,8 @@ export async function POST(request: Request) {
         roundDurationSeconds,
         timedOut,
         fallbackApplied,
-        decisionMode
+        decisionMode,
+        fallbackPolicyDetails
       }
     );
 
@@ -128,6 +129,7 @@ export async function POST(request: Request) {
 
     const isGameComplete = newState.bucket > 6;
     const finalOutcome = isGameComplete ? calculateFinalOutcome(newState) : undefined;
+    const shouldMarkComplete = isGameComplete && !newState.pendingFallbackAcknowledgement;
 
     // 3. Pre-validate IntegrityLog document before any database mutation
     // This guarantees that enum validation or schema errors throw BEFORE the session state or treasury is touched
@@ -178,7 +180,7 @@ export async function POST(request: Request) {
           $set: {
             state: newState,
             currentUserId: session.userId,
-            ...(isGameComplete ? { status: 'COMPLETED', finalResult: finalOutcome } : {})
+            ...(shouldMarkComplete ? { status: 'COMPLETED', finalResult: finalOutcome } : {})
           }
         },
         { new: true, session: mongoSession }
@@ -225,7 +227,7 @@ export async function POST(request: Request) {
             $set: {
               state: newState,
               currentUserId: session.userId,
-              ...(isGameComplete ? { status: 'COMPLETED', finalResult: finalOutcome } : {})
+              ...(shouldMarkComplete ? { status: 'COMPLETED', finalResult: finalOutcome } : {})
             }
           },
           { new: true }

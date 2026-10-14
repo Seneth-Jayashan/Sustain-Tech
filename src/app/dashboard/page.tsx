@@ -39,7 +39,7 @@ export default async function DashboardPage() {
   // Ensure timer and shuffle state exist on existing active sessions
   let needsSave = false;
   const currentBucket = gameSession.state.bucket || 1;
-  if (!gameSession.state.roundDeadline || !gameSession.state.roundStartTime) {
+  if (!gameSession.state.pendingFallbackAcknowledgement && (!gameSession.state.roundDeadline || !gameSession.state.roundStartTime)) {
     const { getRoundDuration } = await import('@/game/timer');
     const duration = getRoundDuration(currentBucket);
     const now = new Date();

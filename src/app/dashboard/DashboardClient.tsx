@@ -24,6 +24,7 @@ import {
   notifySuccess, 
   notifyInfo, 
   notifyConfirm,
+  showFallbackInterventionReport,
   toastSuccess,
   toastWarning,
   toastInfo
@@ -372,7 +373,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   // Real-time Emergency Countdown Timer (Server-Enforced Tournament Deadlines)
   const [secondsLeft, setSecondsLeft] = useState<number>(() => {
-    if (!state.roundDeadline) return roundAllowance;
+    if (state.pendingFallbackAcknowledgement || !state.roundDeadline) return roundAllowance;
     return Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
   });
   const [interventionAlert, setInterventionAlert] = useState<string | null>(null);
@@ -381,6 +382,40 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const warned15Ref = useRef(false);
   const timeoutHandledRef = useRef<number | null>(null);
   const handleSubmitRef = useRef<((isTimeout?: boolean) => Promise<void>) | null>(null);
+  const acknowledgingRef = useRef(false);
+
+  // FIX A: If a fallback acknowledgment is pending, pause timer and display SweetAlert2 report
+  useEffect(() => {
+    if (!state.pendingFallbackAcknowledgement || acknowledgingRef.current) return;
+
+    const acknowledgePending = async () => {
+      acknowledgingRef.current = true;
+      try {
+        await showFallbackInterventionReport(state.pendingFallbackAcknowledgement!);
+        const res = await fetch('/api/game/acknowledge-fallback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const ackData = await res.json();
+        if (ackData.success && ackData.gameSession) {
+          if (ackData.gameSession.status === 'COMPLETED' || ackData.isCompleted) {
+            router.push('/reflection');
+          } else {
+            setState(ackData.gameSession.state);
+            if (ackData.nextScenario) {
+              setCurrentScenario(ackData.nextScenario);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error acknowledging fallback report:', err);
+      } finally {
+        acknowledgingRef.current = false;
+      }
+    };
+
+    acknowledgePending();
+  }, [state.pendingFallbackAcknowledgement, router]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -425,7 +460,11 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   // Real-time Emergency Timer Countdown Loop
   useEffect(() => {
     const tick = () => {
-      if (!state.roundDeadline) return;
+      // Pause countdown while acknowledgment is pending or deadline not yet set
+      if (state.pendingFallbackAcknowledgement || !state.roundDeadline) {
+        setSecondsLeft(roundAllowance);
+        return;
+      }
       const now = Date.now();
       const deadline = new Date(state.roundDeadline).getTime();
       const diff = Math.ceil((deadline - now) / 1000);
@@ -455,7 +494,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     tick();
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [state.roundDeadline, state.bucket]);
+  }, [state.roundDeadline, state.bucket, state.pendingFallbackAcknowledgement, roundAllowance]);
 
   const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
@@ -696,40 +735,37 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
       const data = await res.json();
       if (data.success) {
-        if (data.intervention) {
-          setInterventionAlert(data.intervention.message);
-          const roundDay = (state.bucket - 1) * 2;
-          const title = `Contingency Protocol Activated — Day ${roundDay}`;
-          const summaryLines = [
-            data.intervention.planOrActions ? `Applied Strategy: ${data.intervention.planOrActions}` : '',
-            data.intervention.explanation || data.intervention.message,
-            data.intervention.executedActionTitles && data.intervention.executedActionTitles.length > 0
-              ? `Executed Directives:\n${data.intervention.executedActionTitles.map((t: string) => `• ${t}`).join('\n')}`
-              : '',
-            data.intervention.netBudgetImpact !== undefined
-              ? `Net Treasury Impact: ${data.intervention.netBudgetImpact <= 0 ? `-LKR ${Math.abs(data.intervention.netBudgetImpact)}M` : `+LKR ${data.intervention.netBudgetImpact}M`}`
-              : ''
-          ].filter(Boolean).join('\n\n');
-
-          await notifyInfo(title, summaryLines);
-        } else {
-          setInterventionAlert(null);
-          toastSuccess('Directives Authorized', `Day ${(state.bucket - 1) * 2} directives successfully committed.`);
-        }
-        if (data.gameSession.status === 'COMPLETED') {
-          router.push('/reflection');
-        } else {
+        if (data.gameSession?.state?.pendingFallbackAcknowledgement) {
+          // Timeout contingency committed: update state with pending report
+          // Note: timer remains paused until player acknowledges the report
           setState(data.gameSession.state);
           if (data.nextScenario) {
             setCurrentScenario(data.nextScenario);
           }
-          // Reset states for subsequent round
           setSelectedOrder([]);
           setDay4PresetPlan(null);
           setDay6PresetPlan(null);
           setDay4Mode('preset');
           setDay6Mode('preset');
           setSubmitting(false);
+          // Acknowledgment effect triggers showFallbackInterventionReport and calls acknowledge endpoint
+        } else {
+          setInterventionAlert(null);
+          toastSuccess('Directives Authorized', `Day ${(state.bucket - 1) * 2} directives successfully committed.`);
+          if (data.gameSession.status === 'COMPLETED') {
+            router.push('/reflection');
+          } else {
+            setState(data.gameSession.state);
+            if (data.nextScenario) {
+              setCurrentScenario(data.nextScenario);
+            }
+            setSelectedOrder([]);
+            setDay4PresetPlan(null);
+            setDay6PresetPlan(null);
+            setDay4Mode('preset');
+            setDay6Mode('preset');
+            setSubmitting(false);
+          }
         }
       } else {
         await notifyError('Authorization Error', data.error || 'Failed to submit decision.');
@@ -2104,25 +2140,25 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               <div 
                 id="emergency-decision-clock"
                 className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border backdrop-blur-xl transition-all font-mono select-none ${
-                  secondsLeft <= 15
+                  state.pendingFallbackAcknowledgement || secondsLeft <= 15
                     ? 'border-amber-500/50 bg-amber-950/30 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                     : 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
                 }`}
               >
-                <Clock size={16} className={secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
+                <Clock size={16} className={state.pendingFallbackAcknowledgement || secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
                 <div className="flex flex-col leading-none">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400">
-                      REMAINING
+                    <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400">
+                      {state.pendingFallbackAcknowledgement ? 'PAUSED' : 'REMAINING'}
                     </span>
                     <span className="text-[9px] font-mono text-slate-500">
                       (Cap: {formatTime(roundAllowance)})
                     </span>
                   </div>
                   <span className={`text-base sm:text-lg font-black font-mono tracking-wider ${
-                    secondsLeft <= 15 ? 'text-amber-300' : 'text-white'
+                    state.pendingFallbackAcknowledgement ? 'text-amber-300' : (secondsLeft <= 15 ? 'text-amber-300' : 'text-white')
                   }`}>
-                    {formatTime(secondsLeft)}
+                    {state.pendingFallbackAcknowledgement ? 'PAUSED' : formatTime(secondsLeft)}
                   </span>
                 </div>
               </div>

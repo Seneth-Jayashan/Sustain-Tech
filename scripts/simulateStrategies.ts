@@ -8,6 +8,7 @@ interface StrategyTest {
     bucket: number;
     rankings?: string[];
     allocations?: Record<string, number>;
+    isFallback?: boolean;
   }>;
 }
 
@@ -71,6 +72,18 @@ const strategies: StrategyTest[] = [
       { bucket: 5, rankings: ['5D', '5B', '5C', '5E', '5A'] }, // Evacuate only volunteers, burn 100M on helicopter, bury 5A (-168M debt)
       { bucket: 6, rankings: ['6D', '6A', '6E', '6C', '6B'] }, // Harsh rationing, emergency donor aid matching (-133M debt)
     ]
+  },
+  {
+    name: '6. Total Command Autopilot Default (All-Timeout Contingency)',
+    description: 'Command team does not submit any decisions; system applies automated contingency plans across all 6 rounds.',
+    decisions: [
+      { bucket: 1, isFallback: true },
+      { bucket: 2, isFallback: true },
+      { bucket: 3, isFallback: true },
+      { bucket: 4, isFallback: true },
+      { bucket: 5, isFallback: true },
+      { bucket: 6, isFallback: true },
+    ]
   }
 ];
 
@@ -87,7 +100,18 @@ function runSimulations() {
     console.log(`--------------------------------------------------------------------------------`);
 
     strat.decisions.forEach((dec) => {
-      state = processDecision(state, 'sim-commander', dec);
+      if (dec.isFallback) {
+        const { createFallbackDecision } = require('../src/game/engine');
+        const fb = createFallbackDecision(dec.bucket, {}, state.resources.emergencyBudget);
+        state = processDecision(state, 'sim-commander', fb.decision, {
+          timedOut: true,
+          fallbackApplied: true,
+          decisionMode: 'tournament',
+          fallbackPolicyDetails: fb.policyDetails
+        });
+      } else {
+        state = processDecision(state, 'sim-commander', dec);
+      }
     });
 
     const result = calculateFinalOutcome(state);

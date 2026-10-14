@@ -1,4 +1,4 @@
-import { DynamicEventTrigger, SimulationMode, DecisionRecord } from './types';
+import { DynamicEventTrigger, SimulationMode, DecisionRecord, PendingFallbackReport } from './types';
 import { getRoundDuration, getDefaultBucketShuffledOrder } from './timer';
 
 export interface EnvironmentState {
@@ -87,6 +87,9 @@ export interface GameState {
   
   // Randomized Action Cards (persisted display order per bucket)
   shuffledCardOrders?: Record<number, string[]>;
+
+  // Pending Contingency Intervention Acknowledgment
+  pendingFallbackAcknowledgement?: PendingFallbackReport | null;
 
   environment: EnvironmentState;
   resources: ResourceState;

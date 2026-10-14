@@ -99,6 +99,19 @@ body {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 25px rgba(45, 212, 191, 0.12) !important;
   padding: 1.75rem !important;
   font-family: inherit !important;
+  max-width: min(92vw, 560px) !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 480px) {
+  .sustain-swal-popup {
+    padding: 1rem !important;
+    width: 95vw !important;
+    max-width: 95vw !important;
+  }
+  .sustain-swal-title {
+    font-size: 1.1rem !important;
+  }
 }
 
 .sustain-swal-title {

@@ -396,32 +396,48 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                       </div>
                     </div>
 
-                    {/* 2. Crisis Threshold Deductions */}
+                    {/* 2. Command Interventions & Crisis Deductions */}
                     <div className="pt-4 border-t border-slate-800">
                       <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 font-bold mb-3 flex items-center gap-2">
-                        <AlertCircle size={14} /> 2. Crisis Threshold Failure Deductions
+                        <AlertCircle size={14} /> 2. Crisis Thresholds &amp; Command Interventions
                       </h3>
-                      <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs font-mono">
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 text-xs font-mono">
+                        {/* Crisis Thresholds */}
                         <div className="flex justify-between items-center text-slate-300">
-                          <span>Breached Failure Conditions:</span>
+                          <span>Breached Crisis Thresholds:</span>
                           <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                             {calc.breachedFailuresCount} {calc.breachedFailuresCount === 1 ? 'condition' : 'conditions'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-slate-300">
-                          <span>Crisis Penalty Rate:</span>
-                          <span className="text-slate-400">-12 pts per breached condition</span>
-                        </div>
-                        <div className="flex justify-between items-center text-slate-300">
-                          <span>Total Crisis Deduction:</span>
+                          <span>Crisis Threshold Penalty:</span>
                           <span className={`font-black ${calc.failurePenaltyPoints > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {calc.failurePenaltyPoints > 0 ? `-${calc.failurePenaltyPoints.toFixed(1)} pts` : '0.0 pts'}
+                            {calc.failurePenaltyPoints > 0 ? `-${calc.failurePenaltyPoints.toFixed(1)} pts (-12 pts/breach)` : '0.0 pts'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white">
-                          <span>Score After Deductions:</span>
-                          <span className="text-cyan-300 font-black">{calc.scoreAfterPenalties.toFixed(1)} pts</span>
-                        </div>
+
+                        {/* Partial Timeout Deductions */}
+                        {(calc.fallbackCount ?? 0) > 0 && !calc.allTimeoutZeroOverride && (
+                          <div className="flex justify-between items-center text-slate-300 pt-1.5 border-t border-slate-800/60">
+                            <span>Contingency Fallback Interventions:</span>
+                            <span className="font-black text-amber-400">
+                              {calc.fallbackCount} {calc.fallbackCount === 1 ? 'round' : 'rounds'} (-{calc.fallbackInterventionPenalty?.toFixed(1) || ((calc.fallbackCount ?? 0) * 5).toFixed(1)} pts @ 5 pts/round)
+                            </span>
+                          </div>
+                        )}
+
+                        {/* All-Timeout Rule Notice */}
+                        {calc.allTimeoutZeroOverride ? (
+                          <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-500/40 text-red-300 text-[11px] leading-relaxed">
+                            <strong className="block text-red-400 font-bold mb-0.5">All-Timeout Command Autopilot Rule:</strong>
+                            All 6 decision rounds expired without human command authorization. Automated contingencies executed emergency autopilot protocols. By rule, system fallbacks cannot receive a positive command-performance score. Authoritative CPS is overridden to 0.0 / 100.
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white">
+                            <span>Score After Deductions:</span>
+                            <span className="text-cyan-300 font-black">{calc.scoreAfterPenalties.toFixed(1)} pts</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -434,9 +450,11 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                         <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                           <span>Formula Accounting:</span>
                           <span className="text-slate-400 sm:text-right">
-                            {calc.curveAdjustment !== 0
-                              ? `Asymptotic adjustment applied (${calc.curveAdjustment >= 0 ? '+' : ''}${calc.curveAdjustment.toFixed(1)} pts)`
-                              : 'Direct linear reconciliation (Baseline minus crisis deductions)'}
+                            {calc.allTimeoutZeroOverride
+                              ? 'All-Timeout Command Default Override (Zero Command Score)'
+                              : (calc.curveAdjustment !== 0
+                                ? `Asymptotic adjustment applied (${calc.curveAdjustment >= 0 ? '+' : ''}${calc.curveAdjustment.toFixed(1)} pts)`
+                                : 'Direct linear reconciliation (Baseline minus crisis & intervention deductions)')}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
@@ -452,8 +470,20 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                       </div>
 
                       <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-slate-300 text-[11px] leading-relaxed font-sans">
-                        <strong className="text-cyan-400 font-mono block mb-1">Why CPS ({result.cps.toFixed(1)}) Reconciles Exactly with the Multi-Pillar Model:</strong>
-                        The Composite Preparedness Score is calculated as {calc.baselineWeightedSum.toFixed(1)} (weighted sum of the 5 defense pillars) minus {calc.failurePenaltyPoints.toFixed(1)} pts from {calc.breachedFailuresCount} breached crisis threshold(s), yielding exactly {result.cps.toFixed(1)}. The fiscal solvency breach represents a deliberate sovereign governance penalty for operating on emergency credit overdraft (-LKR {Math.abs(Math.round(resources.emergencyBudget))}M drawn); the Emergency Credit Facility still maintains LKR {Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M in available borrowing capacity before reaching the hard freeze limit.
+                        <strong className="text-cyan-400 font-mono block mb-1">
+                          {calc.allTimeoutZeroOverride
+                            ? 'Why CPS is 0.0 (All-Timeout Command Autopilot Rule):'
+                            : `Why CPS (${result.cps.toFixed(1)}) Reconciles with the Multi-Pillar Model:`}
+                        </strong>
+                        {calc.allTimeoutZeroOverride ? (
+                          <>
+                            The command team did not submit decisions within any of the six decision windows (0 human decisions, 6 fallback interventions). While the contingency system executed automated autopilot protocols to safeguard infrastructure (yielding a simulated physical baseline of {calc.baselineWeightedSum.toFixed(1)} pts), automated system interventions cannot produce a positive human command score. The final team Command Preparedness Score is 0.0 / 100 (Tier 4: Systemic Crisis).
+                          </>
+                        ) : (
+                          <>
+                            The Composite Preparedness Score is calculated as {calc.baselineWeightedSum.toFixed(1)} (weighted sum of the 5 defense pillars) minus {calc.failurePenaltyPoints.toFixed(1)} pts from {calc.breachedFailuresCount} breached crisis threshold(s){(calc.fallbackInterventionPenalty ?? 0) > 0 ? ` minus ${calc.fallbackInterventionPenalty?.toFixed(1)} pts from ${calc.fallbackCount} fallback intervention(s)` : ''}, yielding {result.cps.toFixed(1)}. {result.failureStates?.fiscalInsolvency ? `The fiscal solvency breach represents a sovereign governance penalty for operating on emergency credit overdraft (-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M drawn); the Emergency Credit Facility maintains LKR ${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M in available borrowing capacity before reaching the hard freeze limit.` : 'All provincial fiscal and lifeline operations operated within approved reserve thresholds.'}
+                          </>
+                        )}
                       </div>
                     </div>
                   </>
@@ -633,11 +663,11 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                       <div className="flex items-center gap-2">
                         {isContingency ? (
                           <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 font-mono font-bold text-[10px] uppercase flex items-center gap-1">
-                            <ShieldAlert size={11} /> Contingency Intervention
+                            <ShieldAlert size={11} /> Contingency Fallback (System Authorized)
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-mono font-bold text-[10px] uppercase flex items-center gap-1">
-                            <CheckCircle2 size={11} /> Autonomous Orders
+                            <CheckCircle2 size={11} /> Command Directives (Human Authorized)
                           </span>
                         )}
                         <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">

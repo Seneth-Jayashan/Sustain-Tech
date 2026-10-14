@@ -58,11 +58,27 @@ export interface ScoreCalculationDetails {
   baselineWeightedSum: number;
   breachedFailuresCount: number;
   failurePenaltyPoints: number;
+  humanDecisionsCount?: number;
+  fallbackCount?: number;
+  fallbackInterventionPenalty?: number;
+  allTimeoutZeroOverride?: boolean;
   scoreAfterPenalties: number;
   curveAdjustment: number;
   finalCps: number;
   arithmeticMean: number;
   explanation: string;
+}
+
+export interface PendingFallbackReport {
+  completedBucket: number;
+  completedDay: number;
+  roundName: string;
+  reason: string;
+  planOrActions?: string;
+  executedActionTitles: string[];
+  netBudgetImpact: number;
+  treasuryRemaining: number;
+  timestamp: string;
 }
 
 export type SimulationMode = 'tournament' | 'practice';
@@ -81,6 +97,8 @@ export interface DecisionRecord {
   timeSpentSeconds?: number;
   timeoutOccurred?: boolean;
   emergencyFallback?: boolean;
+  isSystemContingency?: boolean;
+  isHumanDecision?: boolean;
   roundStartedAt?: string;
   roundDeadlineAt?: string;
   decisionSubmittedAt?: string;
@@ -130,6 +148,11 @@ export interface FinalResult {
   };
   tradeoffs: string[];
   summary: string;
+  explanation?: string;
   calculationDetails?: ScoreCalculationDetails;
+  humanDecisionsCount?: number;
+  fallbackInterventionsCount?: number;
+  timeoutsCount?: number;
+  isAllTimeoutFailure?: boolean;
 }
 

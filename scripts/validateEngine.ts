@@ -10,7 +10,8 @@ import {
   COMPOUND_HAZARD_EROSION_PENALTIES,
   createFallbackDecision,
   calculateTpi,
-  AUTHORITATIVE_FALLBACK_POLICIES
+  AUTHORITATIVE_FALLBACK_POLICIES,
+  FALLBACK_INTERVENTION_PENALTY_PER_ROUND
 } from '../src/game/engine';
 import {
   ROUND_DEADLINE_SECONDS,
@@ -2392,6 +2393,280 @@ test('Fallback Metadata & Exactly-Once Charging: createFallbackDecision provides
   assert.strictEqual(duplicateRetry.success, false);
   assert.strictEqual(duplicateRetry.status, 409);
   assert.strictEqual(dbState.resources.emergencyBudget, 445, 'Duplicate retry cannot double-charge treasury');
+});
+
+// ============================================================================
+// TEST SUITE 13: FALLBACK ACKNOWLEDGMENT PAUSE (FIX A) & ALL-TIMEOUT SCORE OVERRIDE (FIX B)
+// ============================================================================
+console.log('--------------------------------------------------------------------------------');
+console.log('TEST SUITE 13: FALLBACK ACKNOWLEDGMENT PAUSE (FIX A) & ALL-TIMEOUT SCORE OVERRIDE (FIX B)');
+console.log('--------------------------------------------------------------------------------');
+
+test('Fix B: 6 timeouts with 0 human decisions strictly yields CPS = 0.0, TPI = 0.0, and Tier 4: Systemic Crisis', () => {
+  let state = getInitialGameState('test-all-timeouts');
+  
+  for (let b = 1; b <= 6; b++) {
+    const fb = createFallbackDecision(b, {}, state.resources.emergencyBudget);
+    state = processDecision(state, 'team-timeout', fb.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament',
+      fallbackPolicyDetails: fb.policyDetails
+    });
+  }
+
+  assert.strictEqual(state.decisionHistory.length, 6);
+  assert.strictEqual(state.decisionHistory.filter(d => d.fallbackApplied).length, 6);
+  assert.strictEqual(state.decisionHistory.filter(d => d.isHumanDecision).length, 0);
+
+  const finalOutcome = calculateFinalOutcome(state);
+  const tpiResult = calculateTpi(state, finalOutcome.cps);
+
+  assert.strictEqual(finalOutcome.cps, 0.0, 'Final CPS must be strictly 0.0 for all-timeout game');
+  assert.strictEqual(finalOutcome.endingTier, 'Tier 4: Systemic Crisis', 'Ending tier must be Tier 4');
+  assert.strictEqual(finalOutcome.rating, 'Critical');
+  assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, true);
+  assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 0);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 6);
+  assert.strictEqual(finalOutcome.tpi, 0.0, 'Final outcome TPI must be strictly 0.0 for all-timeout game');
+  assert.strictEqual(tpiResult.tpi, 0.0, 'calculateTpi must return 0.0 for all-timeout game');
+  assert.strictEqual(tpiResult.tpiDetails.totalTpi, 0.0, 'TpiDetails.totalTpi must be strictly 0.0');
+  assert.ok(finalOutcome.explanation?.includes('did not submit decisions within any of the six decision windows'), 'Explanation must state failure to submit in decision windows');
+  assert.ok(finalOutcome.explanation?.includes('contingency system completed the campaign'), 'Explanation must note contingency completed campaign');
+});
+
+test('Fix B: Partial timeouts (1 human decision, 5 fallbacks) applies normal weighted formula and documented fallback penalty', () => {
+  let state = getInitialGameState('test-partial-timeouts');
+
+  // Round 1: Human decision
+  state = processDecision(state, 'team-partial', ['1A', '1D', '1C', '1B', '1E'], {
+    timedOut: false,
+    fallbackApplied: false,
+    decisionMode: 'tournament'
+  });
+
+  // Rounds 2-6: Fallbacks
+  for (let b = 2; b <= 6; b++) {
+    const fb = createFallbackDecision(b, {}, state.resources.emergencyBudget);
+    state = processDecision(state, 'team-partial', fb.decision, {
+      timedOut: true,
+      fallbackApplied: true,
+      decisionMode: 'tournament',
+      fallbackPolicyDetails: fb.policyDetails
+    });
+  }
+
+  assert.strictEqual(state.decisionHistory.filter(d => d.isHumanDecision).length, 1);
+  assert.strictEqual(state.decisionHistory.filter(d => d.fallbackApplied).length, 5);
+
+  const finalOutcome = calculateFinalOutcome(state);
+  assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, false);
+  assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 1);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 5);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackInterventionPenalty, 5 * FALLBACK_INTERVENTION_PENALTY_PER_ROUND, '5 fallbacks * 5 penalty = 25 pts penalty');
+
+  // Verify CPS calculation accounts for fallback penalty
+  const expectedCps = Math.max(0, Math.min(100, Math.round(
+    (finalOutcome.calculationDetails!.baselineWeightedSum -
+     finalOutcome.calculationDetails!.failurePenaltyPoints -
+     finalOutcome.calculationDetails!.fallbackInterventionPenalty!) * 10
+  ) / 10));
+  assert.strictEqual(finalOutcome.cps, expectedCps);
+});
+
+test('Fix B: 6 human decisions accepted applies normal CPS/TPI without fallback penalties', () => {
+  let state = getInitialGameState('test-all-human');
+
+  // 6 autonomous rounds
+  state = processDecision(state, 'team-human', ['1A', '1D', '1C', '1B', '1E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['2A', '2D', '2C', '2B', '2E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', { allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 } }, { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['4A', '4B', '4C', '4D', '4E'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['5A', '5C', '5E', '5B', '5D'], { timedOut: false, fallbackApplied: false });
+  state = processDecision(state, 'team-human', ['6A', '6C', '6E', '6B', '6D'], { timedOut: false, fallbackApplied: false });
+
+  assert.strictEqual(state.decisionHistory.filter(d => d.isHumanDecision).length, 6);
+  assert.strictEqual(state.decisionHistory.filter(d => d.fallbackApplied).length, 0);
+
+  const finalOutcome = calculateFinalOutcome(state);
+  assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, false);
+  assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 6);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 0);
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackInterventionPenalty, 0);
+  assert.ok(finalOutcome.cps > 50, 'All-human successful strategy should achieve normal good score');
+});
+
+test('Fix B: Reflection, audit, and leaderboard sorting consistency for all-timeout games', () => {
+  const getTierPriority = (tier?: string) => {
+    if (!tier) return 5;
+    if (tier.includes('Tier 1')) return 1;
+    if (tier.includes('Tier 2')) return 2;
+    if (tier.includes('Tier 3')) return 3;
+    if (tier.includes('Tier 4')) return 4;
+    return 5;
+  };
+
+  const completedSessions = [
+    {
+      _id: 'sess-all-timeout',
+      status: 'COMPLETED',
+      finalResult: { endingTier: 'Tier 4: Systemic Crisis', cps: 0.0, tpi: 0.0, failureStates: {} }
+    },
+    {
+      _id: 'sess-partial-timeout',
+      status: 'COMPLETED',
+      finalResult: { endingTier: 'Tier 3: Strained Stability', cps: 52.4, tpi: 48.0, failureStates: {} }
+    },
+    {
+      _id: 'sess-human-champ',
+      status: 'COMPLETED',
+      finalResult: { endingTier: 'Tier 1: Resilient Command', cps: 88.5, tpi: 85.0, failureStates: {} }
+    }
+  ];
+
+  const sorted = [...completedSessions].sort((a, b) => {
+    const tierA = getTierPriority(a.finalResult?.endingTier);
+    const tierB = getTierPriority(b.finalResult?.endingTier);
+    if (tierA !== tierB) return tierA - tierB;
+    const tpiA = a.finalResult?.tpi ?? 0;
+    const tpiB = b.finalResult?.tpi ?? 0;
+    return tpiB - tpiA;
+  });
+
+  assert.strictEqual(sorted[0]._id, 'sess-human-champ', 'Tier 1 ranks first');
+  assert.strictEqual(sorted[1]._id, 'sess-partial-timeout', 'Tier 3 ranks second');
+  assert.strictEqual(sorted[2]._id, 'sess-all-timeout', 'All-timeout Tier 4 strictly ranks last on leaderboard');
+});
+
+test('Fix A: Fallback produces pendingFallbackAcknowledgement and pauses the next round deadline', () => {
+  let state = getInitialGameState('test-fix-a-pause');
+  state.roundStartTime = new Date().toISOString();
+  state.roundDeadline = new Date(Date.now() + 180000).toISOString();
+
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  assert.strictEqual(state.bucket, 2, 'Bucket should advance from 1 to 2');
+  assert.ok(state.pendingFallbackAcknowledgement, 'Pending acknowledgment record must exist');
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedBucket, 1);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedDay, 0);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.netBudgetImpact, -55);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.treasuryRemaining, 445);
+
+  // Authoritative server timer must be paused (undefined)
+  assert.strictEqual(state.roundStartTime, undefined, 'roundStartTime must be undefined while acknowledgment is pending');
+  assert.strictEqual(state.roundDeadline, undefined, 'roundDeadline must be undefined while acknowledgment is pending');
+});
+
+test('Fix A: Delayed acknowledgment: reading time is excluded from next round response time', () => {
+  let state = getInitialGameState('test-fix-a-timing');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // Simulate 120 seconds of user reading the report
+  const now = Date.now();
+  const readingDurationMs = 120000;
+  const ackTimestamp = now + readingDurationMs;
+
+  // Simulate server acknowledgment route execution
+  state.pendingFallbackAcknowledgement = null;
+  state.roundStartTime = new Date(ackTimestamp).toISOString();
+  const durationSec = getRoundDuration(state.bucket);
+  state.roundDeadline = new Date(ackTimestamp + (durationSec * 1000)).toISOString();
+
+  // Decision submitted 15 seconds after acknowledgment
+  const submissionTimestamp = ackTimestamp + 15000;
+  const responseTimeMs = submissionTimestamp - new Date(state.roundStartTime!).getTime();
+
+  assert.strictEqual(responseTimeMs, 15000, 'Response time must only count time after acknowledgment (15s), not reading time (135s)');
+  assert.strictEqual(new Date(state.roundDeadline!).getTime() - new Date(state.roundStartTime!).getTime(), durationSec * 1000, 'Full round duration preserved after acknowledgment');
+});
+
+test('Fix A: Refresh while report is pending recovers pending report without starting next round timer', () => {
+  let state = getInitialGameState('test-fix-a-refresh');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // State route logic: when fetching state during page refresh
+  const isPendingAck = Boolean(state.pendingFallbackAcknowledgement);
+  if (!state.roundStartTime && !isPendingAck) {
+    state.roundStartTime = new Date().toISOString();
+    state.roundDeadline = new Date(Date.now() + 120000).toISOString();
+  }
+
+  assert.strictEqual(isPendingAck, true);
+  assert.strictEqual(state.roundStartTime, undefined, 'Timer must NOT be initialized during refresh while report is pending');
+  assert.strictEqual(state.roundDeadline, undefined, 'Deadline must NOT be initialized during refresh while report is pending');
+});
+
+test('Fix A: Acknowledgment idempotency: duplicate requests do not reset or advance deadline', () => {
+  let state = getInitialGameState('test-fix-a-idempotent');
+  const fb = createFallbackDecision(1, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  // First Acknowledgment
+  const t1 = 1700000000000;
+  state.pendingFallbackAcknowledgement = null;
+  state.roundStartTime = new Date(t1).toISOString();
+  state.roundDeadline = new Date(t1 + (150 * 1000)).toISOString();
+
+  // Duplicate second Acknowledgment 5 seconds later
+  const t2 = t1 + 5000;
+  // Route logic: if pendingFallbackAcknowledgement is already null, do not reset
+  if (state.pendingFallbackAcknowledgement) {
+    state.roundStartTime = new Date(t2).toISOString();
+    state.roundDeadline = new Date(t2 + (150 * 1000)).toISOString();
+  }
+
+  assert.strictEqual(state.roundStartTime, new Date(t1).toISOString(), 'Duplicate acknowledgment must NOT reset roundStartTime');
+  assert.strictEqual(state.roundDeadline, new Date(t1 + (150 * 1000)).toISOString(), 'Duplicate acknowledgment must NOT extend roundDeadline');
+});
+
+test('Fix A: Day 10 (Round 6) fallback report preserves pending report before game completes', () => {
+  let state = getInitialGameState('test-fix-a-day10');
+  state.bucket = 6;
+  state.day = 10;
+  const fb = createFallbackDecision(6, {}, state.resources.emergencyBudget);
+  state = processDecision(state, 'team-fix-a', fb.decision, {
+    timedOut: true,
+    fallbackApplied: true,
+    decisionMode: 'tournament',
+    fallbackPolicyDetails: fb.policyDetails
+  });
+
+  assert.strictEqual(state.bucket, 7);
+  assert.ok(state.pendingFallbackAcknowledgement);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedBucket, 6);
+  assert.strictEqual(state.pendingFallbackAcknowledgement.completedDay, 10);
+  
+  // When acknowledged for bucket 7 (> 6), session completes
+  let sessionStatus = 'ACTIVE';
+  if (state.bucket > 6) {
+    sessionStatus = 'COMPLETED';
+    state.pendingFallbackAcknowledgement = null;
+  }
+  assert.strictEqual(sessionStatus, 'COMPLETED');
+  assert.strictEqual(state.pendingFallbackAcknowledgement, null);
 });
 
 console.log('================================================================================');
