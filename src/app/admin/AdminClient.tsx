@@ -10,6 +10,7 @@ import {
   Clock, Zap, Trophy, Timer
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { notifyConfirm } from '@/lib/notifications';
 
 const sortCompletedSessions = (sessionList: any[]) => {
   const getTierPriority = (tier?: string) => {
@@ -171,7 +172,12 @@ export default function AdminClient() {
       ? 'Are you sure you want to delete ALL game sessions? All active and completed simulations will be erased so teams can restart from Day 0.'
       : `Delete game session for team "${teamName || 'Unassigned'}"? This will reset the simulation state so the team can start fresh.`;
 
-    if (!confirm(confirmMsg)) return;
+    const isConfirmed = await notifyConfirm(
+      isAll ? 'Reset All Sessions' : 'Delete Game Session',
+      confirmMsg,
+      { confirmText: 'Delete', cancelText: 'Cancel', isWarning: true }
+    );
+    if (!isConfirmed) return;
 
     try {
       const res = await fetch(`/api/admin/teams?id=${sessionId}`, { method: 'DELETE' });
@@ -235,7 +241,12 @@ export default function AdminClient() {
       ? `Delete team "${team.name}" and all ${playerCount} assigned players? This action cannot be reversed.`
       : `Are you sure you want to delete team "${team.name}"?`;
 
-    if (!confirm(confirmMsg)) return;
+    const isConfirmed = await notifyConfirm(
+      'Delete Team',
+      confirmMsg,
+      { confirmText: 'Delete Team', cancelText: 'Cancel', isWarning: true }
+    );
+    if (!isConfirmed) return;
 
     try {
       const res = await fetch(`/api/admin/manage-teams?id=${team._id}`, { method: 'DELETE' });
@@ -317,7 +328,12 @@ export default function AdminClient() {
   };
 
   const handleDeleteUser = async (id: string, name: string) => {
-    if (!confirm(`Delete user "${name}"?`)) return;
+    const isConfirmed = await notifyConfirm(
+      'Delete User',
+      `Delete user "${name}"?`,
+      { confirmText: 'Delete', cancelText: 'Cancel', isWarning: true }
+    );
+    if (!isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/manage-users?id=${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -450,7 +466,12 @@ export default function AdminClient() {
   };
 
   const handleDeleteScenario = async (s: any) => {
-    if (!confirm(`Delete scenario "${s.title}" and its associated actions?`)) return;
+    const isConfirmed = await notifyConfirm(
+      'Delete Scenario',
+      `Delete scenario "${s.title}" and its associated actions?`,
+      { confirmText: 'Delete Scenario', cancelText: 'Cancel', isWarning: true }
+    );
+    if (!isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/manage-scenarios?id=${s._id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -621,7 +642,12 @@ export default function AdminClient() {
   };
 
   const handleRemoveActionFromScenario = async (scen: any, actionIdToRemove: string) => {
-    if (!confirm('Remove this action from the scenario?')) return;
+    const isConfirmed = await notifyConfirm(
+      'Remove Action',
+      'Remove this action from the scenario?',
+      { confirmText: 'Remove', cancelText: 'Cancel', isWarning: true }
+    );
+    if (!isConfirmed) return;
     try {
       const updatedIds = (scen.availableActionIds || []).filter((id: string) => id !== actionIdToRemove);
       const res = await fetch('/api/admin/manage-scenarios', {
@@ -1397,7 +1423,7 @@ export default function AdminClient() {
                         <div className="space-y-1.5 max-w-3xl">
                           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                             <span className="px-2.5 sm:px-3 py-1 rounded-md bg-blue-600/20 text-blue-400 border border-blue-500/40 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
-                              Day {scenarioDay} // {scenario.scenarioId}
+                              Day {scenarioDay} &bull; {scenario.scenarioId}
                             </span>
                             <span className="px-2 sm:px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-[10px] sm:text-xs font-mono font-bold">
                               {scenActions.length} Actions

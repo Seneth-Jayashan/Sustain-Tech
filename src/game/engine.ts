@@ -1,12 +1,12 @@
 import { 
   ActionId, FinalResult, PreparednessRating, ScenarioOutcome, 
-  EndingTier, FailureStates, DynamicEventTrigger, BucketDecision, Action,
-  ScoreCalculationDetails, TpiComponent, TpiCalculationDetails
+  EndingTier, FailureStates, DynamicEventTrigger, Action,
+  ScoreCalculationDetails, TpiComponent, TpiCalculationDetails, SimulationMode
 } from './types';
 import { ACTION_MATRIX } from './matrix';
 import { SCENARIOS, BucketScenario } from './scenario';
 import { GameState, getInitialGameState } from './state';
-import { ROUND_DEADLINE_SECONDS, getDefaultBucketShuffledOrder, getShuffledActionIds } from './timer';
+import { getRoundDuration, getDefaultBucketShuffledOrder } from './timer';
 
 
 export interface DecisionDelta {
@@ -405,7 +405,11 @@ export function calculateDelta(
         } else if (spent < 70) {
           delta.decisionQuality = -6; // Severe under-utilization during acute emergency
         }
-        delta.executedActionIds = Object.keys(normDecision.allocations);
+        if (normDecision.rankings && normDecision.rankings.length > 0) {
+          delta.executedActionIds = [normDecision.rankings[0]];
+        } else {
+          delta.executedActionIds = Object.keys(normDecision.allocations);
+        }
       } else if (normDecision.rankings && normDecision.rankings.length > 0) {
         // Selection of pre-formulated package (3A, 3D, 3C, 3B, 3E)
         // Exactly ONE package executes based on top rank!
@@ -477,6 +481,11 @@ export function calculateDelta(
           delta.communityTrust += (plan4A / 30) * 8 + (plan4B / 30) * 4 - (plan4E / 30) * 10;
           delta.informationQuality += 2;
           delta.decisionQuality = 8;
+        }
+        if (normDecision.rankings && normDecision.rankings.length > 0) {
+          delta.executedActionIds = [normDecision.rankings[0]];
+        } else {
+          delta.executedActionIds = Object.keys(normDecision.allocations);
         }
       } else if (normDecision.rankings && normDecision.rankings.length > 0) {
         // Selection of pre-formulated fleet package (4A, 4B, 4C, 4D, 4E)
@@ -552,7 +561,7 @@ export function calculateDelta(
 
   let floodDecay = baseDecay.floodPreparednessDecay;
   let droughtDecay = baseDecay.droughtPreparednessDecay;
-  let trustDecay = baseDecay.communityTrustErosion;
+  const trustDecay = baseDecay.communityTrustErosion;
 
   // Contextual Sensitivity: Evaluate initial hazard regime
   if (currentState) {
@@ -608,17 +617,88 @@ export function calculateDelta(
  * - For Day 4 (3): if no valid preset or custom allocation, falls back to standard Plan 3A.
  * - For Day 6 (4): if no valid fleet preset or custom allocation, falls back to standard Plan 4A.
  */
+export interface FallbackPolicyDetails {
+  roundName: string;
+  planOrActions: string;
+  explanation: string;
+  executedActionTitles: string[];
+  netBudgetImpact: number;
+}
+
+/**
+ * Authoritative, documented fallback strategies for Tournament Mode across all 6 rounds.
+ * Strictly adheres to life-safety, essential services, 100M Day 4 cap, fleet limits,
+ * and the LKR 200M emergency credit facility ceiling.
+ */
+export const AUTHORITATIVE_FALLBACK_POLICIES = {
+  1: {
+    roundName: 'Day 0 — Early Warning and Uncertainty',
+    rankings: ['1A', '1D', '1C', '1B', '1E'],
+    top3Actions: ['1A', '1D', '1C'],
+    totalCost: 55, // 10 + 5 + 40
+    rationale: 'Prioritizes baseline risk inspection (1A), uncertainty communication (1D), and critical drainage clearance (1C). Avoids premature massive water purchase (1B) and harmful inaction (1E).'
+  },
+  2: {
+    roundName: 'Day 2 — Compound Hazard',
+    rankings: ['2B', '2E', '2A', '2D', '2C'],
+    top3Actions: ['2B', '2E', '2A'],
+    totalCost: 30, // 8 + 20 + 2
+    rationale: 'Prioritizes authoritative telemetry fusion (2B), district-level monitoring (2E), and rapid reporting cross-check (2A). Avoids bankrupting 300M expenditure (2C) and harmful delay (2D).'
+  },
+  3: {
+    roundName: 'Day 4 — Fiscal Allocation',
+    defaultPlan: '3A',
+    defaultAllocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 },
+    defaultCost: 100,
+    rationale: 'Defaults to Plan 3A (LKR 40M Evacuation, 30M Drinking Water, 30M Medical). If credit capacity is under 100M, scales proportionally: 40% Evacuation, 30% Drinking Water, 30% Medical Supplies, strictly within credit facility limit.'
+  },
+  4: {
+    roundName: 'Day 6 — Emergency Fleet Distribution',
+    primaryPlan: '4A',
+    reservePlan: '4E',
+    cost: 60,
+    rationale: 'Deploys Plan 4A (8/12 trucks, 24/6 vehicles, 20/0 boats) with LKR 60M fee when treasury >= -140M; otherwise holds entire 70-unit fleet in reserve via Plan 4E at LKR 0M cost.'
+  },
+  5: {
+    roundName: 'Day 8 — Crisis Escalation',
+    solventRankings: ['5A', '5C', '5E', '5D', '5B'],
+    constrainedRankings: ['5E', '5C', '5D', '5A', '5B'],
+    rationale: 'When solvent (budget >= -190M), executes mandatory landslide evacuation (5A: 40M), triage points (5C: 30M), and expenditure redirect (5E: +60M grant), net cost 10M. If severely credit-constrained, prioritizes fund redirection (5E) first for a net +30M gain.'
+  },
+  6: {
+    roundName: 'Day 10 — Recovery & Rehabilitation',
+    solventRankings: ['6A', '6C', '6E', '6B', '6D'],
+    constrainedRankings: ['6E', '6A', '6D', '6C', '6B'],
+    rationale: 'When solvent (budget >= -185M), executes comprehensive PDNA (6A: 15M), disease surveillance (6C: 50M), and external donor coordination (6E: +50M grant), net cost 15M. If severely credit-constrained, mobilizes donor aid (6E) first for a net +35M gain.'
+  }
+};
+
+/**
+ * Generates an emergency fallback decision if the deliberation countdown expires in Tournament Mode.
+ * Implements deterministic, documented fallback rankings and allocation rules for each of the six rounds:
+ * - Day 0, Day 2, Day 8, Day 10: Explicit fallback rankings where only the top 3 operational actions execute.
+ * - Day 4: Defaults to Plan 3A (40M evac, 30M water, 30M medical) when feasible. If credit-constrained,
+ *   scales deterministically via: 40% evac, 30% water, 30% medical of available capacity.
+ * - Day 6: Plan 4A when the LKR 60M fee is affordable (budget >= -140M); otherwise Plan 4E (fleet held in reserve).
+ * Never allows fallback to bypass the 100M Day 4 cap, fleet limits, or 200M emergency credit ceiling.
+ */
 export function createFallbackDecision(
   bucket: number,
-  partialDecision?: { rankings?: ActionId[]; allocations?: Record<string, number> }
+  partialDecision?: { rankings?: ActionId[]; allocations?: Record<string, number> },
+  currentBudget?: number
 ): {
   decision: { rankings?: ActionId[]; allocations?: Record<string, number> };
   emergencyFallback: boolean;
+  policyDetails: FallbackPolicyDetails;
 } {
   const norm = partialDecision || {};
+  const budget = currentBudget ?? 400;
 
+  // ---------------------------------------------------------------------------
+  // Day 4 (Bucket 3): Fiscal Allocation
+  // ---------------------------------------------------------------------------
   if (bucket === 3) {
-    // Day 4: Fiscal allocation
+    // If player had entered a valid custom allocation within budget, preserve it
     if (norm.allocations && typeof norm.allocations === 'object') {
       const sum = (Number(norm.allocations.evacuation) || 0) +
                   (Number(norm.allocations.drinkingWater) || 0) +
@@ -626,22 +706,103 @@ export function createFallbackDecision(
       const hasNegative = (Number(norm.allocations.evacuation) < 0) ||
                           (Number(norm.allocations.drinkingWater) < 0) ||
                           (Number(norm.allocations.medicalSupplies) < 0);
-      if (sum > 0 && sum <= 100 && !hasNegative) {
-        return { decision: norm, emergencyFallback: false };
+      if (sum > 0 && sum <= 100 && !hasNegative && (budget - sum >= -EMERGENCY_CREDIT_FACILITY_CAP)) {
+        return {
+          decision: norm,
+          emergencyFallback: false,
+          policyDetails: {
+            roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+            planOrActions: `Custom Allocation (Evac ${norm.allocations.evacuation}M, Water ${norm.allocations.drinkingWater}M, Med ${norm.allocations.medicalSupplies}M)`,
+            explanation: 'Player-configured custom fiscal allocation preserved within statutory and credit limits.',
+            executedActionTitles: [
+              `Evacuation: LKR ${norm.allocations.evacuation}M`,
+              `Drinking Water: LKR ${norm.allocations.drinkingWater}M`,
+              `Medical Supplies: LKR ${norm.allocations.medicalSupplies}M`
+            ],
+            netBudgetImpact: -sum
+          }
+        };
       }
     }
+    // If player had selected a valid affordable preset plan (3A - 3D), preserve it
     if (norm.rankings && norm.rankings.length > 0) {
       const firstPlan = norm.rankings[0];
       if (['3A', '3B', '3C', '3D'].includes(firstPlan)) {
-        return { decision: { rankings: [firstPlan] }, emergencyFallback: false };
+        if (budget - 100 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+          const act = findAction(firstPlan, 3);
+          return {
+            decision: { rankings: [firstPlan] },
+            emergencyFallback: false,
+            policyDetails: {
+              roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+              planOrActions: `Preset Plan ${firstPlan}`,
+              explanation: act?.rationale || 'Player-selected preset plan committed within credit facility.',
+              executedActionTitles: [act?.title || `Preset Plan ${firstPlan}`],
+              netBudgetImpact: -100
+            }
+          };
+        }
       }
     }
-    // Emergency Fallback: Plan 3A (Standard balanced allocation)
-    return { decision: { rankings: ['3A'] }, emergencyFallback: true };
+
+    // Deterministic Fallback Policy:
+    // Available credit capacity before reaching hard -200M limit:
+    const availableCapacity = Math.max(0, Math.min(100, Math.floor(budget + EMERGENCY_CREDIT_FACILITY_CAP)));
+
+    if (availableCapacity >= 100) {
+      // Full Plan 3A (100M: 40 Evac, 30 Water, 30 Med)
+      return {
+        decision: { 
+          rankings: ['3A'],
+          allocations: { evacuation: 40, drinkingWater: 30, medicalSupplies: 30 }
+        },
+        emergencyFallback: true,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+          planOrActions: 'Plan 3A (Evacuation 40M / Water 30M / Medical 30M)',
+          explanation: 'Defaulted to Plan 3A to fully fund critical evacuation while sustaining vital water and medical buffers within available credit.',
+          executedActionTitles: [
+            'Evacuation 40 / Water 30 / Medical 30 (LKR 100M)'
+          ],
+          netBudgetImpact: -100
+        }
+      };
+    } else {
+      // Reduced-allocation formula proportional to Plan 3A:
+      // 40% Evacuation, 30% Drinking Water, 30% Medical Supplies (remainder to medical)
+      const evac = Math.floor(availableCapacity * 0.40);
+      const water = Math.floor(availableCapacity * 0.30);
+      const med = availableCapacity - evac - water;
+
+      return {
+        decision: {
+          allocations: {
+            evacuation: evac,
+            drinkingWater: water,
+            medicalSupplies: med
+          }
+        },
+        emergencyFallback: true,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[3].roundName,
+          planOrActions: `Reduced Proportional Allocation (Evac ${evac}M, Water ${water}M, Med ${med}M)`,
+          explanation: `Credit capacity constrained to LKR ${availableCapacity}M. Applied deterministic 40/30/30 sector-allocation rule strictly respecting the -LKR 200M Emergency Credit Facility ceiling.`,
+          executedActionTitles: [
+            `Emergency Evacuation: LKR ${evac}M`,
+            `Drinking Water Distribution: LKR ${water}M`,
+            `Medical Supplies & Triage: LKR ${med}M`
+          ],
+          netBudgetImpact: availableCapacity === 0 ? 0 : -availableCapacity
+        }
+      };
+    }
   }
 
+  // ---------------------------------------------------------------------------
+  // Day 6 (Bucket 4): Fleet Distribution
+  // ---------------------------------------------------------------------------
   if (bucket === 4) {
-    // Day 6: Fleet distribution
+    // If player had valid custom fleet allocation within budget, preserve it
     if (norm.allocations && typeof norm.allocations === 'object') {
       const { trucksKelani = 0, vehiclesKelani = 0, boatsKelani = 0, trucksDryZone = 0, vehiclesDryZone = 0, boatsDryZone = 0 } = norm.allocations;
       const valid = trucksKelani >= 0 && vehiclesKelani >= 0 && boatsKelani >= 0 &&
@@ -649,40 +810,223 @@ export function createFallbackDecision(
                     (trucksKelani + trucksDryZone <= 20) &&
                     (vehiclesKelani + vehiclesDryZone <= 30) &&
                     (boatsKelani + boatsDryZone <= 20);
-      if (valid && (trucksKelani + vehiclesKelani + boatsKelani + trucksDryZone + vehiclesDryZone + boatsDryZone > 0)) {
-        return { decision: norm, emergencyFallback: false };
+      const totalUnits = trucksKelani + vehiclesKelani + boatsKelani + trucksDryZone + vehiclesDryZone + boatsDryZone;
+      if (valid && totalUnits > 0) {
+        if (budget - 60 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+          return {
+            decision: norm,
+            emergencyFallback: false,
+            policyDetails: {
+              roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+              planOrActions: 'Custom Fleet Distribution',
+              explanation: 'Player-configured fleet distribution committed with LKR 60M mobilization fee.',
+              executedActionTitles: ['Custom Fleet Distribution (LKR 60M fee)'],
+              netBudgetImpact: -60
+            }
+          };
+        }
       }
     }
+    // If player had selected a valid preset plan, preserve it
     if (norm.rankings && norm.rankings.length > 0) {
       const firstPlan = norm.rankings[0];
-      if (['4A', '4B', '4C', '4D', '4E'].includes(firstPlan)) {
-        return { decision: { rankings: [firstPlan] }, emergencyFallback: false };
+      if (['4A', '4B', '4C', '4D'].includes(firstPlan)) {
+        if (budget - 60 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+          const act = findAction(firstPlan, 4);
+          return {
+            decision: { rankings: [firstPlan] },
+            emergencyFallback: false,
+            policyDetails: {
+              roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+              planOrActions: `Preset Fleet Plan ${firstPlan}`,
+              explanation: act?.rationale || 'Player-selected fleet preset committed with LKR 60M mobilization fee.',
+              executedActionTitles: [act?.title || `Fleet Plan ${firstPlan}`],
+              netBudgetImpact: -60
+            }
+          };
+        }
+      } else if (firstPlan === '4E') {
+        return {
+          decision: { rankings: ['4E'] },
+          emergencyFallback: false,
+          policyDetails: {
+            roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+            planOrActions: 'Plan 4E (Held in Reserve)',
+            explanation: 'Fleet held in depot reserves awaiting external humanitarian support (LKR 0M fee).',
+            executedActionTitles: ['Hold all resources in reserve (LKR 0M)'],
+            netBudgetImpact: 0
+          }
+        };
       }
     }
-    // Emergency Fallback: Plan 4A (Standard balanced fleet deployment)
-    return { decision: { rankings: ['4A'] }, emergencyFallback: true };
+
+    // Deterministic Fallback Policy:
+    // If LKR 60M deployment fee is affordable (budget >= -140M), use Plan 4A; otherwise Plan 4E (0M cost).
+    if (budget - 60 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+      return {
+        decision: { 
+          rankings: ['4A'],
+          allocations: {
+            trucks_flood: 8, trucks_dryzone: 12,
+            vehicles_flood: 24, vehicles_dryzone: 6,
+            boats_flood: 20, boats_dryzone: 0
+          }
+        },
+        emergencyFallback: true,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+          planOrActions: 'Plan 4A (Trucks 8/12, Rescue Vehicles 24/6, Boats 20/0)',
+          explanation: 'Deployed Plan 4A: boats dedicated to Kelani flood, heavy trucks dedicated to Dry Zone water haulage, with LKR 60M fee fully affordable.',
+          executedActionTitles: [
+            'Trucks 8/12, rescue vehicles 24/6, boats 20/0 (LKR 60M)'
+          ],
+          netBudgetImpact: -60
+        }
+      };
+    } else {
+      return {
+        decision: { 
+          rankings: ['4E'],
+          allocations: {
+            trucks_flood: 0, trucks_dryzone: 0,
+            vehicles_flood: 0, vehicles_dryzone: 0,
+            boats_flood: 0, boats_dryzone: 0
+          }
+        },
+        emergencyFallback: true,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[4].roundName,
+          planOrActions: 'Plan 4E (Fleet Held in Reserve)',
+          explanation: 'LKR 60M mobilization fee would breach the LKR 200M Emergency Credit Facility ceiling. Fleet held in reserve at LKR 0M cost to preserve financial solvency.',
+          executedActionTitles: [
+            'Hold all resources in reserve and wait for external assistance (LKR 0M)'
+          ],
+          netBudgetImpact: 0
+        }
+      };
+    }
   }
 
-  // Operational rounds (Days 0, 2, 8, 10 -> Buckets 1, 2, 5, 6)
+  // ---------------------------------------------------------------------------
+  // Operational Rounds: Day 0 (B1), Day 2 (B2), Day 8 (B5), Day 10 (B6)
+  // ---------------------------------------------------------------------------
+  let fallbackRankings: string[];
+  let rationale: string;
+  let netDrain: number;
+
+  if (bucket === 1) {
+    fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[1].rankings];
+    rationale = AUTHORITATIVE_FALLBACK_POLICIES[1].rationale;
+    netDrain = AUTHORITATIVE_FALLBACK_POLICIES[1].totalCost; // 55M
+  } else if (bucket === 2) {
+    fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[2].rankings];
+    rationale = AUTHORITATIVE_FALLBACK_POLICIES[2].rationale;
+    netDrain = AUTHORITATIVE_FALLBACK_POLICIES[2].totalCost; // 30M
+  } else if (bucket === 5) {
+    // Day 8: Standard solvent ranking nets 10M spend (5A: 40M + 5C: 30M - 5E: 60M)
+    if (budget - 10 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+      fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[5].solventRankings];
+      rationale = AUTHORITATIVE_FALLBACK_POLICIES[5].rationale;
+      netDrain = 10;
+    } else {
+      fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[5].constrainedRankings];
+      rationale = 'Credit capacity severely constrained. Prioritized expenditure freeze (5E) to inject +LKR 60M liquidity.';
+      netDrain = -30; // +60 - 30 = +30M net gain
+    }
+  } else {
+    // Day 10 (Bucket 6): Standard solvent ranking nets 15M spend (6A: 15M + 6C: 50M - 6E: 50M)
+    if (budget - 15 >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+      fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[6].solventRankings];
+      rationale = AUTHORITATIVE_FALLBACK_POLICIES[6].rationale;
+      netDrain = 15;
+    } else {
+      fallbackRankings = [...AUTHORITATIVE_FALLBACK_POLICIES[6].constrainedRankings];
+      rationale = 'Credit capacity severely constrained. Mobilized donor aid coordination (6E) to inject +LKR 50M external grant.';
+      netDrain = -35; // +50 - 15 = +35M net gain
+    }
+  }
+
+  // If user provided a complete 5-item permutation and it is solvent, evaluate it
   const canonicalIds: Record<number, string[]> = {
     1: ['1A', '1B', '1C', '1D', '1E'],
     2: ['2A', '2B', '2C', '2D', '2E'],
     5: ['5A', '5B', '5C', '5D', '5E'],
     6: ['6A', '6B', '6C', '6D', '6E']
   };
-  const fullCanonical = canonicalIds[bucket] || ['1A', '1B', '1C', '1D', '1E'];
-
+  const fullCanonical = canonicalIds[bucket] || fallbackRankings;
   const userRanks = (norm.rankings || []).filter(id => fullCanonical.includes(id));
   const uniqueUserRanks = Array.from(new Set(userRanks));
 
+  const getTop3Drain = (ranks: string[]) => {
+    let drain = 0;
+    ranks.slice(0, 3).forEach(id => {
+      const act = findAction(id, bucket);
+      if (act) {
+        drain -= (act.impacts?.emergencyBudget ?? 0);
+      }
+    });
+    return drain;
+  };
+
   if (uniqueUserRanks.length === 5) {
-    return { decision: { rankings: uniqueUserRanks }, emergencyFallback: false };
+    const drain = getTop3Drain(uniqueUserRanks);
+    if (budget - drain >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+      const executed = uniqueUserRanks.slice(0, 3);
+      const actionTitles = executed.map(id => {
+        const act = findAction(id, bucket);
+        return act ? `${id}: ${act.title}` : id;
+      });
+      return {
+        decision: { rankings: uniqueUserRanks },
+        emergencyFallback: false,
+        policyDetails: {
+          roundName: AUTHORITATIVE_FALLBACK_POLICIES[bucket as keyof typeof AUTHORITATIVE_FALLBACK_POLICIES]?.roundName || `Day ${(bucket - 1) * 2}`,
+          planOrActions: `Autonomous Directives: ${executed.join(', ')}`,
+          explanation: 'Player-ranked directives authorized within provincial treasury limits.',
+          executedActionTitles: actionTitles,
+          netBudgetImpact: -drain
+        }
+      };
+    }
   }
 
-  // Auto-complete unranked slots with remaining canonical actions
-  const missing = fullCanonical.filter(id => !uniqueUserRanks.includes(id));
-  const completed = [...uniqueUserRanks, ...missing];
-  return { decision: { rankings: completed }, emergencyFallback: true };
+  let finalRankings = fallbackRankings;
+  let finalDrain = netDrain;
+  let finalExplanation = rationale;
+
+  if (uniqueUserRanks.length > 0 && uniqueUserRanks.length < 5) {
+    const merged = [
+      ...uniqueUserRanks,
+      ...fallbackRankings.filter(id => !uniqueUserRanks.includes(id))
+    ];
+    if (merged.length === 5) {
+      const mergedDrain = getTop3Drain(merged);
+      if (budget - mergedDrain >= -EMERGENCY_CREDIT_FACILITY_CAP) {
+        finalRankings = merged;
+        finalDrain = mergedDrain;
+        finalExplanation = 'Deliberation deadline expired with partial selections. Contingency policy preserved player directives and completed safe ranking within credit limits.';
+      }
+    }
+  }
+
+  // Emergency Fallback: commit the deterministic fallback rankings
+  const top3Executed = finalRankings.slice(0, 3);
+  const top3Titles = top3Executed.map(id => {
+    const act = findAction(id, bucket);
+    return act ? `${id}: ${act.title}` : id;
+  });
+
+  return {
+    decision: { rankings: finalRankings },
+    emergencyFallback: true,
+    policyDetails: {
+      roundName: AUTHORITATIVE_FALLBACK_POLICIES[bucket as keyof typeof AUTHORITATIVE_FALLBACK_POLICIES]?.roundName || `Day ${(bucket - 1) * 2}`,
+      planOrActions: top3Executed.join(', '),
+      explanation: finalExplanation,
+      executedActionTitles: top3Titles,
+      netBudgetImpact: finalDrain === 0 ? 0 : -finalDrain
+    }
+  };
 }
 
 /**
@@ -697,6 +1041,14 @@ export function processDecision(
     timeSpentSeconds?: number;
     timeoutOccurred?: boolean;
     emergencyFallback?: boolean;
+    roundStartedAt?: string;
+    roundDeadlineAt?: string;
+    decisionSubmittedAt?: string;
+    responseTimeMs?: number;
+    roundDurationSeconds?: number;
+    timedOut?: boolean;
+    fallbackApplied?: boolean;
+    decisionMode?: SimulationMode;
   }
 ): GameState {
   const normDecision = Array.isArray(decision) ? { rankings: decision } : decision;
@@ -704,7 +1056,14 @@ export function processDecision(
   // Validate constraints for resource rounds and Emergency Credit Facility
   const constraintCheck = validateConstraints(state.bucket, normDecision, state.resources?.emergencyBudget);
   if (!constraintCheck.valid) {
-    throw new Error(constraintCheck.error || 'Decision violates operational constraints.');
+    const isEmergency = Boolean(
+      decisionMeta?.fallbackApplied || 
+      decisionMeta?.emergencyFallback || 
+      decisionMeta?.timedOut
+    );
+    if (!isEmergency) {
+      throw new Error(constraintCheck.error || 'Decision violates operational constraints.');
+    }
   }
 
   const delta = calculateDelta(normDecision, state.bucket, state);
@@ -760,7 +1119,10 @@ export function processDecision(
   newState.activeDynamicEvents = delta.triggeredEvents || [];
 
   // Escalating command friction consequences if emergency fallback was engaged due to timeout
-  if (decisionMeta?.timeoutOccurred && decisionMeta?.emergencyFallback) {
+  const isTimeout = decisionMeta?.timedOut ?? decisionMeta?.timeoutOccurred ?? false;
+  const isFallback = decisionMeta?.fallbackApplied ?? decisionMeta?.emergencyFallback ?? false;
+
+  if (isTimeout && isFallback) {
     if (state.bucket === 1) {
       newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 4);
       newState.scores.communityTrust = newState.community.communityTrust;
@@ -785,19 +1147,74 @@ export function processDecision(
     }
   }
 
-  // 8. Record in Decision History
+  // 8. Record in Official Decision History
+  const roundStartedAt = decisionMeta?.roundStartedAt || state.roundStartTime || new Date().toISOString();
+  const roundDurationSeconds = decisionMeta?.roundDurationSeconds || state.roundDurationSeconds || getRoundDuration(state.bucket);
+  const roundDeadlineAt = decisionMeta?.roundDeadlineAt || state.roundDeadline || new Date(new Date(roundStartedAt).getTime() + roundDurationSeconds * 1000).toISOString();
+  const decisionSubmittedAt = decisionMeta?.decisionSubmittedAt || new Date().toISOString();
+  const responseTimeMs = decisionMeta?.responseTimeMs !== undefined
+    ? decisionMeta.responseTimeMs
+    : (decisionMeta?.timeSpentSeconds !== undefined ? decisionMeta.timeSpentSeconds * 1000 : Math.max(0, new Date(decisionSubmittedAt).getTime() - new Date(roundStartedAt).getTime()));
+  const timeSpentSeconds = Math.round(responseTimeMs / 1000);
+  const decisionMode: SimulationMode = decisionMeta?.decisionMode || state.simulationMode || 'tournament';
+
+  // Compute action titles for executed directives
+  let actionTitles: string[] = [];
+  if (state.bucket === 3) {
+    if (normDecision.rankings?.[0]) {
+      const plan = normDecision.rankings[0];
+      const act = findAction(plan, 3);
+      actionTitles = [act ? `${plan}: ${act.title}` : `Preset Plan ${plan}`];
+    } else if (normDecision.allocations) {
+      actionTitles = [
+        `Emergency Evacuation: LKR ${normDecision.allocations.evacuation ?? 0}M`,
+        `Drinking Water Distribution: LKR ${normDecision.allocations.drinkingWater ?? 0}M`,
+        `Medical Supplies & Triage: LKR ${normDecision.allocations.medicalSupplies ?? 0}M`
+      ];
+    }
+  } else if (state.bucket === 4) {
+    if (normDecision.rankings?.[0]) {
+      const plan = normDecision.rankings[0];
+      const act = findAction(plan, 4);
+      actionTitles = [act ? `${plan}: ${act.title}` : `Preset Fleet Plan ${plan}`];
+    } else if (normDecision.allocations) {
+      actionTitles = [
+        'Custom Fleet Distribution (Flood / Dry Zone Deployment)'
+      ];
+    }
+  } else {
+    actionTitles = (delta.executedActionIds || []).map(id => {
+      const act = findAction(id, state.bucket);
+      return act ? `${id}: ${act.title}` : id;
+    });
+  }
+
   newState.decisionHistory.push({
     bucket: state.bucket,
     day: state.day,
     userId,
+    scenarioTitle: SCENARIOS[state.bucket]?.title,
+    actionTitles,
     rankings: normDecision.rankings,
     allocations: normDecision.allocations,
     executedActionIds: delta.executedActionIds,
     triggeredEvents: delta.triggeredEvents?.map(e => e.id),
-    timestamp: new Date(),
-    timeSpentSeconds: decisionMeta?.timeSpentSeconds,
-    timeoutOccurred: decisionMeta?.timeoutOccurred || false,
-    emergencyFallback: decisionMeta?.emergencyFallback || false
+    timestamp: new Date(decisionSubmittedAt),
+    timeSpentSeconds,
+    timeoutOccurred: isTimeout,
+    emergencyFallback: isFallback,
+    roundStartedAt,
+    roundDeadlineAt,
+    decisionSubmittedAt,
+    responseTimeMs,
+    roundDurationSeconds,
+    timedOut: isTimeout,
+    fallbackApplied: isFallback,
+    decisionMode,
+    financialEffects: {
+      budgetDelta: delta.emergencyBudget,
+      treasuryRemaining: newState.resources.emergencyBudget
+    }
   });
 
   // 9. Advance Bucket & Day
@@ -806,7 +1223,7 @@ export function processDecision(
 
   // Setup round deadline and shuffled card orders for next bucket if active
   if (newState.bucket <= 6) {
-    const nextDuration = ROUND_DEADLINE_SECONDS[newState.bucket] || 75;
+    const nextDuration = getRoundDuration(newState.bucket);
     const now = new Date();
     newState.roundStartTime = now.toISOString();
     newState.roundDeadline = new Date(now.getTime() + nextDuration * 1000).toISOString();
@@ -873,19 +1290,23 @@ export function calculateTpi(
 
   if (decisionHistory.length > 0) {
     for (const h of decisionHistory) {
-      if (h.timeoutOccurred) timeoutsCount++;
-      if (h.emergencyFallback) fallbacksCount++;
-      const timeSpent = typeof h.timeSpentSeconds === 'number' ? h.timeSpentSeconds : 45;
+      const isTimeout = h.timedOut ?? h.timeoutOccurred ?? false;
+      const isFallback = h.fallbackApplied ?? h.emergencyFallback ?? false;
+      if (isTimeout) timeoutsCount++;
+      if (isFallback) fallbacksCount++;
+      const timeSpent = typeof h.responseTimeMs === 'number'
+        ? Math.round(h.responseTimeMs / 1000)
+        : (typeof h.timeSpentSeconds === 'number' ? h.timeSpentSeconds : 45);
       totalTimeSpent += timeSpent;
 
-      const maxDuration = ROUND_DEADLINE_SECONDS[h.bucket] || 90;
+      const maxDuration = h.roundDurationSeconds || getRoundDuration(h.bucket);
       const ratio = timeSpent / maxDuration;
 
       let roundSpeedScore = 75;
-      if (h.timeoutOccurred && h.emergencyFallback) {
+      if (isTimeout && isFallback) {
         roundSpeedScore = 40; // Severe timeout intervention penalty
-      } else if (h.timeoutOccurred && !h.emergencyFallback) {
-        roundSpeedScore = 65; // Buzzer-beater submission
+      } else if (isTimeout && !isFallback) {
+        roundSpeedScore = 65; // Buzzer-beater / deliberate overtime submission
       } else if (ratio <= 0.15) {
         roundSpeedScore = 80; // Hasty decision
       } else if (ratio <= 0.70) {
@@ -985,6 +1406,7 @@ export function calculateTpi(
       components,
       totalTpi,
       averageDecisionTimeSeconds: avgDecisionTimeSeconds,
+      totalDecisionTimeSeconds: Math.round(totalTimeSpent),
       timeoutsCount,
       fallbacksCount
     }

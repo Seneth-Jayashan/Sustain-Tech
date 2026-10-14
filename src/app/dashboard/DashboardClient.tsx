@@ -7,8 +7,9 @@ import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
 import { findAction } from '@/game/engine';
 import { ACTION_MATRIX } from '@/game/matrix';
+import { getRoundDuration } from '@/game/timer';
+import { SimulationMode } from '@/game/types';
 import WeatherOverlay from '@/components/WeatherOverlay';
-import Typewriter from '@/components/Typewriter';
 import { playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking } from '@/lib/audio';
 import { 
   Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
@@ -17,6 +18,16 @@ import {
   ChevronDown, ChevronUp, Eye, Clock
 } from 'lucide-react';
 import Image from 'next/image';
+import { 
+  notifyError, 
+  notifyWarning, 
+  notifySuccess, 
+  notifyInfo, 
+  notifyConfirm,
+  toastSuccess,
+  toastWarning,
+  toastInfo
+} from '@/lib/notifications';
 
 // Advanced Visualizers
 
@@ -354,18 +365,22 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [submitting, setSubmitting] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showBrief, setShowBrief] = useState(true);
-  const [showFullSituation, setShowFullSituation] = useState(false);
   const [mobileMetricsOpen, setMobileMetricsOpen] = useState(false);
 
-  // Real-time Emergency Countdown Timer (Server-Enforced)
+  const roundAllowance = state.roundDurationSeconds || getRoundDuration(state.bucket);
+  const simulationMode: SimulationMode = 'tournament';
+
+  // Real-time Emergency Countdown Timer (Server-Enforced Tournament Deadlines)
   const [secondsLeft, setSecondsLeft] = useState<number>(() => {
-    if (!state.roundDeadline) return 120;
+    if (!state.roundDeadline) return roundAllowance;
     return Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
   });
   const [interventionAlert, setInterventionAlert] = useState<string | null>(null);
 
-  const warned30Ref = useRef(false);
-  const warned10Ref = useRef(false);
+  const warned60Ref = useRef(false);
+  const warned15Ref = useRef(false);
+  const timeoutHandledRef = useRef<number | null>(null);
+  const handleSubmitRef = useRef<((isTimeout?: boolean) => Promise<void>) | null>(null);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -386,7 +401,6 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     if (!currentScenario) return;
     playRadarPing();
     setShowBrief(true);
-    setShowFullSituation(false);
 
     if (voiceEnabled) {
       const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
@@ -396,36 +410,52 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     return () => stopSpeaking();
   }, [state.bucket, currentScenario, state.day, voiceEnabled]);
 
+  const submittingRef = useRef(submitting);
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
+
+  // Reset round-specific countdown warnings and timeout guards when bucket advances
+  useEffect(() => {
+    warned60Ref.current = false;
+    warned15Ref.current = false;
+    timeoutHandledRef.current = null;
+  }, [state.bucket]);
+
   // Real-time Emergency Timer Countdown Loop
   useEffect(() => {
-    warned30Ref.current = false;
-    warned10Ref.current = false;
-
     const tick = () => {
       if (!state.roundDeadline) return;
-      const rem = Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
+      const now = Date.now();
+      const deadline = new Date(state.roundDeadline).getTime();
+      const diff = Math.ceil((deadline - now) / 1000);
+      const rem = Math.max(0, diff);
       setSecondsLeft(rem);
 
-      if (rem <= 30 && rem > 10 && !warned30Ref.current) {
-        warned30Ref.current = true;
+      // Subtle warning at 60s
+      if (rem <= 60 && rem > 15 && !warned60Ref.current) {
+        warned60Ref.current = true;
         playWarningBeep(false);
       }
 
-      if (rem <= 10 && rem > 0 && !warned10Ref.current) {
-        warned10Ref.current = true;
+      // Clearer but calm reminder at 15s
+      if (rem <= 15 && rem > 0 && !warned15Ref.current) {
+        warned15Ref.current = true;
         playWarningBeep(true);
       }
 
-      if (rem === 0 && !submitting) {
+      // Tournament deadline arrival: invoke fallback procedure exactly once per round
+      if (rem === 0 && !submittingRef.current && timeoutHandledRef.current !== state.bucket) {
+        timeoutHandledRef.current = state.bucket;
         playTimeoutBuzzer();
-        handleSubmitDecision(true);
+        handleSubmitRef.current?.(true);
       }
     };
 
     tick();
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [state.roundDeadline, state.bucket, submitting]);
+  }, [state.roundDeadline, state.bucket]);
 
   const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
@@ -547,29 +577,29 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       if (state.bucket === 3) {
         if (day4Mode === 'preset') {
           if (!day4PresetPlan) {
-            alert('Please select a preset fiscal plan to authorize.');
+            await notifyWarning('Plan Selection Required', 'Please select a preset fiscal plan to authorize.');
             return;
           }
           if (day4PresetPlan === '3E') {
-            alert('Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
+            await notifyError('Statutory Limit Exceeded', 'Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
             return;
           }
           payload = { rankings: [day4PresetPlan] };
         } else {
           if (day4HasNegative) {
-            alert('Allocation amounts cannot be negative.');
+            await notifyError('Invalid Allocation', 'Allocation amounts cannot be negative.');
             return;
           }
           if (day4AllocatedTotal > 100) {
-            alert(`Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
+            await notifyError('Budget Ceiling Exceeded', `Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
             return;
           }
           if (day4AllocatedTotal <= 0) {
-            alert('Please allocate emergency funds across sectors.');
+            await notifyWarning('Allocation Required', 'Please allocate emergency funds across sectors.');
             return;
           }
           if (day4IsCreditBreached) {
-            alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+            await notifyError('Credit Facility Exceeded', 'Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
             return;
           }
           payload = {
@@ -583,29 +613,29 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       } else if (state.bucket === 4) {
         if (day6Mode === 'preset') {
           if (!day6PresetPlan) {
-            alert('Please select a preset fleet plan to authorize.');
+            await notifyWarning('Plan Selection Required', 'Please select a preset fleet plan to authorize.');
             return;
           }
           payload = { rankings: [day6PresetPlan] };
         } else {
           if (day6HasNegative) {
-            alert('Fleet allocations cannot be negative.');
+            await notifyError('Invalid Allocation', 'Fleet allocations cannot be negative.');
             return;
           }
           if (day6TrucksTotal > 20) {
-            alert(`Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
+            await notifyError('National Fleet Exceeded', `Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
             return;
           }
           if (day6VehiclesTotal > 30) {
-            alert(`Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
+            await notifyError('National Fleet Exceeded', `Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
             return;
           }
           if (day6BoatsTotal > 20) {
-            alert(`Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
+            await notifyError('National Fleet Exceeded', `Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
             return;
           }
           if (day6IsCreditBreached) {
-            alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+            await notifyError('Credit Facility Exceeded', 'Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
             return;
           }
           payload = {
@@ -621,10 +651,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         }
       } else {
         if (selectedOrder.length !== 5) {
-          alert('Please rank all 5 actions in priority order.');
+          await notifyWarning('Priority Ranking Incomplete', 'Please rank all 5 actions in priority order.');
           return;
         }
         payload = { rankings: selectedOrder };
+      }
+
+      // Consequential action confirmation
+      const confirmed = await notifyConfirm(
+        'Authorize Operational Directives?',
+        `Confirm authorization of operational directives for Day ${(state.bucket - 1) * 2}. This will commit provincial resources and advance the timeline.`,
+        { confirmText: 'Authorize Now', cancelText: 'Review Directives' }
+      );
+      if (!confirmed) {
+        return;
       }
     }
 
@@ -638,12 +678,43 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         body: JSON.stringify(payload)
       });
 
+      if (res.status === 409) {
+        // Concurrency / Duplicate submission guard: Refresh session to show latest state
+        await notifyInfo('Decision Already Authorized', 'A decision for this round has already been authorized.');
+        const stateRes = await fetch('/api/game/state');
+        const stateData = await stateRes.json();
+        if (stateData.success && stateData.gameSession) {
+          if (stateData.gameSession.status === 'COMPLETED') {
+            router.push('/reflection');
+          } else {
+            setState(stateData.gameSession.state);
+          }
+        }
+        setSubmitting(false);
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         if (data.intervention) {
           setInterventionAlert(data.intervention.message);
+          const roundDay = (state.bucket - 1) * 2;
+          const title = `Contingency Protocol Activated — Day ${roundDay}`;
+          const summaryLines = [
+            data.intervention.planOrActions ? `Applied Strategy: ${data.intervention.planOrActions}` : '',
+            data.intervention.explanation || data.intervention.message,
+            data.intervention.executedActionTitles && data.intervention.executedActionTitles.length > 0
+              ? `Executed Directives:\n${data.intervention.executedActionTitles.map((t: string) => `• ${t}`).join('\n')}`
+              : '',
+            data.intervention.netBudgetImpact !== undefined
+              ? `Net Treasury Impact: ${data.intervention.netBudgetImpact <= 0 ? `-LKR ${Math.abs(data.intervention.netBudgetImpact)}M` : `+LKR ${data.intervention.netBudgetImpact}M`}`
+              : ''
+          ].filter(Boolean).join('\n\n');
+
+          await notifyInfo(title, summaryLines);
         } else {
           setInterventionAlert(null);
+          toastSuccess('Directives Authorized', `Day ${(state.bucket - 1) * 2} directives successfully committed.`);
         }
         if (data.gameSession.status === 'COMPLETED') {
           router.push('/reflection');
@@ -661,15 +732,19 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           setSubmitting(false);
         }
       } else {
-        alert(data.error || 'Failed to submit decision.');
+        await notifyError('Authorization Error', data.error || 'Failed to submit decision.');
         setSubmitting(false);
       }
     } catch (error) {
       console.error(error);
-      alert('Failed to submit decision.');
+      await notifyError('Submission Failed', 'Failed to submit decision. Please check your network connection.');
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmitDecision;
+  });
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -907,21 +982,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       {/* Narrative HUD - Advisor Briefing */}
       <AnimatePresence>
         {showBrief && (
-          <motion.div
-            initial={{ x: -400, opacity: 0, rotateY: 30 }}
-            animate={{ x: 0, opacity: 1, rotateY: 0 }}
-            exit={{ x: -400, opacity: 0, rotateY: 30 }}
-            transition={{ type: "spring", damping: 20, stiffness: 100 }}
-            className="fixed sm:absolute top-[75px] sm:top-[120px] md:top-[130px] left-3 right-3 sm:left-6 sm:right-auto md:left-8 z-40 max-w-xl perspective-[1000px]"
-          >
-            <div className="relative flex flex-col gap-2 sm:gap-3">
+          <div className="relative z-30 w-full max-w-xl xl:max-w-2xl px-3 sm:px-6 md:px-8 pt-1 pb-3 pointer-events-auto self-start">
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -200, opacity: 0 }}
+              transition={{ type: "spring", damping: 22, stiffness: 120 }}
+              className="relative flex flex-col gap-2 sm:gap-3"
+            >
               {/* Advisor Avatar Pop-in with Collapse Action */}
-              <motion.div 
-                initial={{ y: 50, opacity: 0 }} 
-                animate={{ y: 0, opacity: 1 }} 
-                transition={{ delay: 0.3, type: "spring" }}
-                className="flex items-end justify-between gap-3 sm:gap-4"
-              >
+              <div className="flex items-end justify-between gap-3 sm:gap-4">
                 <div className="flex items-end gap-3 sm:gap-4">
                   <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 sm:border-4 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-black z-20 shrink-0">
                     <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
@@ -937,54 +1007,34 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
                 <button 
                   onClick={() => setShowBrief(false)} 
-                  className="mb-1 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/90 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 hover:bg-slate-800 transition-all"
+                  className="mb-1 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/90 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 hover:bg-slate-800 transition-all cursor-pointer"
                   title="Minimize briefing to focus on allocation decisions"
                 >
                   <ChevronUp size={14} />
                   <span>Minimize</span>
                 </button>
-              </motion.div>
+              </div>
 
               {/* Message Box */}
-              <motion.div 
-                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[55vh] sm:max-h-[65vh] overflow-y-auto"
+              <div 
+                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[38vh] sm:max-h-[46vh] overflow-y-auto"
                 style={{ scrollbarWidth: 'thin' }}
               >
                 <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl rounded-full pointer-events-none"></div>
                 
                 <div className="flex justify-between items-start mb-2 gap-2">
                   <h2 className="text-base sm:text-lg font-black text-white tracking-tight">{currentScenario.title}</h2>
-                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0">
+                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0 cursor-pointer" title="Minimize briefing">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 </div>
 
-                <div 
-                  onClick={() => setShowFullSituation(true)} 
-                  className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed min-h-[50px] cursor-pointer select-text"
-                  title="Click to instantly reveal full text"
-                >
-                  {showFullSituation ? (
-                    <p className="whitespace-pre-line">{currentScenario.situation}</p>
-                  ) : (
-                    <Typewriter 
-                      text={currentScenario.situation} 
-                      speed={12} 
-                      onComplete={() => setShowFullSituation(true)} 
-                    />
-                  )}
+                <div className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed select-text">
+                  <p className="whitespace-pre-line leading-relaxed">{currentScenario.situation}</p>
                 </div>
-                {!showFullSituation && (
-                  <button 
-                    onClick={() => setShowFullSituation(true)} 
-                    className="mt-1 text-[10px] font-mono text-cyan-400/80 hover:text-cyan-300 underline"
-                  >
-                    Click to show full text immediately
-                  </button>
-                )}
 
                 {currentScenario.events && currentScenario.events.length > 0 && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-3 pt-2.5 border-t border-slate-800">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800">
                     <div className="flex flex-col gap-1.5">
                       {currentScenario.events.map((ev: string, i: number) => (
                         <div key={i} className="text-[10px] sm:text-[11px] font-mono text-cyan-200/90 flex items-start gap-2">
@@ -993,7 +1043,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                         </div>
                       ))}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Bottom Dismiss / Proceed Button */}
@@ -1006,41 +1056,42 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       setShowBrief(false);
                       playUIBlip();
                     }}
-                    className="w-full xs:w-auto px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ml-auto shadow-md"
+                    className="w-full xs:w-auto px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ml-auto shadow-md cursor-pointer"
                   >
                     <span>Proceed to Allocation & Decisions</span>
                     <ChevronDown size={14} />
                   </button>
                 </div>
-              </motion.div>
-            </div>
-          </motion.div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {!showBrief && (
-        <motion.button
-          initial={{ scale: 0, x: -50 }}
-          animate={{ scale: 1, x: 0 }}
-          whileHover={{ scale: 1.05 }}
-          onClick={() => {
-            setShowBrief(true);
-            setShowFullSituation(true);
-            playUIBlip();
-          }}
-          className="fixed sm:absolute top-[80px] sm:top-[130px] md:top-[140px] left-3 sm:left-6 md:left-8 z-40 bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1.5 sm:p-2 rounded-2xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 group"
-        >
-          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
-            <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
-          </div>
-          <div className="flex flex-col items-start text-left">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
-              <span>Scenario Briefing</span>
-              <span className="text-cyan-400 text-[9px] font-mono font-normal">Day {state.day}</span>
-            </span>
-            <span className="text-[9px] font-mono text-cyan-400/80">Click to expand briefing</span>
-          </div>
-        </motion.button>
+        <div className="relative z-30 px-3 sm:px-6 md:px-8 pt-1 pb-3 pointer-events-auto self-start">
+          <motion.button
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{ scale: 1.03 }}
+            onClick={() => {
+              setShowBrief(true);
+              playUIBlip();
+            }}
+            className="bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1.5 sm:p-2 rounded-2xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 group cursor-pointer"
+          >
+            <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+              <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
+            </div>
+            <div className="flex flex-col items-start text-left">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
+                <span>Scenario Briefing</span>
+                <span className="text-cyan-400 text-[9px] font-mono font-normal">Day {state.day}</span>
+              </span>
+              <span className="text-[9px] font-mono text-cyan-400/80">Click to expand briefing</span>
+            </div>
+          </motion.button>
+        </div>
       )}
 
       {/* Submission Overlay HUD */}
@@ -1994,18 +2045,27 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </div>
         )}
 
-        {/* 30s & 10s Deliberation Warning Banners */}
-        {secondsLeft <= 30 && secondsLeft > 0 && (
-          <div className={`mb-3 p-2.5 sm:p-3 rounded-xl border flex items-center gap-2.5 text-xs font-mono font-bold transition-all ${
-            secondsLeft <= 10
-              ? 'border-red-500/80 bg-red-950/70 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.35)] animate-pulse'
-              : 'border-amber-500/70 bg-amber-950/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+        {/* Deliberation Warning Banners (Calm indicators at 60s and 15s) */}
+        {secondsLeft <= 60 && secondsLeft > 0 && (
+          <div className={`mb-3 p-2.5 sm:p-3 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-mono font-medium transition-all ${
+            secondsLeft <= 15
+              ? 'border-amber-500/60 bg-amber-950/40 text-amber-200'
+              : 'border-slate-700 bg-slate-900/60 text-slate-300'
           }`}>
-            <AlertTriangle size={16} className={secondsLeft <= 10 ? 'text-red-400 shrink-0 animate-bounce' : 'text-amber-400 shrink-0'} />
-            <span className="truncate">
-              {secondsLeft <= 10
-                ? `CRITICAL ALERT: Emergency protocol engagement in ${secondsLeft}s. Automated contingency fallback will deploy if not authorized.`
-                : `WARNING: Deliberation window closing (${secondsLeft}s remaining). Finalize priority directives before deadline.`}
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={16} className={secondsLeft <= 15 ? 'text-amber-400 shrink-0' : 'text-slate-400 shrink-0'} />
+              <span className="truncate">
+                {secondsLeft <= 15
+                  ? `Notice: ${secondsLeft}s remaining before round deadline. Automated contingency fallback will deploy if not authorized.`
+                  : `Deliberation notice: ${secondsLeft}s remaining in round allowance. Finalize priority directives before deadline.`}
+              </span>
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${
+              secondsLeft <= 15
+                ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                : 'border-slate-700 bg-slate-800 text-slate-400'
+            }`}>
+              {secondsLeft <= 15 ? '15s Reminder' : '60s Window'}
             </span>
           </div>
         )}
@@ -2039,43 +2099,33 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
           {/* Right Action Bar: Emergency Countdown Timer + Authorize Action Button */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-            {/* Real-time Emergency Countdown Timer */}
-            <div 
-              id="emergency-decision-clock"
-              className={`flex items-center justify-between sm:justify-start gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border backdrop-blur-xl transition-all font-mono select-none ${
-                secondsLeft <= 10
-                  ? 'border-red-500 bg-red-950/60 text-red-400 shadow-[0_0_25px_rgba(239,68,68,0.4)] animate-pulse'
-                  : secondsLeft <= 30
-                  ? 'border-amber-500/80 bg-amber-950/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-                  : 'border-cyan-500/40 bg-slate-900/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Clock 
-                  size={16} 
-                  className={`shrink-0 ${
-                    secondsLeft <= 10 ? 'text-red-400 animate-spin' : secondsLeft <= 30 ? 'text-amber-400' : 'text-cyan-400'
-                  }`} 
-                />
+            {/* Authoritative Tournament Decision Clock */}
+            <div className="flex items-center gap-2">
+              <div 
+                id="emergency-decision-clock"
+                className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border backdrop-blur-xl transition-all font-mono select-none ${
+                  secondsLeft <= 15
+                    ? 'border-amber-500/50 bg-amber-950/30 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                    : 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
+                }`}
+              >
+                <Clock size={16} className={secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
                 <div className="flex flex-col leading-none">
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400">
-                    {secondsLeft <= 10 ? 'EMERGENCY CLOCK' : secondsLeft <= 30 ? 'TIME CRITICAL' : 'DECISION WINDOW'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400">
+                      REMAINING
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500">
+                      (Cap: {formatTime(roundAllowance)})
+                    </span>
+                  </div>
                   <span className={`text-base sm:text-lg font-black font-mono tracking-wider ${
-                    secondsLeft <= 10 ? 'text-red-400' : secondsLeft <= 30 ? 'text-amber-300' : 'text-white'
+                    secondsLeft <= 15 ? 'text-amber-300' : 'text-white'
                   }`}>
                     {formatTime(secondsLeft)}
                   </span>
                 </div>
               </div>
-
-              {secondsLeft <= 30 && (
-                <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 ${
-                  secondsLeft <= 10 ? 'border-red-500 bg-red-500/20 text-red-200' : 'border-amber-500 bg-amber-500/20 text-amber-200'
-                }`}>
-                  {secondsLeft <= 10 ? '10s TIMEOUT' : '30s ALERT'}
-                </span>
-              )}
             </div>
 
             {/* Authorize Action Button */}

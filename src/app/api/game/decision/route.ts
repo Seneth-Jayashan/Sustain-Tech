@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
-import IntegrityLog from '@/models/IntegrityLog';
+import IntegrityLog, { IntegrityActionType } from '@/models/IntegrityLog';
 import { getSession } from '@/lib/session';
 import { 
   processDecision, 
@@ -10,7 +11,8 @@ import {
   createFallbackDecision 
 } from '@/game/engine';
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
-import { ROUND_DEADLINE_SECONDS } from '@/game/timer';
+import { getRoundDuration } from '@/game/timer';
+import { SimulationMode } from '@/game/types';
 
 export async function POST(request: Request) {
   try {
@@ -37,29 +39,47 @@ export async function POST(request: Request) {
     }
 
     // 1. Authoritative Server-Side Emergency Timer Verification
-    const duration = gameSession.state.roundDurationSeconds || ROUND_DEADLINE_SECONDS[currentBucket] || 75;
-    const roundStartTime = gameSession.state.roundStartTime ? new Date(gameSession.state.roundStartTime) : new Date();
-    const roundDeadline = gameSession.state.roundDeadline 
-      ? new Date(gameSession.state.roundDeadline) 
-      : new Date(roundStartTime.getTime() + duration * 1000);
-
+    const duration = getRoundDuration(currentBucket);
     const now = new Date();
-    const timeSpentSeconds = Math.max(0, Math.min(duration, Math.round((now.getTime() - roundStartTime.getTime()) / 1000)));
+    const decisionSubmittedAt = now.toISOString();
 
-    // Deadline check with 4-second network latency buffer
-    const isTimedOut = Boolean(timeout) || (now.getTime() > (roundDeadline.getTime() + 4000));
+    // Preserve original UTC timestamps from current round; never restart clock on refresh
+    const roundStartedAt = gameSession.state.roundStartTime || decisionSubmittedAt;
+    const roundDeadlineAt = gameSession.state.roundDeadline 
+      ? gameSession.state.roundDeadline 
+      : new Date(new Date(roundStartedAt).getTime() + duration * 1000).toISOString();
+
+    const roundStartTimeMs = new Date(roundStartedAt).getTime();
+    const roundDeadlineMs = new Date(roundDeadlineAt).getTime();
+
+    // Calculate response time on the server using accepted request timestamps (never trust client)
+    const responseTimeMs = Math.max(0, now.getTime() - roundStartTimeMs);
+    const roundDurationSeconds = duration;
+
+    // Authoritative Simulation Mode: Tournament Mode only (never trust client mode)
+    const decisionMode: SimulationMode = 'tournament';
+
+    // Deadline check with 4-second network latency buffer for tournament mode
+    const isDeadlinePassed = (now.getTime() > (roundDeadlineMs + 4000)) || Boolean(timeout);
 
     let finalDecision: { rankings?: string[]; allocations?: Record<string, number> };
-    let emergencyFallback = false;
-    let timeoutOccurred = isTimedOut;
+    let fallbackApplied = false;
+    let timedOut = false;
+    let fallbackPolicyDetails: any = null;
 
-    if (isTimedOut) {
-      // Automatic server intervention when timeout window expires
-      const fallbackResult = createFallbackDecision(currentBucket, { rankings, allocations });
+    // TOURNAMENT MODE ONLY: Strictly enforce server-side deadline with automated fallback
+    if (isDeadlinePassed) {
+      const fallbackResult = createFallbackDecision(
+        currentBucket, 
+        { rankings, allocations },
+        gameSession.state.resources?.emergencyBudget
+      );
       finalDecision = fallbackResult.decision;
-      emergencyFallback = fallbackResult.emergencyFallback;
+      fallbackApplied = fallbackResult.emergencyFallback;
+      fallbackPolicyDetails = fallbackResult.policyDetails;
+      timedOut = true;
     } else {
-      // 2. Normal In-Time Submission Validation
+      // Normal In-Time Submission Validation
       const isAllocationRound = currentBucket === 3 || currentBucket === 4;
 
       if (!isAllocationRound) {
@@ -72,7 +92,6 @@ export async function POST(request: Request) {
         }
       }
 
-      // Operational constraints check
       const constraintCheck = validateConstraints(
         currentBucket, 
         { rankings, allocations }, 
@@ -83,66 +102,190 @@ export async function POST(request: Request) {
       }
 
       finalDecision = { rankings, allocations };
+      fallbackApplied = false;
+      timedOut = false;
     }
 
-    // 3. Process the decision through the simulation engine with decision telemetry
+    // 2. Process the decision through the simulation engine with decision telemetry
     const newState = processDecision(
       gameSession.state, 
       session.userId, 
       finalDecision,
       {
-        timeSpentSeconds,
-        timeoutOccurred,
-        emergencyFallback
+        roundStartedAt,
+        roundDeadlineAt,
+        decisionSubmittedAt,
+        responseTimeMs,
+        roundDurationSeconds,
+        timedOut,
+        fallbackApplied,
+        decisionMode
       }
     );
 
-    gameSession.state = newState;
-    gameSession.currentUserId = session.userId;
-    
-    // Check if game is complete (all 6 buckets completed)
-    if (newState.bucket > 6) {
-      gameSession.status = 'COMPLETED';
-      gameSession.finalResult = calculateFinalOutcome(newState);
-    }
+    // Keep simulationMode in state aligned to tournament
+    newState.simulationMode = 'tournament';
 
-    gameSession.markModified('state');
-    gameSession.markModified('finalResult');
-    await gameSession.save();
+    const isGameComplete = newState.bucket > 6;
+    const finalOutcome = isGameComplete ? calculateFinalOutcome(newState) : undefined;
 
-    // Log the submission in the Integrity System
-    await IntegrityLog.create({
+    // 3. Pre-validate IntegrityLog document before any database mutation
+    // This guarantees that enum validation or schema errors throw BEFORE the session state or treasury is touched
+    const actionType: IntegrityActionType = fallbackApplied 
+      ? 'TIMEOUT_FALLBACK_SUBMISSION' 
+      : timedOut 
+      ? 'TIMEOUT_SUBMISSION' 
+      : 'SUBMISSION';
+
+    const integrityLogDoc = new IntegrityLog({
       gameSessionId: gameSession._id,
       userId: session.userId,
-      actionType: timeoutOccurred ? 'TIMEOUT_SUBMISSION' : 'SUBMISSION',
+      actionType,
       metadata: { 
         bucket: currentBucket, 
         rankings: finalDecision.rankings, 
         allocations: finalDecision.allocations,
-        timeSpentSeconds,
-        timeoutOccurred,
-        emergencyFallback
+        roundStartedAt,
+        roundDeadlineAt,
+        decisionSubmittedAt,
+        responseTimeMs,
+        roundDurationSeconds,
+        timedOut,
+        fallbackApplied,
+        decisionMode
       }
     });
 
-    // If active, determine the next scenario (with seeded shuffled action cards)
+    await integrityLogDoc.validate();
+
+    // 4. Atomic transaction / Consistent persistence sequence
+    let updatedSession: any = null;
+    let usedReplicaSetTx = false;
+
+    let mongoSession: mongoose.ClientSession | null = null;
+    try {
+      mongoSession = await mongoose.startSession();
+      mongoSession.startTransaction();
+      usedReplicaSetTx = true;
+
+      updatedSession = await GameSession.findOneAndUpdate(
+        { 
+          _id: gameSession._id, 
+          status: 'ACTIVE', 
+          'state.bucket': currentBucket 
+        },
+        {
+          $set: {
+            state: newState,
+            currentUserId: session.userId,
+            ...(isGameComplete ? { status: 'COMPLETED', finalResult: finalOutcome } : {})
+          }
+        },
+        { new: true, session: mongoSession }
+      );
+
+      if (!updatedSession) {
+        await mongoSession.abortTransaction();
+        await mongoSession.endSession();
+        return NextResponse.json({ 
+          error: 'Decision for this round has already been submitted or processed.',
+          alreadySubmitted: true
+        }, { status: 409 });
+      }
+
+      await integrityLogDoc.save({ session: mongoSession });
+      await mongoSession.commitTransaction();
+      await mongoSession.endSession();
+    } catch (txError: any) {
+      if (mongoSession) {
+        try {
+          await mongoSession.abortTransaction();
+        } catch (_) {}
+        try {
+          await mongoSession.endSession();
+        } catch (_) {}
+      }
+
+      const isTxNotSupported = 
+        txError?.message?.includes('replica set') || 
+        txError?.message?.includes('Transaction numbers are only allowed') ||
+        txError?.code === 20 || 
+        txError?.codeName === 'IllegalOperation';
+
+      if (isTxNotSupported) {
+        usedReplicaSetTx = false;
+        // Standalone MongoDB fallback: atomic findOneAndUpdate with bucket concurrency check
+        updatedSession = await GameSession.findOneAndUpdate(
+          { 
+            _id: gameSession._id, 
+            status: 'ACTIVE', 
+            'state.bucket': currentBucket 
+          },
+          {
+            $set: {
+              state: newState,
+              currentUserId: session.userId,
+              ...(isGameComplete ? { status: 'COMPLETED', finalResult: finalOutcome } : {})
+            }
+          },
+          { new: true }
+        );
+
+        if (!updatedSession) {
+          return NextResponse.json({ 
+            error: 'Decision for this round has already been submitted or processed.',
+            alreadySubmitted: true
+          }, { status: 409 });
+        }
+
+        try {
+          await integrityLogDoc.save();
+        } catch (logSaveError: any) {
+          console.error('Critical: IntegrityLog save failed after session commit. Reverting session state to prevent inconsistent session history:', logSaveError);
+          // Compensating rollback: revert GameSession state to avoid inconsistent session history
+          await GameSession.findByIdAndUpdate(gameSession._id, {
+            $set: {
+              state: gameSession.state,
+              status: gameSession.status
+            }
+          });
+          throw new Error(`Integrity logging failure: ${logSaveError.message}. Session state rolled back.`);
+        }
+      } else {
+        throw txError;
+      }
+    }
+
+    // 5. If active, determine the next scenario
     let nextScenario = null;
-    if (gameSession.status === 'ACTIVE') {
+    if (updatedSession.status === 'ACTIVE') {
       nextScenario = await determineNextScenario(newState);
     }
 
     return NextResponse.json({ 
       success: true, 
-      gameSession, 
+      gameSession: updatedSession, 
       nextScenario,
       activeEvents: newState.activeDynamicEvents || [],
-      intervention: emergencyFallback ? {
-        message: `Command timeout expired on Day ${(currentBucket - 1) * 2}. Emergency contingency protocol authorized.`
-      } : null
+      intervention: fallbackApplied ? {
+        message: `Command deadline expired on Day ${(currentBucket - 1) * 2} (${duration}s). Emergency contingency protocol authorized.`,
+        roundName: fallbackPolicyDetails?.roundName,
+        planOrActions: fallbackPolicyDetails?.planOrActions,
+        explanation: fallbackPolicyDetails?.explanation,
+        executedActionTitles: fallbackPolicyDetails?.executedActionTitles,
+        netBudgetImpact: fallbackPolicyDetails?.netBudgetImpact
+      } : null,
+      timing: {
+        responseTimeMs,
+        roundDurationSeconds,
+        timedOut,
+        fallbackApplied,
+        decisionMode,
+        atomicTransaction: usedReplicaSetTx
+      }
     });
   } catch (error: any) {
     console.error('Error submitting decision:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
-

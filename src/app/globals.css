@@ -91,3 +91,86 @@ body {
   padding-top: max(0.5rem, env(safe-area-inset-top));
 }
 
+/* SweetAlert2 Sustain-Tech Design System */
+.sustain-swal-popup {
+  background: #0a1120 !important;
+  border: 1px solid rgba(45, 212, 191, 0.35) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 25px rgba(45, 212, 191, 0.12) !important;
+  padding: 1.75rem !important;
+  font-family: inherit !important;
+}
+
+.sustain-swal-title {
+  color: #f8fafc !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  padding-bottom: 0.5rem !important;
+}
+
+.sustain-swal-html {
+  color: #94a3b8 !important;
+  font-size: 0.925rem !important;
+  line-height: 1.6 !important;
+  margin: 0.75rem 0 1.25rem 0 !important;
+}
+
+.sustain-swal-confirm-btn {
+  background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.025em !important;
+  padding: 0.65rem 1.4rem !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  margin: 0 0.35rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25) !important;
+}
+.sustain-swal-confirm-btn:hover {
+  filter: brightness(1.15) !important;
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+.sustain-swal-confirm-btn:focus-visible {
+  outline: 2px solid #2dd4bf !important;
+  outline-offset: 2px !important;
+}
+
+.sustain-swal-cancel-btn {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.025em !important;
+  padding: 0.65rem 1.4rem !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid #334155 !important;
+  margin: 0 0.35rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+.sustain-swal-cancel-btn:hover {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+.sustain-swal-cancel-btn:focus-visible {
+  outline: 2px solid #94a3b8 !important;
+  outline-offset: 2px !important;
+}
+
+.sustain-toast-popup {
+  background: #0a1120 !important;
+  border: 1px solid rgba(45, 212, 191, 0.3) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+.sustain-toast-title {
+  color: #f1f5f9 !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+

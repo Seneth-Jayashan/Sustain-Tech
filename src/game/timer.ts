@@ -1,22 +1,32 @@
 import { SCENARIOS } from './scenario';
 
 /**
- * Authoritative round deadline durations in seconds for playtesting.
- * Day 0 (Bucket 1): 2:00 = 120s
- * Day 2 (Bucket 2): 1:40 = 100s
- * Day 4 (Bucket 3): 1:30 = 90s
- * Day 6 (Bucket 4): 1:15 = 75s
- * Day 8 (Bucket 5): 1:00 = 60s
- * Day 10 (Bucket 6): 1:15 = 75s
+ * Authoritative round deadline durations in seconds:
+ * - Day 0 (Bucket 1): 120 seconds (2:00)
+ * - Day 2 (Bucket 2): 120 seconds (2:00)
+ * - Day 4 (Bucket 3): 150 seconds (2:30)
+ * - Day 6 (Bucket 4): 150 seconds (2:30)
+ * - Day 8 (Bucket 5): 120 seconds (2:00)
+ * - Day 10 (Bucket 6): 120 seconds (2:00)
+ * Total planned decision-time allowance: 780 seconds (13 minutes).
  */
 export const ROUND_DEADLINE_SECONDS: Record<number, number> = {
   1: 120, // Day 0 — Early warning
-  2: 100, // Day 2 — Compound hazards
-  3: 90,  // Day 4 — Critical resource allocation
-  4: 75,  // Day 6 — Emergency fleet deployment
-  5: 60,  // Day 8 — Crisis escalation
-  6: 75,  // Day 10 — Recovery decisions
+  2: 120, // Day 2 — Compound hazards
+  3: 150, // Day 4 — Critical resource allocation
+  4: 150, // Day 6 — Emergency fleet deployment
+  5: 120, // Day 8 — Crisis escalation
+  6: 120, // Day 10 — Recovery decisions
 };
+
+export const TOTAL_PLANNED_ALLOWANCE_SECONDS = Object.values(ROUND_DEADLINE_SECONDS).reduce((a, b) => a + b, 0); // 780
+
+/**
+ * Returns the authoritative allocated duration for a given round bucket in seconds.
+ */
+export function getRoundDuration(bucket: number): number {
+  return ROUND_DEADLINE_SECONDS[bucket] || 120;
+}
 
 /**
  * Deterministic pseudo-random number generator (Mulberry32) for reproducible seeded shuffling.

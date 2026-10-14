@@ -7,7 +7,7 @@ import { FinalResult } from '@/game/types';
 import { 
   LogOut, ShieldCheck, AlertCircle, Droplets, Coins, RadioTower, Users, Award, 
   CheckCircle2, XCircle, ArrowRight, Calculator, ChevronDown, ChevronUp, Info,
-  Clock, Zap, Compass, Activity
+  Clock, Zap, ShieldAlert
 } from 'lucide-react';
 
 interface Props {
@@ -99,6 +99,18 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
     fallbacksCount: 0
   };
 
+  const totalCampaignSeconds = result.tpiDetails?.totalDecisionTimeSeconds !== undefined
+    ? result.tpiDetails.totalDecisionTimeSeconds
+    : (finalState.decisionHistory?.length
+      ? finalState.decisionHistory.reduce((acc: number, d: any) => acc + (d.responseTimeMs ? Math.round(d.responseTimeMs / 1000) : (d.timeSpentSeconds || 0)), 0)
+      : Math.round(tpiData.averageDecisionTimeSeconds * 6));
+
+  const formatMinutesSeconds = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  };
+
   return (
     <div className="w-full max-w-5xl py-4 sm:py-8 px-2 sm:px-4 font-sans text-slate-200">
       <motion.div 
@@ -171,10 +183,25 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
 
                 <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
                   <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block mb-0.5">
+                    Campaign Time
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg sm:text-xl font-black font-mono text-emerald-400">
+                      {formatMinutesSeconds(totalCampaignSeconds)}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">/ 13m</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                    <Clock size={10} className="text-emerald-400 shrink-0" /> 780s allowance
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block mb-0.5">
                     Command Velocity
                   </span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl sm:text-2xl font-black font-mono text-amber-300">
+                    <span className="text-lg sm:text-xl font-black font-mono text-amber-300">
                       {Math.round(tpiData.averageDecisionTimeSeconds)}s
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono">avg/rnd</span>
@@ -472,7 +499,12 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                       <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold mb-3 flex items-center gap-2">
                         <Clock size={14} /> Operational Velocity &amp; Server-Enforced Timeouts
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
+                        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                          <span className="text-slate-400 text-[10px] uppercase block mb-1">Total Campaign Time</span>
+                          <span className="text-emerald-400 font-black text-base">{formatMinutesSeconds(totalCampaignSeconds)}</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Planned cap: 13m 00s (780s)</span>
+                        </div>
                         <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
                           <span className="text-slate-400 text-[10px] uppercase block mb-1">Average Response Speed</span>
                           <span className="text-amber-300 font-black text-base">{Math.round(tpiData.averageDecisionTimeSeconds)}s per round</span>
@@ -548,6 +580,127 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Authoritative Mission Decision History */}
+        {finalState.decisionHistory && finalState.decisionHistory.length > 0 && (
+          <div className="my-6 sm:my-8 bg-slate-900/60 border border-slate-800/80 p-4 sm:p-6 md:p-8 rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-800">
+              <div>
+                <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold block">
+                  Authoritative Incident Timeline
+                </span>
+                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wide mt-0.5">
+                  Round-by-Round Operational Decisions &amp; Contingency Audit
+                </h3>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-mono">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <CheckCircle2 size={13} /> Autonomous
+                </span>
+                <span className="flex items-center gap-1.5 text-amber-400">
+                  <ShieldAlert size={13} /> Fallback
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3 sm:space-y-4">
+              {finalState.decisionHistory.map((rec: any, idx: number) => {
+                const isContingency = Boolean(rec.fallbackApplied || rec.emergencyFallback);
+                const isTimeout = Boolean(rec.timedOut || rec.timeoutOccurred);
+                const responseSecs = rec.responseTimeMs ? Math.round(rec.responseTimeMs / 1000) : (rec.timeSpentSeconds || 0);
+
+                return (
+                  <div
+                    key={idx}
+                    className={`p-3.5 sm:p-4 rounded-xl border backdrop-blur-xl transition-all ${
+                      isContingency
+                        ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-200'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-white/5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] uppercase bg-cyan-950 border border-cyan-800 text-cyan-300">
+                          Day {rec.day ?? (rec.bucket - 1) * 2}
+                        </span>
+                        <span className="font-bold text-white text-xs sm:text-sm">
+                          {rec.scenarioTitle || `Round ${rec.bucket}`}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isContingency ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 font-mono font-bold text-[10px] uppercase flex items-center gap-1">
+                            <ShieldAlert size={11} /> Contingency Intervention
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-mono font-bold text-[10px] uppercase flex items-center gap-1">
+                            <CheckCircle2 size={11} /> Autonomous Orders
+                          </span>
+                        )}
+                        <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                          <Clock size={11} className={isTimeout ? 'text-red-400' : 'text-slate-400'} />
+                          {responseSecs}s {isTimeout && '(Timeout)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2.5 text-xs font-mono space-y-1.5">
+                      {/* Executed Directives */}
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">
+                          Executed Directives:
+                        </span>
+                        {rec.actionTitles && rec.actionTitles.length > 0 ? (
+                          <ul className="space-y-1">
+                            {rec.actionTitles.map((t: string, i: number) => (
+                              <li key={i} className="text-slate-200 flex items-start gap-1.5 text-[11px]">
+                                <span className="text-cyan-400 mt-0.5">•</span>
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : rec.rankings && rec.rankings.length > 0 ? (
+                          <div className="text-slate-300 text-[11px]">
+                            Prioritized: {rec.rankings.slice(0, 3).join(', ')}
+                          </div>
+                        ) : rec.allocations ? (
+                          <div className="text-slate-300 text-[11px]">
+                            Allocations: {JSON.stringify(rec.allocations)}
+                          </div>
+                        ) : (
+                          <div className="text-slate-400 text-[11px]">Standard directives mobilized</div>
+                        )}
+                      </div>
+
+                      {/* Financial Effects */}
+                      {rec.financialEffects && (
+                        <div className="pt-1.5 mt-1.5 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
+                          <span>
+                            Net Treasury Delta:{' '}
+                            <strong className={rec.financialEffects.budgetDelta < 0 ? 'text-red-400' : 'text-emerald-400'}>
+                              {rec.financialEffects.budgetDelta <= 0
+                                ? `-LKR ${Math.abs(Math.round(rec.financialEffects.budgetDelta))}M`
+                                : `+LKR ${Math.round(rec.financialEffects.budgetDelta)}M`}
+                            </strong>
+                          </span>
+                          <span>
+                            Post-Round Treasury Balance:{' '}
+                            <strong className={rec.financialEffects.treasuryRemaining < 0 ? 'text-red-400' : 'text-white'}>
+                              {rec.financialEffects.treasuryRemaining < 0
+                                ? `-LKR ${Math.abs(Math.round(rec.financialEffects.treasuryRemaining))}M (Overdraft)`
+                                : `LKR ${Math.round(rec.financialEffects.treasuryRemaining)}M`}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

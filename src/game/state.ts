@@ -1,5 +1,5 @@
-import { DynamicEventTrigger } from './types';
-import { ROUND_DEADLINE_SECONDS, getDefaultBucketShuffledOrder } from './timer';
+import { DynamicEventTrigger, SimulationMode, DecisionRecord } from './types';
+import { getRoundDuration, getDefaultBucketShuffledOrder } from './timer';
 
 export interface EnvironmentState {
   rainfall: number;
@@ -78,10 +78,11 @@ export interface GameState {
   seed: string;
   bucket: number;
   day: number;
+  simulationMode?: SimulationMode; // 'tournament' (strict fallback) or 'practice' (elapsed time warning, no forced fallback)
   
   // Real-time Emergency Timer and Server-Enforced Deadlines
-  roundStartTime?: string;      // ISO string of round commencement
-  roundDeadline?: string;       // ISO string of authoritative server deadline
+  roundStartTime?: string;      // ISO string of round commencement (UTC)
+  roundDeadline?: string;       // ISO string of authoritative server deadline (UTC)
   roundDurationSeconds?: number;// Duration allocated for this round in seconds
   
   // Randomized Action Cards (persisted display order per bucket)
@@ -96,24 +97,12 @@ export interface GameState {
   scores: ScoreState;
   activeDynamicEvents?: DynamicEventTrigger[];
   
-  decisionHistory: Array<{
-    bucket: number;
-    day: number;
-    userId: string;
-    rankings?: string[];
-    allocations?: Record<string, number>;
-    executedActionIds?: string[];
-    triggeredEvents?: string[];
-    timestamp: Date;
-    timeSpentSeconds?: number;
-    timeoutOccurred?: boolean;
-    emergencyFallback?: boolean;
-  }>;
+  decisionHistory: DecisionRecord[];
 }
 
 // Initial default state factory matching 10 Days to Decide parameters
-export function getInitialGameState(sessionId: string = 'default', seed: string = 'seed'): GameState {
-  const initDuration = ROUND_DEADLINE_SECONDS[1] || 120;
+export function getInitialGameState(sessionId: string = 'default', seed: string = 'seed', mode: SimulationMode = 'tournament'): GameState {
+  const initDuration = getRoundDuration(1);
   const now = new Date();
   const initDeadline = new Date(now.getTime() + initDuration * 1000);
 
@@ -122,6 +111,7 @@ export function getInitialGameState(sessionId: string = 'default', seed: string 
     seed,
     bucket: 1,
     day: 0,
+    simulationMode: mode,
     roundStartTime: now.toISOString(),
     roundDeadline: initDeadline.toISOString(),
     roundDurationSeconds: initDuration,

@@ -65,6 +65,36 @@ export interface ScoreCalculationDetails {
   explanation: string;
 }
 
+export type SimulationMode = 'tournament' | 'practice';
+
+export interface DecisionRecord {
+  bucket: number;
+  day: number;
+  userId: string;
+  scenarioTitle?: string;
+  actionTitles?: string[];
+  rankings?: string[];
+  allocations?: Record<string, number>;
+  executedActionIds?: string[];
+  triggeredEvents?: string[];
+  timestamp: Date;
+  timeSpentSeconds?: number;
+  timeoutOccurred?: boolean;
+  emergencyFallback?: boolean;
+  roundStartedAt?: string;
+  roundDeadlineAt?: string;
+  decisionSubmittedAt?: string;
+  responseTimeMs?: number;
+  roundDurationSeconds?: number;
+  timedOut?: boolean;
+  fallbackApplied?: boolean;
+  decisionMode?: SimulationMode;
+  financialEffects?: {
+    budgetDelta: number;
+    treasuryRemaining: number;
+  };
+}
+
 export interface TpiComponent {
   pillar: string;
   weightPercent: number; // 35, 20, 15, 10, 10, 10
@@ -77,6 +107,7 @@ export interface TpiCalculationDetails {
   components: TpiComponent[];
   totalTpi: number; // 0 - 100
   averageDecisionTimeSeconds: number;
+  totalDecisionTimeSeconds?: number;
   timeoutsCount: number;
   fallbacksCount: number;
 }

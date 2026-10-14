@@ -40,8 +40,8 @@ export default async function DashboardPage() {
   let needsSave = false;
   const currentBucket = gameSession.state.bucket || 1;
   if (!gameSession.state.roundDeadline || !gameSession.state.roundStartTime) {
-    const { ROUND_DEADLINE_SECONDS } = await import('@/game/timer');
-    const duration = ROUND_DEADLINE_SECONDS[currentBucket] || 75;
+    const { getRoundDuration } = await import('@/game/timer');
+    const duration = getRoundDuration(currentBucket);
     const now = new Date();
     gameSession.state.roundStartTime = now.toISOString();
     gameSession.state.roundDurationSeconds = duration;
@@ -53,6 +53,10 @@ export default async function DashboardPage() {
     gameSession.state.shuffledCardOrders = {
       [currentBucket]: getDefaultBucketShuffledOrder(gameSession.state.seed || 'seed', currentBucket)
     };
+    needsSave = true;
+  }
+  if (gameSession.state.simulationMode !== 'tournament') {
+    gameSession.state.simulationMode = 'tournament';
     needsSave = true;
   }
   if (needsSave) {

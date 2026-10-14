@@ -1,9 +1,17 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export type IntegrityActionType = 
+  | 'VISIBILITY_CHANGE' 
+  | 'RIGHT_CLICK_ATTEMPT' 
+  | 'SUBMISSION' 
+  | 'TIMEOUT_FALLBACK_SUBMISSION'
+  | 'TIMEOUT_SUBMISSION'
+  | 'OVERTIME_SUBMISSION';
+
 export interface IIntegrityLog extends Document {
   gameSessionId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  actionType: 'VISIBILITY_CHANGE' | 'RIGHT_CLICK_ATTEMPT' | 'SUBMISSION';
+  actionType: IntegrityActionType;
   metadata?: any;
   createdAt: Date;
 }
@@ -13,7 +21,14 @@ const IntegrityLogSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   actionType: { 
     type: String, 
-    enum: ['VISIBILITY_CHANGE', 'RIGHT_CLICK_ATTEMPT', 'SUBMISSION'], 
+    enum: [
+      'VISIBILITY_CHANGE', 
+      'RIGHT_CLICK_ATTEMPT', 
+      'SUBMISSION', 
+      'TIMEOUT_FALLBACK_SUBMISSION',
+      'TIMEOUT_SUBMISSION',
+      'OVERTIME_SUBMISSION'
+    ], 
     required: true 
   },
   metadata: { type: Schema.Types.Mixed },

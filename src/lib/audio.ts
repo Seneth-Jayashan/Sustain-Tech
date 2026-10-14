@@ -60,18 +60,19 @@ export function playWarningBeep(urgent = false) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
 
-  osc.type = urgent ? 'sawtooth' : 'sine';
-  osc.frequency.setValueAtTime(urgent ? 880 : 540, ctx.currentTime);
-  osc.frequency.setValueAtTime(urgent ? 980 : 660, ctx.currentTime + 0.08);
+  // Subtle acoustic sine reminder, avoiding harsh buzzers or loud alarms
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(urgent ? 520 : 440, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(urgent ? 580 : 440, ctx.currentTime + 0.12);
 
-  gain.gain.setValueAtTime(0.12, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+  gain.gain.setValueAtTime(urgent ? 0.05 : 0.03, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
 
   osc.connect(gain);
   gain.connect(ctx.destination);
 
   osc.start();
-  osc.stop(ctx.currentTime + 0.18);
+  osc.stop(ctx.currentTime + 0.25);
 }
 
 export function playTimeoutBuzzer() {
@@ -79,21 +80,22 @@ export function playTimeoutBuzzer() {
   if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume();
 
+  // Calm descending sine chime marking round conclusion without aggressive alarm
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
 
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(220, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.4);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(360, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + 0.3);
 
-  gain.gain.setValueAtTime(0.2, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+  gain.gain.setValueAtTime(0.05, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
 
   osc.connect(gain);
   gain.connect(ctx.destination);
 
   osc.start();
-  osc.stop(ctx.currentTime + 0.4);
+  osc.stop(ctx.currentTime + 0.35);
 }
 
 // Text-to-Speech wrapper
