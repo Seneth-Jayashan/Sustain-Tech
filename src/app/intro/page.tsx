@@ -315,12 +315,12 @@ export default function IntroPage() {
           if (vol >= 0.28) clearInterval(fadeIn);
         }, 80);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // Re-loop manually — avoids the HTML `loop` attribute stopping mid-track
     const onEnded = () => {
       audio.currentTime = 0;
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     };
     audio.addEventListener('ended', onEnded);
     return () => audio.removeEventListener('ended', onEnded);
@@ -493,7 +493,7 @@ export default function IntroPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.6 }}
-              className="flex flex-col items-center gap-6 sm:gap-10 text-center max-w-2xl"
+              className="flex flex-col items-center gap-6 sm:gap-10 text-center w-full max-w-5xl"
             >
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -512,17 +512,25 @@ export default function IntroPage() {
                 transition={{ delay: 0.5, duration: 0.8 }}
                 className="w-full"
               >
+                <GlitchTitle text="SUSTAIN TECH" trigger={false} />
                 <GlitchTitle text="10 DAYS TO DECIDE" trigger={false} />
               </motion.div>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-                className="text-slate-400 font-mono text-xs sm:text-sm tracking-widest max-w-sm uppercase px-4 leading-relaxed"
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9, duration: 0.7 }}
+                className="w-full max-w-[1000px] px-4 sm:px-6 md:px-8 mx-auto"
               >
-                One community. Two possible futures. Every decision matters.
-              </motion.p>
+                <p className="font-mono text-slate-300 text-xs sm:text-sm md:text-base lg:text-lg tracking-wider sm:tracking-widest leading-relaxed sm:leading-loose text-center uppercase select-none">
+                  <span className="block sm:inline md:block">
+                    Command the response.
+                  </span>{' '}
+                  <span className="block sm:inline md:block text-slate-200">
+                    Every decision can save lives.
+                  </span>
+                </p>
+              </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -572,7 +580,7 @@ export default function IntroPage() {
                 transition={{ type: 'spring', stiffness: 100, damping: 15 }}
                 className="w-full"
               >
-                <GlitchTitle text="10 DAYS TO DECIDE" trigger={showTitle} />
+                <GlitchTitle text="SUSTAIN TECH" trigger={showTitle} />
               </motion.div>
 
               <motion.div
@@ -613,7 +621,7 @@ export default function IntroPage() {
               key="playing"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center gap-6 sm:gap-10 w-full max-w-4xl text-center px-2"
+              className="flex flex-col items-center gap-6 sm:gap-10 w-full text-center px-2"
             >
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -621,7 +629,7 @@ export default function IntroPage() {
                 transition={{ delay: 0.2 }}
                 className="w-full"
               >
-                <GlitchTitle text="10 DAYS TO DECIDE" trigger={isPlaying} />
+                <GlitchTitle text="SUSTAIN TECH" trigger={isPlaying} />
               </motion.div>
 
               <div className="flex flex-col items-center gap-2 sm:gap-3">
@@ -641,7 +649,7 @@ export default function IntroPage() {
                       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                       exit={{ opacity: 0, y: -14, filter: 'blur(4px)' }}
                       transition={{ duration: 0.3 }}
-                      className="font-black leading-snug sm:leading-tight text-center max-w-3xl"
+                      className="font-black leading-snug sm:leading-tight text-center w-full"
                       style={{
                         fontSize: 'clamp(1.15rem, 3.8vw, 3rem)',
                         fontFamily: "'Courier New', monospace",

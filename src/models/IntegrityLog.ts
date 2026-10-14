@@ -36,4 +36,12 @@ const IntegrityLogSchema: Schema = new Schema({
   metadata: { type: Schema.Types.Mixed },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+if (mongoose.models.IntegrityLog) {
+  const modelEnumValues = (mongoose.models.IntegrityLog.schema?.path('actionType') as any)?.enumValues || [];
+  if (!modelEnumValues.includes('FALLBACK_ACKNOWLEDGEMENT')) {
+    delete (mongoose.models as any).IntegrityLog;
+  }
+}
+
 export default mongoose.models.IntegrityLog || mongoose.model<IIntegrityLog>('IntegrityLog', IntegrityLogSchema);
+

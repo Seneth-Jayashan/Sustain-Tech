@@ -4,6 +4,7 @@ import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
 import { getSession } from '@/lib/session';
 import { getInitialGameState } from '@/game/state';
+import { resolveExpiredRoundIfNecessary } from '@/lib/serverGameSession';
 
 export async function GET() {
   try {
@@ -26,6 +27,9 @@ export async function GET() {
         state: initialState,
       });
     } else {
+      // Resolve any round deadline that elapsed while disconnected or logged out
+      gameSession = await resolveExpiredRoundIfNecessary(gameSession, session.userId);
+
       // Ensure timer and shuffle state exist on existing active sessions
       let needsSave = false;
       const b = gameSession.state.bucket || 1;

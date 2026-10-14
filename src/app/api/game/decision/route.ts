@@ -38,6 +38,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Game already completed' }, { status: 400 });
     }
 
+    // Require player to acknowledge pending fallback report before authorizing next round directives
+    if (gameSession.state.pendingFallbackAcknowledgement) {
+      return NextResponse.json({ 
+        error: 'Please acknowledge the contingency report for the previous round before authorizing new directives.',
+        pendingAcknowledgment: true 
+      }, { status: 400 });
+    }
+
     // 1. Authoritative Server-Side Emergency Timer Verification
     const duration = getRoundDuration(currentBucket);
     const now = new Date();

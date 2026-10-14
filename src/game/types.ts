@@ -61,6 +61,9 @@ export interface ScoreCalculationDetails {
   humanDecisionsCount?: number;
   fallbackCount?: number;
   fallbackInterventionPenalty?: number;
+  timeoutDeduction?: number;
+  participationMultiplier?: number;
+  clampedSubtotal?: number;
   allTimeoutZeroOverride?: boolean;
   scoreAfterPenalties: number;
   curveAdjustment: number;
@@ -128,6 +131,10 @@ export interface TpiCalculationDetails {
   totalDecisionTimeSeconds?: number;
   timeoutsCount: number;
   fallbacksCount: number;
+  humanDecisionsCount?: number;
+  participationMultiplier?: number;
+  unadjustedTpi?: number;
+  timeoutPenaltyPoints?: number;
 }
 
 export interface FinalResult {

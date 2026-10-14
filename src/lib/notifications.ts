@@ -205,17 +205,20 @@ export function toastError(title: string, message?: string) {
  * Displays completed round/day, reason, executed actions, net budget impact, and remaining treasury.
  * Features a single "Got It — Continue" action and blocks outside clicks.
  */
-export async function showFallbackInterventionReport(report: {
-  completedBucket: number;
-  completedDay: number;
-  roundName: string;
-  reason: string;
-  planOrActions?: string;
-  executedActionTitles: string[];
-  netBudgetImpact: number;
-  treasuryRemaining: number;
-  timestamp?: string;
-}): Promise<SweetAlertResult> {
+export async function showFallbackInterventionReport(
+  report: {
+    completedBucket: number;
+    completedDay: number;
+    roundName: string;
+    reason: string;
+    planOrActions?: string;
+    executedActionTitles: string[];
+    netBudgetImpact: number;
+    treasuryRemaining: number;
+    timestamp?: string;
+  },
+  onConfirmAcknowledge?: () => Promise<{ success: boolean; data?: any; error?: string }>
+): Promise<SweetAlertResult> {
   if (typeof window === 'undefined') return { isConfirmed: true, isDenied: false, isDismissed: false };
 
   const executedListHtml = report.executedActionTitles && report.executedActionTitles.length > 0
@@ -276,6 +279,22 @@ export async function showFallbackInterventionReport(report: {
     allowOutsideClick: false,
     allowEscapeKey: false,
     showCancelButton: false,
+    showLoaderOnConfirm: Boolean(onConfirmAcknowledge),
+    preConfirm: onConfirmAcknowledge
+      ? async () => {
+          try {
+            const res = await onConfirmAcknowledge();
+            if (!res || !res.success) {
+              Swal.showValidationMessage(res?.error || 'Server acknowledgment failed. Please retry.');
+              return false;
+            }
+            return res.data || res;
+          } catch (err: any) {
+            Swal.showValidationMessage(err?.message || 'Network error acknowledging report. Please retry.');
+            return false;
+          }
+        }
+      : undefined
   };
 
   return Swal.fire(config);

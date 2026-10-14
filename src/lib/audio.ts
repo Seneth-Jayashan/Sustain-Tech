@@ -98,7 +98,65 @@ export function playTimeoutBuzzer() {
   osc.stop(ctx.currentTime + 0.35);
 }
 
-// Text-to-Speech wrapper
+// Text-to-Speech wrapper with English voice selection and natural, slow pacing
+let cachedVoices: SpeechSynthesisVoice[] = [];
+
+function loadVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return [];
+  if (cachedVoices.length > 0) return cachedVoices;
+  const voices = window.speechSynthesis.getVoices();
+  if (voices && voices.length > 0) {
+    cachedVoices = voices;
+  }
+  return cachedVoices;
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    cachedVoices = window.speechSynthesis.getVoices();
+  };
+}
+
+export function getBestEnglishVoice(): SpeechSynthesisVoice | null {
+  const voices = loadVoices();
+  if (!voices || voices.length === 0) return null;
+
+  // 1. High-priority natural English voices (en-US, en-GB)
+  const preferredNames = [
+    'Google UK English Female',
+    'Google UK English Male',
+    'Google US English',
+    'Microsoft Libby Online (Natural)',
+    'Microsoft Ryan Online (Natural)',
+    'Samantha',
+    'Daniel',
+    'Serena',
+    'Karen',
+    'Fiona'
+  ];
+
+  for (const name of preferredNames) {
+    const match = voices.find(v => v.name.includes(name));
+    if (match) return match;
+  }
+
+  // 2. Exact match for standard en-US or en-GB
+  const standardEn = voices.find(v => (
+    v.lang === 'en-GB' || 
+    v.lang === 'en-US' || 
+    v.lang === 'en_GB' || 
+    v.lang === 'en_US'
+  ));
+  if (standardEn) return standardEn;
+
+  // 3. Graceful fallback to any English voice
+  const anyEn = voices.find(v => v.lang.startsWith('en'));
+  if (anyEn) return anyEn;
+
+  // 4. Default voice
+  return voices.find(v => v.default) || voices[0] || null;
+}
+
 export function speakText(text: string, interrupt = true) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   
@@ -108,15 +166,17 @@ export function speakText(text: string, interrupt = true) {
 
   const utterance = new SpeechSynthesisUtterance(text);
   
-  // Try to find an English robotic/professional voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(v => v.lang.includes('en-') && (v.name.includes('Google') || v.name.includes('Samantha')));
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
+  const voice = getBestEnglishVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  } else {
+    utterance.lang = 'en-US';
   }
   
-  utterance.rate = 1.05; // Slightly faster for dispatch feel
-  utterance.pitch = 0.9;
+  // Starting speech rate around 0.80–0.85 (0.82) for clear, deliberate disaster command briefing
+  utterance.rate = 0.82;
+  utterance.pitch = 1.0;
   
   window.speechSynthesis.speak(utterance);
 }
@@ -125,3 +185,4 @@ export function stopSpeaking() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
 }
+

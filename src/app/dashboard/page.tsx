@@ -5,6 +5,7 @@ import GameSession from '@/models/GameSession';
 import { getSession } from '@/lib/session';
 import { getInitialGameState } from '@/game/state';
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
+import { resolveExpiredRoundIfNecessary } from '@/lib/serverGameSession';
 import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
@@ -30,10 +31,18 @@ export default async function DashboardPage() {
       currentUserId: session.userId,
       state: initialState,
     });
-  } else if (gameSession.currentUserId?.toString() !== session.userId) {
-    // Update currentUserId if a different team member logs in
-    gameSession.currentUserId = session.userId;
-    await gameSession.save();
+  } else {
+    if (gameSession.currentUserId?.toString() !== session.userId) {
+      // Update currentUserId if a different team member logs in
+      gameSession.currentUserId = session.userId;
+      await gameSession.save();
+    }
+
+    // Resolve any round deadline that expired while the team was disconnected or logged out
+    gameSession = await resolveExpiredRoundIfNecessary(gameSession, session.userId);
+    if (gameSession.status === 'COMPLETED') {
+      redirect('/reflection');
+    }
   }
 
   // Ensure timer and shuffle state exist on existing active sessions

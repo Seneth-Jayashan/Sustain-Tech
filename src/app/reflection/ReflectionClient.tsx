@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState } from '@/game/state';
-import { FinalResult } from '@/game/types';
+import { FinalResult, ScoreCalculationDetails } from '@/game/types';
 import { 
   LogOut, ShieldCheck, AlertCircle, Droplets, Coins, RadioTower, Users, Award, 
   CheckCircle2, XCircle, ArrowRight, Calculator, ChevronDown, ChevronUp, Info,
@@ -66,7 +66,15 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
     { label: 'Public Order & Civic Trust', failed: result.failureStates?.civilBreakdown, metric: `${Math.round(community.communityTrust)}% Trust`, threshold: '≥ 25%' },
   ];
 
-  const calc = result.calculationDetails || {
+  const fallbackCount = result.fallbackInterventionsCount ?? finalState.decisionHistory?.filter((d: any) => d.fallbackApplied || d.emergencyFallback || d.isSystemContingency).length ?? 0;
+  const humanCount = result.humanDecisionsCount ?? finalState.decisionHistory?.filter((d: any) => !(d.fallbackApplied || d.emergencyFallback || d.isSystemContingency)).length ?? (6 - fallbackCount);
+  const failurePoints = Object.values(result.failureStates || {}).filter(Boolean).length * 12;
+  const timeoutPoints = fallbackCount * 10;
+  const baseSum = Math.round((0.25 * scores.floodPreparedness + 0.25 * scores.droughtPreparedness + 0.20 * scores.resourceScore + 0.15 * information.informationQuality + 0.15 * community.communityTrust) * 10) / 10;
+  const subtotalClamped = Math.max(0, Math.min(100, baseSum - failurePoints - timeoutPoints));
+  const mult = humanCount / 6;
+
+  const defaultCalc: ScoreCalculationDetails = {
     weightedComponents: [
       { label: 'Flood Resilience', rawScore: Math.round(scores.floodPreparedness), weightPercent: 25, contribution: Math.round(0.25 * scores.floodPreparedness * 10) / 10 },
       { label: 'Drought Resilience', rawScore: Math.round(scores.droughtPreparedness), weightPercent: 25, contribution: Math.round(0.25 * scores.droughtPreparedness * 10) / 10 },
@@ -74,15 +82,24 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
       { label: 'Information Quality', rawScore: Math.round(information.informationQuality), weightPercent: 15, contribution: Math.round(0.15 * information.informationQuality * 10) / 10 },
       { label: 'Community Trust', rawScore: Math.round(community.communityTrust), weightPercent: 15, contribution: Math.round(0.15 * community.communityTrust * 10) / 10 },
     ],
-    baselineWeightedSum: Math.round((0.25 * scores.floodPreparedness + 0.25 * scores.droughtPreparedness + 0.20 * scores.resourceScore + 0.15 * information.informationQuality + 0.15 * community.communityTrust) * 10) / 10,
+    baselineWeightedSum: baseSum,
     breachedFailuresCount: Object.values(result.failureStates || {}).filter(Boolean).length,
-    failurePenaltyPoints: Object.values(result.failureStates || {}).filter(Boolean).length * 12,
-    scoreAfterPenalties: Math.max(10, Math.round(((0.25 * scores.floodPreparedness + 0.25 * scores.droughtPreparedness + 0.20 * scores.resourceScore + 0.15 * information.informationQuality + 0.15 * community.communityTrust) - Object.values(result.failureStates || {}).filter(Boolean).length * 12) * 10) / 10),
+    failurePenaltyPoints: failurePoints,
+    humanDecisionsCount: humanCount,
+    fallbackCount: fallbackCount,
+    fallbackInterventionPenalty: timeoutPoints,
+    timeoutDeduction: timeoutPoints,
+    participationMultiplier: Math.round(mult * 1000) / 1000,
+    clampedSubtotal: subtotalClamped,
+    allTimeoutZeroOverride: humanCount === 0,
+    scoreAfterPenalties: subtotalClamped,
     curveAdjustment: 0,
     finalCps: result.cps,
     arithmeticMean: Math.round(((scores.floodPreparedness + scores.droughtPreparedness + scores.resourceScore + information.informationQuality + community.communityTrust + scores.decisionQuality) / 6) * 10) / 10,
     explanation: 'Score calculated from exact linear formula.'
   };
+
+  const calc = result.calculationDetails || defaultCalc;
 
   const tpiData = result.tpiDetails || {
     components: [
@@ -367,7 +384,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                            {calc.weightedComponents.map((c, i) => (
+                            {calc.weightedComponents.map((c: any, i: number) => (
                               <tr key={i} className="hover:bg-slate-800/30">
                                 <td className="py-2.5 text-white font-medium">
                                   {c.label}
@@ -402,40 +419,64 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                         <AlertCircle size={14} /> 2. Crisis Thresholds &amp; Command Interventions
                       </h3>
                       <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 text-xs font-mono">
-                        {/* Crisis Thresholds */}
+                        {/* Baseline */}
                         <div className="flex justify-between items-center text-slate-300">
-                          <span>Breached Crisis Thresholds:</span>
-                          <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {calc.breachedFailuresCount} {calc.breachedFailuresCount === 1 ? 'condition' : 'conditions'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-slate-300">
-                          <span>Crisis Threshold Penalty:</span>
-                          <span className={`font-black ${calc.failurePenaltyPoints > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {calc.failurePenaltyPoints > 0 ? `-${calc.failurePenaltyPoints.toFixed(1)} pts (-12 pts/breach)` : '0.0 pts'}
+                          <span>Weighted Baseline (B):</span>
+                          <span className="font-black text-emerald-400">
+                            {calc.baselineWeightedSum.toFixed(1)} pts
                           </span>
                         </div>
 
-                        {/* Partial Timeout Deductions */}
-                        {(calc.fallbackCount ?? 0) > 0 && !calc.allTimeoutZeroOverride && (
-                          <div className="flex justify-between items-center text-slate-300 pt-1.5 border-t border-slate-800/60">
-                            <span>Contingency Fallback Interventions:</span>
-                            <span className="font-black text-amber-400">
-                              {calc.fallbackCount} {calc.fallbackCount === 1 ? 'round' : 'rounds'} (-{calc.fallbackInterventionPenalty?.toFixed(1) || ((calc.fallbackCount ?? 0) * 5).toFixed(1)} pts @ 5 pts/round)
-                            </span>
-                          </div>
-                        )}
+                        {/* Crisis Thresholds */}
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Breached Crisis Thresholds (P):</span>
+                          <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {calc.breachedFailuresCount} {calc.breachedFailuresCount === 1 ? 'condition' : 'conditions'}
+                            {calc.failurePenaltyPoints > 0 ? ` (-${calc.failurePenaltyPoints.toFixed(1)} pts @ 12 pts/breach)` : ' (0.0 pts)'}
+                          </span>
+                        </div>
+
+                        {/* Timeout Deductions */}
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Contingency Fallback Deductions (10 × F):</span>
+                          <span className={`font-black ${(calc.fallbackCount ?? 0) > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {calc.fallbackCount ?? 0} {calc.fallbackCount === 1 ? 'round' : 'rounds'}
+                            {(calc.fallbackCount ?? 0) > 0 ? ` (-${((calc.timeoutDeduction ?? (calc.fallbackCount ?? 0) * 10)).toFixed(1)} pts @ 10 pts/round)` : ' (0.0 pts)'}
+                          </span>
+                        </div>
+
+                        {/* Clamped Subtotal */}
+                        <div className="flex justify-between items-center pt-1.5 border-t border-slate-800/60 text-slate-300">
+                          <span>Clamped Subtotal [clamp(B - P - 10×F, 0, 100)]:</span>
+                          <span className="font-black text-cyan-300">
+                            {(calc.clampedSubtotal ?? calc.scoreAfterPenalties).toFixed(1)} pts
+                          </span>
+                        </div>
+
+                        {/* Human Participation Coverage */}
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Human-Authorized Rounds (H):</span>
+                          <span className="font-black text-white">
+                            {calc.humanDecisionsCount ?? 6} / 6 rounds
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Participation Multiplier (H / 6):</span>
+                          <span className="font-black text-purple-400">
+                            ×{(calc.participationMultiplier ?? ((calc.humanDecisionsCount ?? 6) / 6)).toFixed(3)} ({(((calc.participationMultiplier ?? ((calc.humanDecisionsCount ?? 6) / 6))) * 100).toFixed(1)}%)
+                          </span>
+                        </div>
 
                         {/* All-Timeout Rule Notice */}
                         {calc.allTimeoutZeroOverride ? (
-                          <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-500/40 text-red-300 text-[11px] leading-relaxed">
+                          <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-500/40 text-red-300 text-[11px] leading-relaxed mt-2">
                             <strong className="block text-red-400 font-bold mb-0.5">All-Timeout Command Autopilot Rule:</strong>
-                            All 6 decision rounds expired without human command authorization. Automated contingencies executed emergency autopilot protocols. By rule, system fallbacks cannot receive a positive command-performance score. Authoritative CPS is overridden to 0.0 / 100.
+                            All 6 decision rounds expired without human command authorization (H = 0). Automated contingencies executed emergency autopilot protocols. By rule, system fallbacks cannot receive a positive command-performance score. Authoritative CPS is 0.0 / 100 (Tier 4).
                           </div>
                         ) : (
                           <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white">
-                            <span>Score After Deductions:</span>
-                            <span className="text-cyan-300 font-black">{calc.scoreAfterPenalties.toFixed(1)} pts</span>
+                            <span>Final Adjusted Score [Subtotal × (H / 6)]:</span>
+                            <span className="text-cyan-400 font-black">{result.cps.toFixed(1)} pts</span>
                           </div>
                         )}
                       </div>
@@ -448,19 +489,15 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                       </h3>
                       <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-slate-300">
                         <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                          <span>Formula Accounting:</span>
-                          <span className="text-slate-400 sm:text-right">
-                            {calc.allTimeoutZeroOverride
-                              ? 'All-Timeout Command Default Override (Zero Command Score)'
-                              : (calc.curveAdjustment !== 0
-                                ? `Asymptotic adjustment applied (${calc.curveAdjustment >= 0 ? '+' : ''}${calc.curveAdjustment.toFixed(1)} pts)`
-                                : 'Direct linear reconciliation (Baseline minus crisis & intervention deductions)')}
+                          <span>Reconciliation Formula:</span>
+                          <span className="text-slate-300 sm:text-right font-bold">
+                            clamp({calc.baselineWeightedSum.toFixed(1)} - {calc.failurePenaltyPoints.toFixed(1)} - {((calc.timeoutDeduction ?? (calc.fallbackCount ?? 0) * 10)).toFixed(1)}, 0, 100) × ({calc.humanDecisionsCount ?? 6}/6) = {result.cps.toFixed(1)}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                           <span>Decision Quality ({Math.round(scores.decisionQuality)}%):</span>
                           <span className="text-slate-400 sm:text-right">
-                            Strategic Gate (Requires ≥ 65% for Tier 1; evaluated independently)
+                            Strategic Gate (Requires ≥ 65% for Tier 1; docked on fallback interventions)
                           </span>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white text-sm">
@@ -473,7 +510,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                         <strong className="text-cyan-400 font-mono block mb-1">
                           {calc.allTimeoutZeroOverride
                             ? 'Why CPS is 0.0 (All-Timeout Command Autopilot Rule):'
-                            : `Why CPS (${result.cps.toFixed(1)}) Reconciles with the Multi-Pillar Model:`}
+                            : `Why CPS (${result.cps.toFixed(1)}) Reconciles with the Tournament Formula:`}
                         </strong>
                         {calc.allTimeoutZeroOverride ? (
                           <>
@@ -481,7 +518,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                           </>
                         ) : (
                           <>
-                            The Composite Preparedness Score is calculated as {calc.baselineWeightedSum.toFixed(1)} (weighted sum of the 5 defense pillars) minus {calc.failurePenaltyPoints.toFixed(1)} pts from {calc.breachedFailuresCount} breached crisis threshold(s){(calc.fallbackInterventionPenalty ?? 0) > 0 ? ` minus ${calc.fallbackInterventionPenalty?.toFixed(1)} pts from ${calc.fallbackCount} fallback intervention(s)` : ''}, yielding {result.cps.toFixed(1)}. {result.failureStates?.fiscalInsolvency ? `The fiscal solvency breach represents a sovereign governance penalty for operating on emergency credit overdraft (-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M drawn); the Emergency Credit Facility maintains LKR ${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M in available borrowing capacity before reaching the hard freeze limit.` : 'All provincial fiscal and lifeline operations operated within approved reserve thresholds.'}
+                            The Composite Preparedness Score is calculated as {calc.baselineWeightedSum.toFixed(1)} (weighted baseline across 5 defense pillars) minus {calc.failurePenaltyPoints.toFixed(1)} pts from {calc.breachedFailuresCount} breached crisis threshold(s) and minus {((calc.timeoutDeduction ?? (calc.fallbackCount ?? 0) * 10)).toFixed(1)} pts from {calc.fallbackCount ?? 0} timeout intervention(s), yielding a clamped subtotal of {(calc.clampedSubtotal ?? calc.scoreAfterPenalties).toFixed(1)} pts. Multiplying by the human participation ratio of {calc.humanDecisionsCount ?? 6}/6 ({(((calc.participationMultiplier ?? ((calc.humanDecisionsCount ?? 6) / 6))) * 100).toFixed(1)}%) yields the final tournament CPS of {result.cps.toFixed(1)} pts. {result.failureStates?.fiscalInsolvency ? `The fiscal solvency breach represents a sovereign governance penalty for operating on emergency credit overdraft (-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M drawn); the Emergency Credit Facility maintains LKR ${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M in available borrowing capacity before reaching the hard freeze limit.` : 'All provincial fiscal and lifeline operations operated within approved reserve thresholds.'}
                           </>
                         )}
                       </div>

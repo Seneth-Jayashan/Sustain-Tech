@@ -209,9 +209,9 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       whileTap={{ scale: 0.96 }}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      style={{ rotateX, rotateY }}
       onClick={onClick}
-      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[195px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none ${
+      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[195px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed ${
         isSelected
           ? is3E
             ? 'border-red-500 bg-red-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(239,68,68,0.4)]'
@@ -234,84 +234,107 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
         />
       )}
 
-      {/* Cyberpunk Tech Lines */}
-      <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{ transform: 'translateZ(20px)' }}></div>
-      <div className={`absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{ transform: 'translateZ(20px)' }}></div>
+      {/* Cyberpunk Tech Lines (2D layered to avoid 3D clip occlusion in Gecko/WebRender) */}
+      <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
+      <div className={`absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
 
-      <div className="flex justify-between items-start mb-3" style={{ transform: 'translateZ(30px)' }}>
-        <div className={`p-2.5 rounded-xl backdrop-blur-md border ${
-          isSelected 
-            ? is3E 
-              ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-              : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
-            : is3E
-            ? 'bg-red-950/40 border-red-800 text-red-400'
-            : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
-        }`}>
-          {is3E ? <AlertTriangle size={18} /> : <Terminal size={18} />}
-        </div>
-        
-        {/* Selection Badge */}
-        <AnimatePresence>
-          {isSingleSelect ? (
-            isSelected ? (
-              <motion.div
-                initial={{ scale: 0, rotate: 90 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0 }}
-                className={`w-7 h-7 rounded-full flex items-center justify-center font-black shadow-lg text-sm ${
-                  is3E ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)]'
-                }`}
-              >
-                {is3E ? '✕' : <CheckCircle2 size={16} />}
-              </motion.div>
-            ) : is3E ? (
-              <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
-                REJECTED
+      {/* Card Body - Contained in relative z-10 stacking context */}
+      <div className="relative z-10 flex flex-col justify-between h-full">
+        <div>
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-xl backdrop-blur-md border ${
+                isSelected 
+                  ? is3E 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
+                  : is3E
+                  ? 'bg-red-950/40 border-red-800 text-red-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
+              }`}>
+                {is3E ? <AlertTriangle size={18} /> : <Terminal size={18} />}
+              </div>
+              
+              {/* Action ID Badge */}
+              <span className={`font-mono text-xs font-black px-2 py-0.5 rounded border tracking-wider select-none ${
+                is3E
+                  ? 'bg-red-950/80 border-red-500/50 text-red-300'
+                  : isSelected
+                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                  : 'bg-slate-950/80 border-slate-700/80 text-cyan-400 group-hover:border-cyan-500/60'
+              }`}>
+                {canonicalAction.id || action.id}
               </span>
-            ) : (
-              <span className="text-[9px] font-mono text-slate-500 group-hover:text-cyan-400 transition-colors uppercase font-bold">
-                Select
-              </span>
-            )
-          ) : (
-            isSelected && (
-              <motion.div
-                initial={{ scale: 0, rotate: 180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: -180 }}
-                className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
-              >
-                {rankIndex + 1}
-              </motion.div>
-            )
+            </div>
+            
+            {/* Selection Badge */}
+            <AnimatePresence>
+              {isSingleSelect ? (
+                isSelected ? (
+                  <motion.div
+                    initial={{ scale: 0, rotate: 90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center font-black shadow-lg text-sm ${
+                      is3E ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)]'
+                    }`}
+                  >
+                    {is3E ? '✕' : <CheckCircle2 size={16} />}
+                  </motion.div>
+                ) : is3E ? (
+                  <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                    REJECTED
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-mono text-slate-400 group-hover:text-cyan-400 transition-colors uppercase font-bold">
+                    Select
+                  </span>
+                )
+              ) : (
+                isSelected && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: 180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: -180 }}
+                    className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
+                  >
+                    {rankIndex + 1}
+                  </motion.div>
+                )
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Action Title */}
+          <span className={`font-bold block leading-tight text-[13px] tracking-wide transition-colors ${
+            isSelected ? 'text-white' : 'text-slate-100 group-hover:text-white'
+          }`}>
+            {action.title}
+          </span>
+
+          {/* Action Description */}
+          {action.description && (
+            <span className="text-[11px] font-mono text-slate-300 mt-1.5 block line-clamp-2 leading-relaxed">
+              {action.description}
+            </span>
           )}
-        </AnimatePresence>
-      </div>
+        </div>
 
-      <span className={`font-bold block leading-tight text-[13px] tracking-wide ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`} style={{ transform: 'translateZ(40px)' }}>
-        {action.title}
-      </span>
-      {action.description && (
-        <span className="text-[10px] font-mono text-slate-400 mt-1.5 block line-clamp-2 leading-relaxed" style={{ transform: 'translateZ(20px)' }}>
-          {action.description}
-        </span>
-      )}
-
-      {/* Real Financial Cost & Priority / Status Efficacy */}
-      <div className="mt-3.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2.5" style={{ transform: 'translateZ(30px)' }}>
-        <span className={`font-bold px-2.5 py-0.5 rounded-md border text-[10px] sm:text-[11px] ${costBadgeClass}`}>
-          {costLabel}
-        </span>
-        <span className={`font-bold px-2 py-0.5 rounded-md border text-[10px] truncate max-w-[140px] ${
-          is3E 
-            ? 'text-red-300 bg-red-950/80 border-red-500/40'
-            : isSelected 
-            ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
-            : 'text-slate-500 border-transparent'
-        }`}>
-          {efficacyLabel}
-        </span>
+        {/* Real Financial Cost & Priority / Status Efficacy */}
+        <div className="mt-3.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2.5">
+          <span className={`font-bold px-2.5 py-0.5 rounded-md border text-[10px] sm:text-[11px] ${costBadgeClass}`}>
+            {costLabel}
+          </span>
+          <span className={`font-bold px-2 py-0.5 rounded-md border text-[10px] truncate max-w-[140px] ${
+            is3E 
+              ? 'text-red-300 bg-red-950/80 border-red-500/40'
+              : isSelected 
+              ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
+              : 'text-slate-400 border-slate-800'
+          }`}>
+            {efficacyLabel}
+          </span>
+        </div>
       </div>
     </motion.button>
   );
@@ -384,26 +407,48 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const handleSubmitRef = useRef<((isTimeout?: boolean) => Promise<void>) | null>(null);
   const acknowledgingRef = useRef(false);
 
-  // FIX A: If a fallback acknowledgment is pending, pause timer and display SweetAlert2 report
+  const lastSpokenBucketRef = useRef<number | null>(null);
+
+  // ISSUE 2: If a fallback acknowledgment is pending, pause timer and display SweetAlert2 report
   useEffect(() => {
     if (!state.pendingFallbackAcknowledgement || acknowledgingRef.current) return;
 
     const acknowledgePending = async () => {
       acknowledgingRef.current = true;
+      stopSpeaking(); // Immediately clear any audio/speech queue
       try {
-        await showFallbackInterventionReport(state.pendingFallbackAcknowledgement!);
-        const res = await fetch('/api/game/acknowledge-fallback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const ackData = await res.json();
-        if (ackData.success && ackData.gameSession) {
-          if (ackData.gameSession.status === 'COMPLETED' || ackData.isCompleted) {
+        const swalResult = await showFallbackInterventionReport(
+          state.pendingFallbackAcknowledgement!,
+          async () => {
+            const res = await fetch('/api/game/acknowledge-fallback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              return { success: false, error: errData.error || 'Server error acknowledging report. Please try again.' };
+            }
+            const ackData = await res.json();
+            if (!ackData.success) {
+              return { success: false, error: ackData.error || 'Failed to acknowledge report. Please try again.' };
+            }
+            return { success: true, data: ackData };
+          }
+        );
+
+        if (swalResult.isConfirmed && swalResult.value) {
+          const ackData = swalResult.value;
+          if (ackData.gameSession?.status === 'COMPLETED' || ackData.isCompleted) {
             router.push('/reflection');
-          } else {
-            setState(ackData.gameSession.state);
+          } else if (ackData.gameSession?.state) {
+            const serverState = ackData.gameSession.state;
+            setState(serverState);
             if (ackData.nextScenario) {
               setCurrentScenario(ackData.nextScenario);
+            }
+            if (serverState.roundDeadline) {
+              const diff = Math.max(0, Math.ceil((new Date(serverState.roundDeadline).getTime() - Date.now()) / 1000));
+              setSecondsLeft(diff);
             }
           }
         }
@@ -432,18 +477,29 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     '4E': { flood: 0, dryZone: 0, reserve: 70, cost: 0, title: '0 deployed, 70 in reserve' },
   };
 
+  // ISSUE 3: Scenario narration - clear English, slower rate, single utterance per round, suppressed during reports
   useEffect(() => {
-    if (!currentScenario) return;
-    playRadarPing();
-    setShowBrief(true);
+    // If pending acknowledgment report is active, immediately cancel speech and return
+    if (state.pendingFallbackAcknowledgement) {
+      stopSpeaking();
+      return;
+    }
 
-    if (voiceEnabled) {
+    if (!currentScenario) return;
+
+    // Prevent duplicate utterances when React effects rerun, browser refreshes, or state updates within round
+    if (voiceEnabled && lastSpokenBucketRef.current !== state.bucket) {
+      lastSpokenBucketRef.current = state.bucket;
+      playRadarPing();
+      setShowBrief(true);
       const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
       speakText(fullBriefing);
     }
 
-    return () => stopSpeaking();
-  }, [state.bucket, currentScenario, state.day, voiceEnabled]);
+    return () => {
+      stopSpeaking();
+    };
+  }, [state.bucket, state.pendingFallbackAcknowledgement, currentScenario, state.day, voiceEnabled]);
 
   const submittingRef = useRef(submitting);
   useEffect(() => {
