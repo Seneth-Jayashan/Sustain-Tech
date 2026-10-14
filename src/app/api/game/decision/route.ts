@@ -3,8 +3,14 @@ import dbConnect from '@/lib/mongoose';
 import GameSession from '@/models/GameSession';
 import IntegrityLog from '@/models/IntegrityLog';
 import { getSession } from '@/lib/session';
-import { processDecision, calculateFinalOutcome, validateConstraints } from '@/game/engine';
+import { 
+  processDecision, 
+  calculateFinalOutcome, 
+  validateConstraints, 
+  createFallbackDecision 
+} from '@/game/engine';
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
+import { ROUND_DEADLINE_SECONDS } from '@/game/timer';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { rankings, allocations } = body;
+    const { rankings, allocations, timeout } = body;
 
     const gameSession = await GameSession.findOne({ teamId: session.teamId, status: 'ACTIVE' });
     
@@ -30,32 +36,66 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Game already completed' }, { status: 400 });
     }
 
-    // 1. Validation based on round type
-    const isAllocationRound = currentBucket === 3 || currentBucket === 4;
+    // 1. Authoritative Server-Side Emergency Timer Verification
+    const duration = gameSession.state.roundDurationSeconds || ROUND_DEADLINE_SECONDS[currentBucket] || 75;
+    const roundStartTime = gameSession.state.roundStartTime ? new Date(gameSession.state.roundStartTime) : new Date();
+    const roundDeadline = gameSession.state.roundDeadline 
+      ? new Date(gameSession.state.roundDeadline) 
+      : new Date(roundStartTime.getTime() + duration * 1000);
 
-    if (!isAllocationRound) {
-      if (!Array.isArray(rankings) || rankings.length !== 5) {
-        return NextResponse.json({ error: 'Must provide all 5 actions in priority order' }, { status: 400 });
-      }
+    const now = new Date();
+    const timeSpentSeconds = Math.max(0, Math.min(duration, Math.round((now.getTime() - roundStartTime.getTime()) / 1000)));
+
+    // Deadline check with 4-second network latency buffer
+    const isTimedOut = Boolean(timeout) || (now.getTime() > (roundDeadline.getTime() + 4000));
+
+    let finalDecision: { rankings?: string[]; allocations?: Record<string, number> };
+    let emergencyFallback = false;
+    let timeoutOccurred = isTimedOut;
+
+    if (isTimedOut) {
+      // Automatic server intervention when timeout window expires
+      const fallbackResult = createFallbackDecision(currentBucket, { rankings, allocations });
+      finalDecision = fallbackResult.decision;
+      emergencyFallback = fallbackResult.emergencyFallback;
     } else {
-      // For allocation rounds, must provide either allocations map or rankings plan (single or ranked)
-      if (!allocations && (!Array.isArray(rankings) || rankings.length < 1)) {
-        return NextResponse.json({ error: 'Must provide resource allocations or an allocation package' }, { status: 400 });
+      // 2. Normal In-Time Submission Validation
+      const isAllocationRound = currentBucket === 3 || currentBucket === 4;
+
+      if (!isAllocationRound) {
+        if (!Array.isArray(rankings) || rankings.length !== 5) {
+          return NextResponse.json({ error: 'Must prioritize all 5 operational actions before authorizing directives' }, { status: 400 });
+        }
+      } else {
+        if (!allocations && (!Array.isArray(rankings) || rankings.length < 1)) {
+          return NextResponse.json({ error: 'Must provide resource allocations or select a pre-authorized plan' }, { status: 400 });
+        }
       }
+
+      // Operational constraints check
+      const constraintCheck = validateConstraints(
+        currentBucket, 
+        { rankings, allocations }, 
+        gameSession.state.resources?.emergencyBudget
+      );
+      if (!constraintCheck.valid) {
+        return NextResponse.json({ error: constraintCheck.error }, { status: 400 });
+      }
+
+      finalDecision = { rankings, allocations };
     }
 
-    // 2. Validate operational constraints
-    const constraintCheck = validateConstraints(
-      currentBucket, 
-      { rankings, allocations }, 
-      gameSession.state.resources?.emergencyBudget
+    // 3. Process the decision through the simulation engine with decision telemetry
+    const newState = processDecision(
+      gameSession.state, 
+      session.userId, 
+      finalDecision,
+      {
+        timeSpentSeconds,
+        timeoutOccurred,
+        emergencyFallback
+      }
     );
-    if (!constraintCheck.valid) {
-      return NextResponse.json({ error: constraintCheck.error }, { status: 400 });
-    }
-
-    // 3. Process the decision through the hybrid simulation engine
-    const newState = processDecision(gameSession.state, session.userId, { rankings, allocations });
 
     gameSession.state = newState;
     gameSession.currentUserId = session.userId;
@@ -74,11 +114,18 @@ export async function POST(request: Request) {
     await IntegrityLog.create({
       gameSessionId: gameSession._id,
       userId: session.userId,
-      actionType: 'SUBMISSION',
-      metadata: { bucket: currentBucket, rankings, allocations }
+      actionType: timeoutOccurred ? 'TIMEOUT_SUBMISSION' : 'SUBMISSION',
+      metadata: { 
+        bucket: currentBucket, 
+        rankings: finalDecision.rankings, 
+        allocations: finalDecision.allocations,
+        timeSpentSeconds,
+        timeoutOccurred,
+        emergencyFallback
+      }
     });
 
-    // If active, determine the next scenario
+    // If active, determine the next scenario (with seeded shuffled action cards)
     let nextScenario = null;
     if (gameSession.status === 'ACTIVE') {
       nextScenario = await determineNextScenario(newState);
@@ -88,10 +135,14 @@ export async function POST(request: Request) {
       success: true, 
       gameSession, 
       nextScenario,
-      activeEvents: newState.activeDynamicEvents || []
+      activeEvents: newState.activeDynamicEvents || [],
+      intervention: emergencyFallback ? {
+        message: `Command timeout expired on Day ${(currentBucket - 1) * 2}. Emergency contingency protocol authorized.`
+      } : null
     });
   } catch (error: any) {
     console.error('Error submitting decision:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
+

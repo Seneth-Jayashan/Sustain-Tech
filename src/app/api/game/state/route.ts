@@ -25,6 +25,30 @@ export async function GET() {
         currentUserId: session.userId,
         state: initialState,
       });
+    } else {
+      // Ensure timer and shuffle state exist on existing active sessions
+      let needsSave = false;
+      const b = gameSession.state.bucket || 1;
+      if (!gameSession.state.roundDeadline || !gameSession.state.roundStartTime) {
+        const { ROUND_DEADLINE_SECONDS } = await import('@/game/timer');
+        const duration = ROUND_DEADLINE_SECONDS[b] || 75;
+        const now = new Date();
+        gameSession.state.roundStartTime = now.toISOString();
+        gameSession.state.roundDurationSeconds = duration;
+        gameSession.state.roundDeadline = new Date(now.getTime() + duration * 1000).toISOString();
+        needsSave = true;
+      }
+      if (!gameSession.state.shuffledCardOrders) {
+        const { getDefaultBucketShuffledOrder } = await import('@/game/timer');
+        gameSession.state.shuffledCardOrders = {
+          [b]: getDefaultBucketShuffledOrder(gameSession.state.seed || 'seed', b)
+        };
+        needsSave = true;
+      }
+      if (needsSave) {
+        gameSession.markModified('state');
+        await gameSession.save();
+      }
     }
 
     return NextResponse.json({ success: true, gameSession });

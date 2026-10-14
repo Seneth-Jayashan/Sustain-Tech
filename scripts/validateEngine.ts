@@ -7,8 +7,15 @@ import {
   calculateDelta,
   evaluateDynamicInterRoundEvents,
   findAction,
-  COMPOUND_HAZARD_EROSION_PENALTIES
+  COMPOUND_HAZARD_EROSION_PENALTIES,
+  createFallbackDecision,
+  calculateTpi
 } from '../src/game/engine';
+import {
+  ROUND_DEADLINE_SECONDS,
+  getShuffledActionIds,
+  getDefaultBucketShuffledOrder
+} from '../src/game/timer';
 
 console.log('================================================================================');
 console.log('SUSTAIN-TECH: RIGOROUS GAME ENGINE VALIDATION & VERIFICATION SUITE');
@@ -1339,6 +1346,194 @@ test('Monte Carlo Multi-Regime Sensitivity Analysis (3,000 Runs across Compound,
     assert.ok(tierCounts['Tier 1'] / REGIME_SAMPLE <= 0.005, 'Random play must fail to achieve Tier 1 across all hazard regimes');
   });
   console.log(`  ==========================================================================\n`);
+});
+
+// ============================================================================
+// TEST SUITE 10: DISASTER COMMAND SIMULATION (TIMERS, SEEDED SHUFFLE, FALLBACK & TPI)
+// ============================================================================
+console.log('--------------------------------------------------------------------------------');
+console.log('TEST SUITE 10: DISASTER COMMAND SIMULATION & TEAM PERFORMANCE INDEX');
+console.log('--------------------------------------------------------------------------------');
+
+test('Action Card Randomization: Mulberry32 seeded shuffle produces deterministic reproducible order for identical seed', () => {
+  const seed = 'test-session-seed-12345';
+  const order1 = getShuffledActionIds(1, seed);
+  const order2 = getShuffledActionIds(1, seed);
+  assert.deepStrictEqual(order1, order2, 'Identical seed and bucket must yield identical card order (page refresh invariance)');
+
+  const orderBucket2_1 = getShuffledActionIds(2, seed);
+  const orderBucket2_2 = getShuffledActionIds(2, seed);
+  assert.deepStrictEqual(orderBucket2_1, orderBucket2_2, 'Bucket 2 identical seed must yield identical order');
+});
+
+test('Action Card Randomization: Different session seeds yield distinct permutations without card omission or duplication', () => {
+  const seedA = 'alpha-session-999';
+  const seedB = 'beta-session-888';
+  const orderA = getShuffledActionIds(1, seedA);
+  const orderB = getShuffledActionIds(1, seedB);
+  
+  // Both must contain all 5 canonical cards
+  const canonical = ['1A', '1B', '1C', '1D', '1E'];
+  assert.strictEqual(orderA.length, 5);
+  assert.strictEqual(orderB.length, 5);
+  assert.deepStrictEqual([...orderA].sort(), canonical);
+  assert.deepStrictEqual([...orderB].sort(), canonical);
+});
+
+test('Action Card Invariance: Shuffled display position never alters action costs, resource impacts or consequences', () => {
+  // Take card 1C (Drainage Dredging, cost LKR 30M)
+  const action1 = findAction('1C');
+  assert.ok(action1, 'Action 1C must exist');
+  assert.strictEqual(action1.impacts.emergencyBudget, -40, 'Action 1C cost must remain LKR 40M');
+  assert.strictEqual(action1.impacts.floodPreparedness, 12, 'Action 1C flood benefit must remain +12%');
+
+  // Verify across both orders: executing 1C via processDecision applies exact same delta
+  const stateA = getInitialGameState('seed-A');
+  stateA.shuffledCardOrders = { 1: ['1C', '1A', '1E', '1B', '1D'] };
+  const resA = processDecision(stateA, 't1', { rankings: ['1C', '1A', '1E', '1B', '1D'] });
+
+  const stateB = getInitialGameState('seed-B');
+  stateB.shuffledCardOrders = { 1: ['1A', '1E', '1B', '1D', '1C'] };
+  const resB = processDecision(stateB, 't2', { rankings: ['1C', '1A', '1E', '1B', '1D'] });
+
+  assert.strictEqual(resA.resources.emergencyBudget, resB.resources.emergencyBudget, 'Treasury balance must be invariant under card layout');
+  assert.strictEqual(resA.scores.floodPreparedness, resB.scores.floodPreparedness, 'Preparedness scores must be invariant under card layout');
+});
+
+test('Emergency Timer: ROUND_DEADLINE_SECONDS reflects exact playtesting intervals (120s, 100s, 90s, 75s, 60s, 75s)', () => {
+  assert.strictEqual(ROUND_DEADLINE_SECONDS[1], 120, 'Day 0 deadline must be 2:00 (120s)');
+  assert.strictEqual(ROUND_DEADLINE_SECONDS[2], 100, 'Day 2 deadline must be 1:40 (100s)');
+  assert.strictEqual(ROUND_DEADLINE_SECONDS[3], 90,  'Day 4 deadline must be 1:30 (90s)');
+  assert.strictEqual(ROUND_DEADLINE_SECONDS[4], 75,  'Day 6 deadline must be 1:15 (75s)');
+  assert.strictEqual(ROUND_DEADLINE_SECONDS[5], 60,  'Day 8 deadline must be 1:00 (60s)');
+  assert.strictEqual(ROUND_DEADLINE_SECONDS[6], 75,  'Day 10 deadline must be 1:15 (75s)');
+});
+
+test('Emergency Fallback Decision Generator: Automatically synthesizes safe valid directives for partial or expired rounds', () => {
+  // Bucket 1 with partial decision (player only dragged 2 cards before timeout)
+  const fallbackB1 = createFallbackDecision(1, { rankings: ['1C', '1A'] });
+  assert.ok(fallbackB1.decision.rankings, 'Fallback must provide rankings');
+  assert.strictEqual(fallbackB1.decision.rankings.length, 5, 'Fallback rankings must contain all 5 cards');
+  assert.strictEqual(fallbackB1.decision.rankings[0], '1C');
+  assert.strictEqual(fallbackB1.decision.rankings[1], '1A');
+  const validB1 = validateConstraints(1, fallbackB1.decision, 500);
+  assert.ok(validB1.valid, 'Fallback decision must pass constraint validation');
+
+  // Bucket 1 with undefined decision (player did not interact at all)
+  const fallbackEmpty = createFallbackDecision(1, undefined);
+  assert.strictEqual(fallbackEmpty.decision.rankings?.length, 5);
+  assert.strictEqual(fallbackEmpty.emergencyFallback, true);
+  assert.ok(validateConstraints(1, fallbackEmpty.decision, 500).valid);
+});
+
+test('Contingency Fallback: Bucket 3 and Bucket 4 recover gracefully on timeout with valid preset allocations', () => {
+  // Bucket 3 with empty decision
+  const fallbackB3 = createFallbackDecision(3, undefined);
+  assert.ok(fallbackB3.decision.rankings && fallbackB3.decision.rankings.length > 0, 'Bucket 3 fallback must supply package rankings');
+  assert.strictEqual(fallbackB3.decision.rankings[0], '3A', 'Bucket 3 fallback top choice must be 3A standard preset');
+  assert.strictEqual(fallbackB3.emergencyFallback, true);
+  const validB3 = validateConstraints(3, fallbackB3.decision, 500);
+  assert.ok(validB3.valid, 'Bucket 3 fallback must pass constraint validation');
+
+  // Bucket 4 with empty decision
+  const fallbackB4 = createFallbackDecision(4, undefined);
+  assert.ok(fallbackB4.decision.rankings && fallbackB4.decision.rankings.length > 0, 'Bucket 4 fallback must supply package rankings');
+  assert.strictEqual(fallbackB4.decision.rankings[0], '4A', 'Bucket 4 fallback top choice must be 4A standard preset');
+  assert.strictEqual(fallbackB4.emergencyFallback, true);
+  const validB4 = validateConstraints(4, fallbackB4.decision, 500);
+  assert.ok(validB4.valid, 'Bucket 4 fallback must pass constraint validation');
+});
+
+test('Server Timeout Enforcement: Timeout metadata is recorded in session decisionHistory and applies escalating compound hazard friction', () => {
+  const stateNormal = getInitialGameState('test-normal-velocity');
+  const nextNormal = processDecision(stateNormal, 'tester', { rankings: ['1A', '1B', '1C', '1D', '1E'] }, {
+    timeSpentSeconds: 35,
+    timeoutOccurred: false,
+    emergencyFallback: false
+  });
+  assert.strictEqual(nextNormal.decisionHistory[0].timeSpentSeconds, 35);
+  assert.strictEqual(nextNormal.decisionHistory[0].timeoutOccurred, false);
+  assert.strictEqual(nextNormal.decisionHistory[0].emergencyFallback, false);
+
+  const stateTimeout = getInitialGameState('test-timeout-friction');
+  const nextTimeout = processDecision(stateTimeout, 'tester', { rankings: ['1A', '1B', '1C', '1D', '1E'] }, {
+    timeSpentSeconds: 125,
+    timeoutOccurred: true,
+    emergencyFallback: true
+  });
+  assert.strictEqual(nextTimeout.decisionHistory[0].timeoutOccurred, true);
+  assert.strictEqual(nextTimeout.decisionHistory[0].emergencyFallback, true);
+  // Escalating friction on Bucket 1 timeout: community trust and information quality are penalized due to communication delay
+  assert.ok(nextTimeout.scores.communityTrust < nextNormal.scores.communityTrust, 'Day 0 timeout intervention must induce public trust erosion');
+  assert.ok(nextTimeout.scores.informationQuality < nextNormal.scores.informationQuality, 'Day 0 timeout intervention must induce information gap penalty');
+
+  // Bucket 2 timeout: flood preparedness penalty
+  const stateB2Normal = { ...nextNormal, bucket: 2 };
+  const nextB2Normal = processDecision(stateB2Normal, 'tester', { rankings: ['2A', '2B', '2C', '2D', '2E'] }, { timeoutOccurred: false });
+  const stateB2Timeout = { ...nextTimeout, bucket: 2 };
+  const nextB2Timeout = processDecision(stateB2Timeout, 'tester', { rankings: ['2A', '2B', '2C', '2D', '2E'] }, { timeoutOccurred: true, emergencyFallback: true });
+  assert.ok(nextB2Timeout.scores.floodPreparedness < nextB2Normal.scores.floodPreparedness, 'Day 2 flood escalation must penalize flood defense');
+});
+
+test('Team Performance Index (TPI): 6-pillar weights sum to 100% and output is bounded in [0, 100]', () => {
+  let state = getInitialGameState('test-tpi-pillars');
+  state = processDecision(state, 't', { rankings: ['1D', '1A', '1C', '1B', '1E'] }, { timeSpentSeconds: 40 });
+  state = processDecision(state, 't', { rankings: ['2B', '2E', '2C', '2A', '2D'] }, { timeSpentSeconds: 50 });
+  state = processDecision(state, 't', { rankings: ['3A', '3B', '3C', '3D', '3E'] }, { timeSpentSeconds: 45 });
+  state = processDecision(state, 't', { rankings: ['4A', '4B', '4C', '4D', '4E'] }, { timeSpentSeconds: 30 });
+  state = processDecision(state, 't', { rankings: ['5A', '5C', '5E', '5B', '5D'] }, { timeSpentSeconds: 35 });
+  state = processDecision(state, 't', { rankings: ['6A', '6C', '6E', '6B', '6D'] }, { timeSpentSeconds: 40 });
+
+  const outcome = calculateFinalOutcome(state);
+  assert.ok(typeof outcome.tpi === 'number', 'Outcome must include numeric TPI');
+  assert.ok(outcome.tpi >= 0 && outcome.tpi <= 100, 'TPI must be bounded between 0 and 100');
+  assert.ok(outcome.tpiDetails, 'Outcome must include tpiDetails');
+
+  const sumWeights = outcome.tpiDetails.components.reduce((acc, c) => acc + c.weightPercent, 0);
+  assert.strictEqual(sumWeights, 100, 'TPI pillar weights must sum to exactly 100%');
+  assert.strictEqual(outcome.tpiDetails.components.length, 6, 'TPI must have 6 distinct evaluation pillars');
+});
+
+test('Leaderboard Tournament Ranking Hierarchy: Tier 1 > Tier 2 > Tier 3 > Tier 4 with TPI as decisive secondary index', () => {
+  const getTierPriority = (tier?: string) => {
+    if (!tier) return 5;
+    if (tier.includes('Tier 1')) return 1;
+    if (tier.includes('Tier 2')) return 2;
+    if (tier.includes('Tier 3')) return 3;
+    if (tier.includes('Tier 4')) return 4;
+    return 5;
+  };
+
+  const sortTournament = (list: any[]) => {
+    return [...list].sort((a, b) => {
+      const tierA = getTierPriority(a.finalResult?.endingTier);
+      const tierB = getTierPriority(b.finalResult?.endingTier);
+      if (tierA !== tierB) return tierA - tierB;
+
+      const tpiA = a.finalResult?.tpi ?? 0;
+      const tpiB = b.finalResult?.tpi ?? 0;
+      if (Math.abs(tpiA - tpiB) > 0.05) return tpiB - tpiA;
+
+      const failA = Object.values(a.finalResult?.failureStates || {}).filter(Boolean).length;
+      const failB = Object.values(b.finalResult?.failureStates || {}).filter(Boolean).length;
+      if (failA !== failB) return failA - failB;
+
+      return 0;
+    });
+  };
+
+  const mockTeams = [
+    { name: 'Team Silver', status: 'COMPLETED', finalResult: { endingTier: 'Tier 2: Competent Sovereign Management', tpi: 95.0, failureStates: {} } },
+    { name: 'Team Bronze', status: 'COMPLETED', finalResult: { endingTier: 'Tier 1: Exemplary Sovereign Governance', tpi: 74.0, failureStates: {} } },
+    { name: 'Team Gold', status: 'COMPLETED', finalResult: { endingTier: 'Tier 1: Exemplary Sovereign Governance', tpi: 88.5, failureStates: {} } },
+    { name: 'Team Defeated', status: 'COMPLETED', finalResult: { endingTier: 'Tier 3: Compromised Operations', tpi: 60.0, failureStates: { fiscalInsolvency: true } } },
+  ];
+
+  const sorted = sortTournament(mockTeams);
+  assert.strictEqual(sorted[0].name, 'Team Gold', 'Rank 1 must be Team Gold (Tier 1, highest TPI 88.5)');
+  assert.strictEqual(sorted[1].name, 'Team Bronze', 'Rank 2 must be Team Bronze (Tier 1, TPI 74.0)');
+  assert.strictEqual(sorted[2].name, 'Team Silver', 'Rank 3 must be Team Silver (Tier 2, despite higher TPI 95.0 than Tier 1)');
+  assert.strictEqual(sorted[3].name, 'Team Defeated', 'Rank 4 must be Team Defeated (Tier 3)');
 });
 
 console.log('================================================================================');

@@ -1,11 +1,13 @@
 import { 
   ActionId, FinalResult, PreparednessRating, ScenarioOutcome, 
   EndingTier, FailureStates, DynamicEventTrigger, BucketDecision, Action,
-  ScoreCalculationDetails
+  ScoreCalculationDetails, TpiComponent, TpiCalculationDetails
 } from './types';
 import { ACTION_MATRIX } from './matrix';
 import { SCENARIOS, BucketScenario } from './scenario';
 import { GameState, getInitialGameState } from './state';
+import { ROUND_DEADLINE_SECONDS, getDefaultBucketShuffledOrder, getShuffledActionIds } from './timer';
+
 
 export interface DecisionDelta {
   floodPreparedness: number;
@@ -601,13 +603,101 @@ export function calculateDelta(
 }
 
 /**
+ * Generates an emergency fallback decision if the deliberation countdown expires.
+ * - For operational rounds (1, 2, 5, 6): preserves user ranks if partially chosen, fills remaining with canonical actions.
+ * - For Day 4 (3): if no valid preset or custom allocation, falls back to standard Plan 3A.
+ * - For Day 6 (4): if no valid fleet preset or custom allocation, falls back to standard Plan 4A.
+ */
+export function createFallbackDecision(
+  bucket: number,
+  partialDecision?: { rankings?: ActionId[]; allocations?: Record<string, number> }
+): {
+  decision: { rankings?: ActionId[]; allocations?: Record<string, number> };
+  emergencyFallback: boolean;
+} {
+  const norm = partialDecision || {};
+
+  if (bucket === 3) {
+    // Day 4: Fiscal allocation
+    if (norm.allocations && typeof norm.allocations === 'object') {
+      const sum = (Number(norm.allocations.evacuation) || 0) +
+                  (Number(norm.allocations.drinkingWater) || 0) +
+                  (Number(norm.allocations.medicalSupplies) || 0);
+      const hasNegative = (Number(norm.allocations.evacuation) < 0) ||
+                          (Number(norm.allocations.drinkingWater) < 0) ||
+                          (Number(norm.allocations.medicalSupplies) < 0);
+      if (sum > 0 && sum <= 100 && !hasNegative) {
+        return { decision: norm, emergencyFallback: false };
+      }
+    }
+    if (norm.rankings && norm.rankings.length > 0) {
+      const firstPlan = norm.rankings[0];
+      if (['3A', '3B', '3C', '3D'].includes(firstPlan)) {
+        return { decision: { rankings: [firstPlan] }, emergencyFallback: false };
+      }
+    }
+    // Emergency Fallback: Plan 3A (Standard balanced allocation)
+    return { decision: { rankings: ['3A'] }, emergencyFallback: true };
+  }
+
+  if (bucket === 4) {
+    // Day 6: Fleet distribution
+    if (norm.allocations && typeof norm.allocations === 'object') {
+      const { trucksKelani = 0, vehiclesKelani = 0, boatsKelani = 0, trucksDryZone = 0, vehiclesDryZone = 0, boatsDryZone = 0 } = norm.allocations;
+      const valid = trucksKelani >= 0 && vehiclesKelani >= 0 && boatsKelani >= 0 &&
+                    trucksDryZone >= 0 && vehiclesDryZone >= 0 && boatsDryZone >= 0 &&
+                    (trucksKelani + trucksDryZone <= 20) &&
+                    (vehiclesKelani + vehiclesDryZone <= 30) &&
+                    (boatsKelani + boatsDryZone <= 20);
+      if (valid && (trucksKelani + vehiclesKelani + boatsKelani + trucksDryZone + vehiclesDryZone + boatsDryZone > 0)) {
+        return { decision: norm, emergencyFallback: false };
+      }
+    }
+    if (norm.rankings && norm.rankings.length > 0) {
+      const firstPlan = norm.rankings[0];
+      if (['4A', '4B', '4C', '4D', '4E'].includes(firstPlan)) {
+        return { decision: { rankings: [firstPlan] }, emergencyFallback: false };
+      }
+    }
+    // Emergency Fallback: Plan 4A (Standard balanced fleet deployment)
+    return { decision: { rankings: ['4A'] }, emergencyFallback: true };
+  }
+
+  // Operational rounds (Days 0, 2, 8, 10 -> Buckets 1, 2, 5, 6)
+  const canonicalIds: Record<number, string[]> = {
+    1: ['1A', '1B', '1C', '1D', '1E'],
+    2: ['2A', '2B', '2C', '2D', '2E'],
+    5: ['5A', '5B', '5C', '5D', '5E'],
+    6: ['6A', '6B', '6C', '6D', '6E']
+  };
+  const fullCanonical = canonicalIds[bucket] || ['1A', '1B', '1C', '1D', '1E'];
+
+  const userRanks = (norm.rankings || []).filter(id => fullCanonical.includes(id));
+  const uniqueUserRanks = Array.from(new Set(userRanks));
+
+  if (uniqueUserRanks.length === 5) {
+    return { decision: { rankings: uniqueUserRanks }, emergencyFallback: false };
+  }
+
+  // Auto-complete unranked slots with remaining canonical actions
+  const missing = fullCanonical.filter(id => !uniqueUserRanks.includes(id));
+  const completed = [...uniqueUserRanks, ...missing];
+  return { decision: { rankings: completed }, emergencyFallback: true };
+}
+
+/**
  * Applies a player's decision to the current GameState, mutating scores, resources,
  * community, and telemetry synchronously and advancing the timeline.
  */
 export function processDecision(
   state: GameState,
   userId: string,
-  decision: { rankings?: ActionId[]; allocations?: Record<string, number> } | ActionId[]
+  decision: { rankings?: ActionId[]; allocations?: Record<string, number> } | ActionId[],
+  decisionMeta?: {
+    timeSpentSeconds?: number;
+    timeoutOccurred?: boolean;
+    emergencyFallback?: boolean;
+  }
 ): GameState {
   const normDecision = Array.isArray(decision) ? { rankings: decision } : decision;
 
@@ -669,6 +759,32 @@ export function processDecision(
   // 7. Dynamic Events Tracking
   newState.activeDynamicEvents = delta.triggeredEvents || [];
 
+  // Escalating command friction consequences if emergency fallback was engaged due to timeout
+  if (decisionMeta?.timeoutOccurred && decisionMeta?.emergencyFallback) {
+    if (state.bucket === 1) {
+      newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 4);
+      newState.scores.communityTrust = newState.community.communityTrust;
+      newState.information.informationQuality = Math.max(0, newState.information.informationQuality - 3);
+      newState.scores.informationQuality = newState.information.informationQuality;
+    } else if (state.bucket === 2) {
+      newState.scores.floodPreparedness = Math.max(0, newState.scores.floodPreparedness - 4);
+      newState.risks.floodRisk = Math.min(95, newState.risks.floodRisk + 5);
+    } else if (state.bucket === 3) {
+      newState.resources.emergencySupplies = Math.max(0, newState.resources.emergencySupplies - 5);
+      newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 3);
+      newState.scores.communityTrust = newState.community.communityTrust;
+    } else if (state.bucket === 4) {
+      newState.community.communityTrust = Math.max(0, newState.community.communityTrust - 4);
+      newState.scores.communityTrust = newState.community.communityTrust;
+      newState.community.panicLevel = Math.min(100, newState.community.panicLevel + 5);
+    } else if (state.bucket === 5) {
+      newState.operations.sanitation = Math.max(0, newState.operations.sanitation - 5);
+      newState.risks.healthRisk = Math.min(95, newState.risks.healthRisk + 5);
+    } else if (state.bucket === 6) {
+      newState.community.householdsSupported = Math.max(0, newState.community.householdsSupported - 100);
+    }
+  }
+
   // 8. Record in Decision History
   newState.decisionHistory.push({
     bucket: state.bucket,
@@ -678,12 +794,31 @@ export function processDecision(
     allocations: normDecision.allocations,
     executedActionIds: delta.executedActionIds,
     triggeredEvents: delta.triggeredEvents?.map(e => e.id),
-    timestamp: new Date()
+    timestamp: new Date(),
+    timeSpentSeconds: decisionMeta?.timeSpentSeconds,
+    timeoutOccurred: decisionMeta?.timeoutOccurred || false,
+    emergencyFallback: decisionMeta?.emergencyFallback || false
   });
 
   // 9. Advance Bucket & Day
   newState.bucket += 1;
   newState.day = (newState.bucket - 1) * 2;
+
+  // Setup round deadline and shuffled card orders for next bucket if active
+  if (newState.bucket <= 6) {
+    const nextDuration = ROUND_DEADLINE_SECONDS[newState.bucket] || 75;
+    const now = new Date();
+    newState.roundStartTime = now.toISOString();
+    newState.roundDeadline = new Date(now.getTime() + nextDuration * 1000).toISOString();
+    newState.roundDurationSeconds = nextDuration;
+
+    if (!newState.shuffledCardOrders) {
+      newState.shuffledCardOrders = {};
+    }
+    if (!newState.shuffledCardOrders[newState.bucket]) {
+      newState.shuffledCardOrders[newState.bucket] = getDefaultBucketShuffledOrder(newState.seed || 'seed', newState.bucket);
+    }
+  }
 
   return newState;
 }
@@ -693,6 +828,167 @@ export function processDecision(
  */
 export function determineScenarioForBucket(bucket: number): BucketScenario | null {
   return SCENARIOS[bucket] || null;
+}
+
+/**
+ * Calculates Team Performance Index (TPI) for competitive assessment.
+ * Evaluates execution quality across six rigorous disaster management pillars:
+ * 1. Disaster Outcomes and Preparedness (35%): Driven by Composite Preparedness Score (CPS)
+ * 2. Decision Quality (20%): Strategic appropriateness of chosen operational directives
+ * 3. Resource and Financial Management (15%): Macro treasury stewardship, credit facility discipline, and allocation efficiency
+ * 4. Response Speed & Command Agility (10%): Velocity and composure under countdown pressure without timeouts
+ * 5. Community Protection and Equity (10%): Civic trust, public compliance, and public health preservation
+ * 6. Recovery Readiness (10%): Operational capacity, logistical resilience, and reconstruction reserves on Day 10
+ */
+export function calculateTpi(
+  state: GameState,
+  cps: number
+): { tpi: number; tpiDetails: TpiCalculationDetails } {
+  const { scores, resources, community, operations, decisionHistory = [] } = state;
+
+  // Pillar 1: Disaster Outcomes and Preparedness (35%)
+  const outcomeRaw = Math.max(0, Math.min(100, cps));
+  const outcomeContrib = Math.round(outcomeRaw * 0.35 * 10) / 10;
+
+  // Pillar 2: Decision Quality (20%)
+  const dqRaw = Math.max(0, Math.min(100, scores.decisionQuality));
+  const dqContrib = Math.round(dqRaw * 0.20 * 10) / 10;
+
+  // Pillar 3: Resource & Financial Management (15%)
+  let finRaw = scores.resourceScore;
+  if (resources.emergencyBudget < 0) {
+    const debt = Math.abs(resources.emergencyBudget);
+    finRaw = Math.max(0, finRaw - Math.min(40, (debt / 200) * 40));
+  } else if (resources.emergencyBudget >= 50 && resources.emergencyBudget <= 250) {
+    finRaw = Math.min(100, finRaw + 5); // Fiscal buffer bonus
+  }
+  finRaw = Math.max(0, Math.min(100, Math.round(finRaw)));
+  const finContrib = Math.round(finRaw * 0.15 * 10) / 10;
+
+  // Pillar 4: Response Speed & Command Agility (10%)
+  let timeoutsCount = 0;
+  let fallbacksCount = 0;
+  let totalTimeSpent = 0;
+  const speedScores: number[] = [];
+
+  if (decisionHistory.length > 0) {
+    for (const h of decisionHistory) {
+      if (h.timeoutOccurred) timeoutsCount++;
+      if (h.emergencyFallback) fallbacksCount++;
+      const timeSpent = typeof h.timeSpentSeconds === 'number' ? h.timeSpentSeconds : 45;
+      totalTimeSpent += timeSpent;
+
+      const maxDuration = ROUND_DEADLINE_SECONDS[h.bucket] || 90;
+      const ratio = timeSpent / maxDuration;
+
+      let roundSpeedScore = 75;
+      if (h.timeoutOccurred && h.emergencyFallback) {
+        roundSpeedScore = 40; // Severe timeout intervention penalty
+      } else if (h.timeoutOccurred && !h.emergencyFallback) {
+        roundSpeedScore = 65; // Buzzer-beater submission
+      } else if (ratio <= 0.15) {
+        roundSpeedScore = 80; // Hasty decision
+      } else if (ratio <= 0.70) {
+        roundSpeedScore = 100; // Optimal deliberation speed
+      } else if (ratio <= 0.90) {
+        roundSpeedScore = 85; // Good command pacing
+      } else {
+        roundSpeedScore = 70; // Delayed submission under warning
+      }
+      speedScores.push(roundSpeedScore);
+    }
+  }
+
+  const avgSpeed = speedScores.length > 0
+    ? speedScores.reduce((a, b) => a + b, 0) / speedScores.length
+    : 75;
+  const speedRaw = Math.max(0, Math.min(100, Math.round(avgSpeed)));
+  const speedContrib = Math.round(speedRaw * 0.10 * 10) / 10;
+  const avgDecisionTimeSeconds = decisionHistory.length > 0
+    ? Math.round(totalTimeSpent / decisionHistory.length)
+    : 45;
+
+  // Pillar 5: Community Protection & Equity (10%)
+  const healthVal = operations?.health ?? 60;
+  const commRaw = Math.max(0, Math.min(100, Math.round(
+    0.40 * community.communityTrust +
+    0.30 * community.publicCompliance +
+    0.30 * healthVal
+  )));
+  const commContrib = Math.round(commRaw * 0.10 * 10) / 10;
+
+  // Pillar 6: Recovery Readiness (10%)
+  const transVal = operations?.transportation ?? 70;
+  const sanitVal = operations?.sanitation ?? 50;
+  const suppliesVal = resources?.emergencySupplies ?? 50;
+  const medVal = resources?.medicalSupplies ?? 50;
+  const recRaw = Math.max(0, Math.min(100, Math.round(
+    0.30 * transVal +
+    0.25 * suppliesVal +
+    0.25 * medVal +
+    0.20 * sanitVal
+  )));
+  const recContrib = Math.round(recRaw * 0.10 * 10) / 10;
+
+  const totalTpi = Math.max(0, Math.min(100, Math.round(
+    (outcomeContrib + dqContrib + finContrib + speedContrib + commContrib + recContrib) * 10
+  ) / 10));
+
+  const components: TpiComponent[] = [
+    {
+      pillar: 'Disaster Outcomes & Preparedness',
+      weightPercent: 35,
+      rawScore: outcomeRaw,
+      weightedContribution: outcomeContrib,
+      description: 'Flood & drought resilience and survival stability under compound hazard pressure'
+    },
+    {
+      pillar: 'Decision Quality',
+      weightPercent: 20,
+      rawScore: dqRaw,
+      weightedContribution: dqContrib,
+      description: 'Appropriateness, coherence, and efficacy of prioritized command actions'
+    },
+    {
+      pillar: 'Resource & Financial Management',
+      weightPercent: 15,
+      rawScore: finRaw,
+      weightedContribution: finContrib,
+      description: 'Macro treasury stewardship, credit facility discipline, and allocation efficiency'
+    },
+    {
+      pillar: 'Response Speed & Command Agility',
+      weightPercent: 10,
+      rawScore: speedRaw,
+      weightedContribution: speedContrib,
+      description: 'Composure and prompt decision delivery without incurring emergency timeouts'
+    },
+    {
+      pillar: 'Community Protection & Equity',
+      weightPercent: 10,
+      rawScore: commRaw,
+      weightedContribution: commContrib,
+      description: 'Civic trust, public order compliance, and lifeline healthcare protection'
+    },
+    {
+      pillar: 'Recovery Readiness',
+      weightPercent: 10,
+      rawScore: recRaw,
+      weightedContribution: recContrib,
+      description: 'Residual transport capacity, supply buffers, and reconstruction foundation'
+    }
+  ];
+
+  return {
+    tpi: totalTpi,
+    tpiDetails: {
+      components,
+      totalTpi,
+      averageDecisionTimeSeconds: avgDecisionTimeSeconds,
+      timeoutsCount,
+      fallbacksCount
+    }
+  };
 }
 
 /**
@@ -724,7 +1020,6 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
   const breachedFailuresCount = Object.values(failureStates).filter(Boolean).length;
 
   // Multi-pillar weighted preparedness baseline:
-  // Multi-pillar weighted preparedness baseline:
   // Flood Preparedness: 25%
   // Drought Preparedness: 25%
   // Fiscal / Resource Discipline: 20%
@@ -747,12 +1042,6 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
 
   // ---------------------------------------------------------------------------
   // ENDING TIERS CLASSIFICATION (COMPLETE 4-STEP DECISION SEQUENCE WATERFALL)
-  // Evaluated strictly in order so crisis states cannot be overridden by raw scores:
-  // 1. Two or more failure states, OR CPS < 40 -> Tier 4: Systemic Crisis
-  // 2. Exactly one failure state, OR CPS < 65  -> Tier 3: Pyrrhic Survival
-  // 3. CPS >= 80, zero failures, Decision Quality >= 65 -> Tier 1: Exemplary Climate Resilience
-  // 4. All remaining outcomes (zero failures, CPS >= 65) -> Tier 2: Competent Emergency Response
-  //    (Covers 65 <= CPS < 80 with 0 failures, as well as CPS >= 80 with Decision Quality < 65 and 0 failures)
   // ---------------------------------------------------------------------------
   let endingTier: EndingTier;
   let rating: PreparednessRating;
@@ -817,8 +1106,6 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
     { label: 'Community Trust', rawScore: Math.round(communityTrust), weightPercent: 15, contribution: Math.round(0.15 * communityTrust * 10) / 10 },
   ];
 
-  const curveAdjustment = 0;
-
   const arithmeticMean = Math.round(
     ((floodPreparedness + droughtPreparedness + resourceScore + informationQuality + communityTrust + decisionQuality) / 6) * 10
   ) / 10;
@@ -839,7 +1126,6 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
 
   // ---------------------------------------------------------------------------
   // EXECUTIVE MISSION ANALYSIS NARRATIVE
-  // Accurately reflects the specific combination of failure states and CPS
   // ---------------------------------------------------------------------------
   let summary = '';
   if (endingTier === 'Tier 1: Exemplary Climate Resilience') {
@@ -878,8 +1164,13 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
     }
   }
 
+  // Calculate Team Performance Index (TPI)
+  const { tpi, tpiDetails } = calculateTpi(state, cps);
+
   return {
     cps,
+    tpi,
+    tpiDetails,
     pathway,
     rating,
     endingTier,
@@ -900,3 +1191,4 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
 
 // Backwards-compatible initial state getter
 export const getInitialState = getInitialGameState;
+

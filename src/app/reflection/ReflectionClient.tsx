@@ -6,7 +6,8 @@ import { GameState } from '@/game/state';
 import { FinalResult } from '@/game/types';
 import { 
   LogOut, ShieldCheck, AlertCircle, Droplets, Coins, RadioTower, Users, Award, 
-  CheckCircle2, XCircle, ArrowRight, Calculator, ChevronDown, ChevronUp, Info 
+  CheckCircle2, XCircle, ArrowRight, Calculator, ChevronDown, ChevronUp, Info,
+  Clock, Zap, Compass, Activity
 } from 'lucide-react';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 
 export default function ReflectionClient({ finalState, result, teamName }: Props) {
   const [showCalculationDetails, setShowCalculationDetails] = useState(false);
+  const [auditTab, setAuditTab] = useState<'cps' | 'tpi'>('cps');
   const scores = finalState.scores;
   const resources = finalState.resources;
   const information = finalState.information;
@@ -82,6 +84,21 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
     explanation: 'Score calculated from exact linear formula.'
   };
 
+  const tpiData = result.tpiDetails || {
+    components: [
+      { pillar: 'Disaster Outcomes & Preparedness', weightPercent: 35, rawScore: Math.round(result.cps), weightedContribution: Math.round(result.cps * 0.35 * 10) / 10, description: 'Flood & drought resilience baseline' },
+      { pillar: 'Decision Quality', weightPercent: 20, rawScore: Math.round(scores.decisionQuality), weightedContribution: Math.round(scores.decisionQuality * 0.20 * 10) / 10, description: 'Appropriateness of selected operational directives' },
+      { pillar: 'Resource & Financial Management', weightPercent: 15, rawScore: Math.round(scores.resourceScore), weightedContribution: Math.round(scores.resourceScore * 0.15 * 10) / 10, description: 'Treasury stewardship and debt discipline' },
+      { pillar: 'Response Speed & Command Agility', weightPercent: 10, rawScore: 80, weightedContribution: 8.0, description: 'Composure and decision velocity under timer pressure' },
+      { pillar: 'Community Protection & Equity', weightPercent: 10, rawScore: Math.round(community.communityTrust), weightedContribution: Math.round(community.communityTrust * 0.10 * 10) / 10, description: 'Civic trust, compliance, and public health preservation' },
+      { pillar: 'Recovery Readiness', weightPercent: 10, rawScore: 70, weightedContribution: 7.0, description: 'Post-disaster operational capacity on Day 10' },
+    ],
+    totalTpi: result.tpi ?? result.cps,
+    averageDecisionTimeSeconds: 45,
+    timeoutsCount: 0,
+    fallbacksCount: 0
+  };
+
   return (
     <div className="w-full max-w-5xl py-4 sm:py-8 px-2 sm:px-4 font-sans text-slate-200">
       <motion.div 
@@ -134,6 +151,40 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                   {result.endingTier || result.rating}
                 </span>
               </div>
+
+              {/* TPI Dual Score & Agility Metric Cards */}
+              <div className="grid grid-cols-2 gap-2.5 mt-4 pt-3 border-t border-white/10">
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block mb-0.5">
+                    Team Perf. Index
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl sm:text-2xl font-black font-mono text-cyan-400">
+                      {tpiData.totalTpi.toFixed(1)}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">TPI</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                    <Zap size={10} className="text-cyan-400 shrink-0" /> Leaderboard Score
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block mb-0.5">
+                    Command Velocity
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl sm:text-2xl font-black font-mono text-amber-300">
+                      {Math.round(tpiData.averageDecisionTimeSeconds)}s
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">avg/rnd</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                    <Clock size={10} className="text-amber-400 shrink-0" /> 
+                    {tpiData.timeoutsCount > 0 ? `${tpiData.timeoutsCount} Timeout(s)` : 'Zero Timeouts'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-white/10 space-y-2.5 sm:space-y-3 font-mono text-xs text-slate-300">
@@ -149,6 +200,12 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                   {resources.emergencyBudget < 0
                     ? `-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M (${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M Avail)`
                     : `LKR ${Math.round(resources.emergencyBudget)}M / 500M`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400">Emergency Interventions:</span>
+                <span className={`font-bold text-right ${tpiData.fallbacksCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {tpiData.fallbacksCount > 0 ? `${tpiData.fallbacksCount} Contingency Fallback(s)` : '100% Autonomous Orders'}
                 </span>
               </div>
               <div className="flex justify-between items-center gap-2">
@@ -214,13 +271,13 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
               </div>
               <div>
                 <div className="text-xs sm:text-sm font-bold text-white flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span>How Your Score Was Calculated</span>
+                  <span>How Your Scores Were Calculated</span>
                   <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/60 text-cyan-400">
-                    Engine Audit
+                    Audit Engine
                   </span>
                 </div>
                 <div className="text-[11px] sm:text-xs text-slate-400 mt-0.5 font-sans leading-snug">
-                  Why CPS ({result.cps.toFixed(1)}) reflects weighted defense &amp; crisis penalties vs unweighted average ({calc.arithmeticMean.toFixed(1)})
+                  Compare CPS ({result.cps.toFixed(1)}) defense score and TPI ({tpiData.totalTpi.toFixed(1)}) team performance index
                 </div>
               </div>
             </div>
@@ -239,111 +296,211 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                 transition={{ duration: 0.3 }}
                 className="mt-3 bg-slate-900/40 border border-slate-800 rounded-2xl p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 overflow-hidden"
               >
-                {/* 1. Component Contributions Table */}
-                <div>
-                  <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold mb-3 flex items-center gap-2">
-                    <Info size={14} /> 1. Strategic Pillar Weighting (Total 100%)
-                  </h3>
-                  <div className="overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
-                    <table className="w-full min-w-[460px] text-left font-mono text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-800 text-slate-400">
-                          <th className="pb-2 font-semibold">Pillar Indicator</th>
-                          <th className="pb-2 font-semibold text-right">Indicator Score</th>
-                          <th className="pb-2 font-semibold text-right">Weight</th>
-                          <th className="pb-2 font-semibold text-right">Weighted Contribution</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                        {calc.weightedComponents.map((c, i) => (
-                          <tr key={i} className="hover:bg-slate-800/30">
-                            <td className="py-2.5 text-white font-medium">
-                              {c.label}
-                            </td>
-                            <td className="py-2.5 text-right font-bold text-slate-200">
-                              {c.rawScore}%
-                            </td>
-                            <td className="py-2.5 text-right text-cyan-400">
-                              {c.weightPercent}%
-                            </td>
-                            <td className="py-2.5 text-right font-black text-emerald-400">
-                              +{c.contribution.toFixed(1)} pts
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="border-t-2 border-slate-700 bg-slate-800/40 font-bold text-white">
-                          <td className="py-2.5" colSpan={3}>
-                            Weighted Baseline Subtotal
-                          </td>
-                          <td className="py-2.5 text-right text-emerald-300 font-black">
-                            {calc.baselineWeightedSum.toFixed(1)} pts
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                {/* Audit Tab Switcher */}
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setAuditTab('cps')}
+                    className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      auditTab === 'cps'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                        : 'bg-slate-950/50 text-slate-400 border border-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <ShieldCheck size={14} /> CPS Defense Audit (5 Pillars)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuditTab('tpi')}
+                    className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      auditTab === 'tpi'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                        : 'bg-slate-950/50 text-slate-400 border border-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <Zap size={14} /> Team Performance Index (TPI - 6 Pillars)
+                  </button>
                 </div>
 
-                {/* 2. Crisis Threshold Deductions */}
-                <div className="pt-4 border-t border-slate-800">
-                  <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 font-bold mb-3 flex items-center gap-2">
-                    <AlertCircle size={14} /> 2. Crisis Threshold Failure Deductions
-                  </h3>
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs font-mono">
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span>Breached Failure Conditions:</span>
-                      <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        {calc.breachedFailuresCount} {calc.breachedFailuresCount === 1 ? 'condition' : 'conditions'}
-                      </span>
+                {auditTab === 'cps' ? (
+                  <>
+                    {/* 1. Component Contributions Table */}
+                    <div>
+                      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold mb-3 flex items-center gap-2">
+                        <Info size={14} /> 1. Strategic Pillar Weighting (Total 100%)
+                      </h3>
+                      <div className="overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                        <table className="w-full min-w-[460px] text-left font-mono text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-800 text-slate-400">
+                              <th className="pb-2 font-semibold">Pillar Indicator</th>
+                              <th className="pb-2 font-semibold text-right">Indicator Score</th>
+                              <th className="pb-2 font-semibold text-right">Weight</th>
+                              <th className="pb-2 font-semibold text-right">Weighted Contribution</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                            {calc.weightedComponents.map((c, i) => (
+                              <tr key={i} className="hover:bg-slate-800/30">
+                                <td className="py-2.5 text-white font-medium">
+                                  {c.label}
+                                </td>
+                                <td className="py-2.5 text-right font-bold text-slate-200">
+                                  {c.rawScore}%
+                                </td>
+                                <td className="py-2.5 text-right text-cyan-400">
+                                  {c.weightPercent}%
+                                </td>
+                                <td className="py-2.5 text-right font-black text-emerald-400">
+                                  +{c.contribution.toFixed(1)} pts
+                                </td>
+                              </tr>
+                            ))}
+                            <tr className="border-t-2 border-slate-700 bg-slate-800/40 font-bold text-white">
+                              <td className="py-2.5" colSpan={3}>
+                                Weighted Baseline Subtotal
+                              </td>
+                              <td className="py-2.5 text-right text-emerald-300 font-black">
+                                {calc.baselineWeightedSum.toFixed(1)} pts
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span>Crisis Penalty Rate:</span>
-                      <span className="text-slate-400">-12 pts per breached condition</span>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span>Total Crisis Deduction:</span>
-                      <span className={`font-black ${calc.failurePenaltyPoints > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        {calc.failurePenaltyPoints > 0 ? `-${calc.failurePenaltyPoints.toFixed(1)} pts` : '0.0 pts'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white">
-                      <span>Score After Deductions:</span>
-                      <span className="text-cyan-300 font-black">{calc.scoreAfterPenalties.toFixed(1)} pts</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* 3. Reconciliation & Strategic Gates */}
-                <div className="pt-4 border-t border-slate-800 space-y-3 text-xs font-mono">
-                  <h3 className="uppercase tracking-[0.2em] text-purple-400 font-bold flex items-center gap-2">
-                    <Award size={14} /> 3. Reconciliation &amp; Strategic Gates
-                  </h3>
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-slate-300">
-                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span>Formula Accounting:</span>
-                      <span className="text-slate-400 sm:text-right">
-                        {calc.curveAdjustment !== 0
-                          ? `Asymptotic adjustment applied (${calc.curveAdjustment >= 0 ? '+' : ''}${calc.curveAdjustment.toFixed(1)} pts)`
-                          : 'Direct linear reconciliation (Baseline minus crisis deductions)'}
-                      </span>
+                    {/* 2. Crisis Threshold Deductions */}
+                    <div className="pt-4 border-t border-slate-800">
+                      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 font-bold mb-3 flex items-center gap-2">
+                        <AlertCircle size={14} /> 2. Crisis Threshold Failure Deductions
+                      </h3>
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs font-mono">
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Breached Failure Conditions:</span>
+                          <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {calc.breachedFailuresCount} {calc.breachedFailuresCount === 1 ? 'condition' : 'conditions'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Crisis Penalty Rate:</span>
+                          <span className="text-slate-400">-12 pts per breached condition</span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Total Crisis Deduction:</span>
+                          <span className={`font-black ${calc.failurePenaltyPoints > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {calc.failurePenaltyPoints > 0 ? `-${calc.failurePenaltyPoints.toFixed(1)} pts` : '0.0 pts'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white">
+                          <span>Score After Deductions:</span>
+                          <span className="text-cyan-300 font-black">{calc.scoreAfterPenalties.toFixed(1)} pts</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span>Decision Quality ({Math.round(scores.decisionQuality)}%):</span>
-                      <span className="text-slate-400 sm:text-right">
-                        Strategic Gate (Requires ≥ 65% for Tier 1; evaluated independently)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white text-sm">
-                      <span>Final Composite Preparedness Score:</span>
-                      <span className="text-cyan-400 font-mono font-black text-base">{result.cps.toFixed(1)} / 100</span>
-                    </div>
-                  </div>
 
-                  <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-slate-300 text-[11px] leading-relaxed font-sans">
-                    <strong className="text-cyan-400 font-mono block mb-1">Why CPS ({result.cps.toFixed(1)}) Reconciles Exactly with the Multi-Pillar Model:</strong>
-                    The Composite Preparedness Score is calculated as {calc.baselineWeightedSum.toFixed(1)} (weighted sum of the 5 defense pillars) minus {calc.failurePenaltyPoints.toFixed(1)} pts from {calc.breachedFailuresCount} breached crisis threshold(s), yielding exactly {result.cps.toFixed(1)}. The fiscal solvency breach represents a deliberate sovereign governance penalty for operating on emergency credit overdraft (-LKR {Math.abs(Math.round(resources.emergencyBudget))}M drawn); the Emergency Credit Facility still maintains LKR {Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M in available borrowing capacity before reaching the hard freeze limit.
-                  </div>
-                </div>
+                    {/* 3. Reconciliation & Strategic Gates */}
+                    <div className="pt-4 border-t border-slate-800 space-y-3 text-xs font-mono">
+                      <h3 className="uppercase tracking-[0.2em] text-purple-400 font-bold flex items-center gap-2">
+                        <Award size={14} /> 3. Reconciliation &amp; Strategic Gates
+                      </h3>
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-slate-300">
+                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                          <span>Formula Accounting:</span>
+                          <span className="text-slate-400 sm:text-right">
+                            {calc.curveAdjustment !== 0
+                              ? `Asymptotic adjustment applied (${calc.curveAdjustment >= 0 ? '+' : ''}${calc.curveAdjustment.toFixed(1)} pts)`
+                              : 'Direct linear reconciliation (Baseline minus crisis deductions)'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                          <span>Decision Quality ({Math.round(scores.decisionQuality)}%):</span>
+                          <span className="text-slate-400 sm:text-right">
+                            Strategic Gate (Requires ≥ 65% for Tier 1; evaluated independently)
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-800/80 font-bold text-white text-sm">
+                          <span>Final Composite Preparedness Score:</span>
+                          <span className="text-cyan-400 font-mono font-black text-base">{result.cps.toFixed(1)} / 100</span>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-slate-300 text-[11px] leading-relaxed font-sans">
+                        <strong className="text-cyan-400 font-mono block mb-1">Why CPS ({result.cps.toFixed(1)}) Reconciles Exactly with the Multi-Pillar Model:</strong>
+                        The Composite Preparedness Score is calculated as {calc.baselineWeightedSum.toFixed(1)} (weighted sum of the 5 defense pillars) minus {calc.failurePenaltyPoints.toFixed(1)} pts from {calc.breachedFailuresCount} breached crisis threshold(s), yielding exactly {result.cps.toFixed(1)}. The fiscal solvency breach represents a deliberate sovereign governance penalty for operating on emergency credit overdraft (-LKR {Math.abs(Math.round(resources.emergencyBudget))}M drawn); the Emergency Credit Facility still maintains LKR {Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M in available borrowing capacity before reaching the hard freeze limit.
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* TPI 6-Pillar Audit Section */}
+                    <div>
+                      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-amber-400 font-bold mb-3 flex items-center gap-2">
+                        <Zap size={14} /> Team Performance Index (TPI) 6-Pillar Weighting (Total 100%)
+                      </h3>
+                      <div className="overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                        <table className="w-full min-w-[500px] text-left font-mono text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-800 text-slate-400">
+                              <th className="pb-2 font-semibold">TPI Pillar</th>
+                              <th className="pb-2 font-semibold">Description</th>
+                              <th className="pb-2 font-semibold text-right">Score</th>
+                              <th className="pb-2 font-semibold text-right">Weight</th>
+                              <th className="pb-2 font-semibold text-right">Contribution</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                            {tpiData.components.map((p, idx) => (
+                              <tr key={idx} className="hover:bg-slate-800/30">
+                                <td className="py-2.5 text-white font-medium">{p.pillar}</td>
+                                <td className="py-2.5 text-slate-400 text-[11px] max-w-[200px] truncate">{p.description}</td>
+                                <td className="py-2.5 text-right font-bold text-slate-200">{Math.round(p.rawScore)}%</td>
+                                <td className="py-2.5 text-right text-amber-400">{p.weightPercent}%</td>
+                                <td className="py-2.5 text-right font-black text-emerald-400">+{p.weightedContribution.toFixed(1)} pts</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t-2 border-slate-700 bg-slate-800/40 font-bold text-white">
+                              <td className="py-2.5" colSpan={4}>Total Team Performance Index (TPI)</td>
+                              <td className="py-2.5 text-right text-amber-300 font-black">{tpiData.totalTpi.toFixed(1)} / 100</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Operational Velocity & Timeouts Card */}
+                    <div className="pt-4 border-t border-slate-800">
+                      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold mb-3 flex items-center gap-2">
+                        <Clock size={14} /> Operational Velocity &amp; Server-Enforced Timeouts
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                          <span className="text-slate-400 text-[10px] uppercase block mb-1">Average Response Speed</span>
+                          <span className="text-amber-300 font-black text-base">{Math.round(tpiData.averageDecisionTimeSeconds)}s per round</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Weighted into TPI (10%)</span>
+                        </div>
+                        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                          <span className="text-slate-400 text-[10px] uppercase block mb-1">Enforced Timeouts</span>
+                          <span className={`font-black text-base ${tpiData.timeoutsCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {tpiData.timeoutsCount} Expired Deadlines
+                          </span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Server clock enforcement</span>
+                        </div>
+                        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                          <span className="text-slate-400 text-[10px] uppercase block mb-1">Contingency Fallbacks</span>
+                          <span className={`font-black text-base ${tpiData.fallbacksCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {tpiData.fallbacksCount} Interventions
+                          </span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Auto-completed directives</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/20 text-slate-300 text-[11px] leading-relaxed font-sans">
+                        <strong className="text-amber-400 font-mono block mb-1">Leaderboard Principle: Decisive Execution Under Time Pressure</strong>
+                        The Team Performance Index evaluates both technical disaster preparedness (35%) and the human quality of incident command: strategic decision quality (20%), fiscal discipline (15%), command agility without panic (10%), community trust &amp; equitable care (10%), and day 10 recovery readiness (10%). Fast teams do not automatically win if their directives trigger catastrophic failures; the best teams make effective, sound decisions under tight deadlines.
+                      </div>
+                    </div>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

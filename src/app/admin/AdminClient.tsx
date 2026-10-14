@@ -6,9 +6,55 @@ import {
   ShieldAlert, Droplets, Coins, LogOut, RefreshCcw, ChevronDown, ChevronUp, 
   Activity, Users, LayoutDashboard, Settings, FileText, Database, Plus, Trash2, 
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
-  Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu
+  Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu,
+  Clock, Zap, Trophy, Timer
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+const sortCompletedSessions = (sessionList: any[]) => {
+  const getTierPriority = (tier?: string) => {
+    if (!tier) return 5;
+    if (tier.includes('Tier 1')) return 1;
+    if (tier.includes('Tier 2')) return 2;
+    if (tier.includes('Tier 3')) return 3;
+    if (tier.includes('Tier 4')) return 4;
+    return 5;
+  };
+
+  return [...sessionList].sort((a, b) => {
+    const aComp = a.status === 'COMPLETED';
+    const bComp = b.status === 'COMPLETED';
+    if (aComp && !bComp) return -1;
+    if (!aComp && bComp) return 1;
+    if (!aComp && !bComp) {
+      return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+    }
+
+    // 1. Ending Tier (Tier 1 ranks above Tier 2, etc.)
+    const tierA = getTierPriority(a.finalResult?.endingTier || a.finalResult?.rating);
+    const tierB = getTierPriority(b.finalResult?.endingTier || b.finalResult?.rating);
+    if (tierA !== tierB) return tierA - tierB;
+
+    // 2. Team Performance Index (TPI)
+    const tpiA = a.finalResult?.tpi ?? a.finalResult?.cps ?? 0;
+    const tpiB = b.finalResult?.tpi ?? b.finalResult?.cps ?? 0;
+    if (Math.abs(tpiA - tpiB) > 0.05) return tpiB - tpiA;
+
+    // 3. Number of critical failures (fewer breached survival thresholds ranks higher)
+    const failuresA = Object.values(a.finalResult?.failureStates || {}).filter(Boolean).length;
+    const failuresB = Object.values(b.finalResult?.failureStates || {}).filter(Boolean).length;
+    if (failuresA !== failuresB) return failuresA - failuresB;
+
+    // 4. Decision Quality & Speed
+    const dqA = a.state?.scores?.decisionQuality ?? 50;
+    const dqB = b.state?.scores?.decisionQuality ?? 50;
+    if (Math.abs(dqA - dqB) > 0.5) return dqB - dqA;
+
+    const speedA = a.finalResult?.tpiDetails?.averageDecisionTimeSeconds ?? 60;
+    const speedB = b.finalResult?.tpiDetails?.averageDecisionTimeSeconds ?? 60;
+    return speedA - speedB;
+  });
+};
 
 export default function AdminClient() {
   const router = useRouter();
@@ -835,131 +881,221 @@ export default function AdminClient() {
         {/* ========================================================================= */}
         {/* TAB 1: TELEMETRY OVERVIEW                                                 */}
         {/* ========================================================================= */}
-        {activeTab === 'overview' && (
-          <div className="grid gap-4 sm:gap-6">
-            {sessions.length === 0 && !loading && (
-              <div className="text-center p-12 sm:p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-xs sm:text-sm">
-                NO ACTIVE SESSIONS REGISTERED IN SECTOR
-              </div>
-            )}
-            
-            {sessions.map((session, i) => {
-              const team = session.teamId;
-              const state = session.state;
-              const isCompleted = session.status === 'COMPLETED';
+        {activeTab === 'overview' && (() => {
+          const sortedSessions = sortCompletedSessions(sessions);
+          let completedRank = 0;
+
+          return (
+            <div className="grid gap-4 sm:gap-6">
+              {sortedSessions.length === 0 && !loading && (
+                <div className="text-center p-12 sm:p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-xs sm:text-sm">
+                  NO ACTIVE SESSIONS REGISTERED IN SECTOR
+                </div>
+              )}
               
-              return (
-                <motion.div 
-                  key={session._id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={`p-4 sm:p-6 rounded-2xl border backdrop-blur-md flex flex-col ${
-                    isCompleted 
-                      ? 'border-green-500/40 bg-green-950/10' 
-                      : 'border-blue-500/30 bg-blue-950/10 hover:border-blue-500/50'
-                  }`}
-                >
-                  <div 
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full cursor-pointer select-none"
-                    onClick={() => setExpandedSessions(prev => ({ ...prev, [session._id]: !prev[session._id] }))}
+              {sortedSessions.map((session, i) => {
+                const team = session.teamId;
+                const state = session.state;
+                const isCompleted = session.status === 'COMPLETED';
+                const finalResult = session.finalResult;
+                const tpi = finalResult?.tpi ?? finalResult?.cps;
+                const cps = finalResult?.cps;
+                const tpiDetails = finalResult?.tpiDetails;
+                const avgSpeed = tpiDetails?.averageDecisionTimeSeconds ?? (state?.decisionHistory?.length 
+                  ? Math.round(state.decisionHistory.reduce((acc: number, d: any) => acc + (d.timeSpentSeconds || 0), 0) / state.decisionHistory.length) 
+                  : 0);
+                const timeouts = tpiDetails?.timeoutsCount ?? state?.decisionHistory?.filter((d: any) => d.timeoutOccurred).length ?? 0;
+                const fallbacks = tpiDetails?.fallbacksCount ?? state?.decisionHistory?.filter((d: any) => d.emergencyFallback).length ?? 0;
+                const breachedFailures = Object.values(finalResult?.failureStates || {}).filter(Boolean).length;
+                
+                let rankNumber = 0;
+                if (isCompleted) {
+                  completedRank++;
+                  rankNumber = completedRank;
+                }
+
+                return (
+                  <motion.div 
+                    key={session._id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`p-4 sm:p-6 rounded-2xl border backdrop-blur-md flex flex-col ${
+                      isCompleted 
+                        ? 'border-emerald-500/40 bg-emerald-950/10' 
+                        : 'border-blue-500/30 bg-blue-950/10 hover:border-blue-500/50'
+                    }`}
                   >
-                    <div className="flex flex-col gap-1 w-full sm:w-auto">
-                      <span className="text-xs font-mono text-blue-400 uppercase tracking-widest">{team?.name || 'Unassigned Team'}</span>
-                      <span className="text-lg sm:text-xl font-black text-white">{session.currentUserId?.name || 'Session Commander'}</span>
-                      <div className="mt-1.5 sm:mt-2">
-                        {isCompleted ? (
-                          <span className="inline-block px-2.5 sm:px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded-md text-[11px] sm:text-xs font-black tracking-widest uppercase">
-                            Mission Accomplished // CPS: {typeof session.finalResult?.cps === 'number' ? session.finalResult.cps.toFixed(1) : 'Complete'}
-                          </span>
-                        ) : (
-                          <span className="inline-block px-2.5 sm:px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-md text-[11px] sm:text-xs font-black tracking-widest uppercase animate-pulse">
-                            Day {state?.day ?? 0} (Bucket {state?.bucket ?? 1} / 6)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 w-full sm:w-auto pt-2.5 sm:pt-0 border-t border-blue-900/30 sm:border-t-0">
-                      <div className="text-left sm:text-right">
-                        <span className="text-gray-400 text-[10px] sm:text-xs font-mono uppercase block">Information</span>
-                        <div className="text-base sm:text-xl font-black text-blue-400">
-                          {Math.round(state?.information?.informationQuality || 50)}%
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSession(session._id, team?.name);
-                          }}
-                          className="w-9 h-9 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 hover:border-red-600/60 flex items-center justify-center transition-all cursor-pointer active:scale-95"
-                          title="Delete this game session (reset team progress)"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-
-                        <div className="w-9 h-9 rounded-xl bg-blue-900/30 flex items-center justify-center text-blue-400 border border-blue-800/40">
-                          {expandedSessions[session._id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {expandedSessions[session._id] && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-blue-900/40 flex flex-col gap-4 sm:gap-6"
+                    <div 
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full cursor-pointer select-none"
+                      onClick={() => setExpandedSessions(prev => ({ ...prev, [session._id]: !prev[session._id] }))}
                     >
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 bg-black/40 p-3 sm:p-4 rounded-xl border border-blue-900/30">
-                        <div className="flex flex-col items-center text-center gap-1">
-                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">WATER CAPACITY</span>
-                          <div className="flex items-center gap-1.5 sm:gap-2 text-blue-400 font-black text-base sm:text-lg">
-                            <Droplets size={16} /> {Math.round(state?.resources?.drinkingWater ?? 100)}%
-                          </div>
+                      <div className="flex flex-col gap-1 w-full sm:w-auto">
+                        <div className="flex items-center gap-2">
+                          {isCompleted && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-black flex items-center gap-1">
+                              <Trophy size={12} className="text-amber-400" /> Rank #{rankNumber}
+                            </span>
+                          )}
+                          <span className="text-xs font-mono text-blue-400 uppercase tracking-widest">{team?.name || 'Unassigned Team'}</span>
                         </div>
-                        <div className="flex flex-col items-center text-center gap-1">
-                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">EMERGENCY BUDGET</span>
-                          <div className="flex items-center gap-1.5 sm:gap-2 text-green-400 font-black text-base sm:text-lg">
-                            <Coins size={16} /> LKR {Math.round(state?.resources?.emergencyBudget ?? 500)}M
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center text-center gap-1">
-                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">FLOOD PREPAREDNESS</span>
-                          <div className="flex items-center gap-1.5 sm:gap-2 text-cyan-400 font-black text-base sm:text-lg">
-                            {Math.round(state?.scores?.floodPreparedness ?? 50)}%
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center text-center gap-1">
-                          <span className="text-gray-400 text-[10px] sm:text-xs font-mono">COMMUNITY TRUST</span>
-                          <div className="flex items-center gap-1.5 sm:gap-2 text-purple-400 font-black text-base sm:text-lg">
-                            {Math.round(state?.community?.communityTrust ?? 50)}%
-                          </div>
+                        <span className="text-lg sm:text-xl font-black text-white">{session.currentUserId?.name || 'Session Commander'}</span>
+                        
+                        <div className="mt-1.5 sm:mt-2 flex flex-wrap items-center gap-2">
+                          {isCompleted ? (
+                            <>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-md text-[11px] font-mono font-black tracking-wider uppercase">
+                                <Zap size={12} className="text-amber-400" /> TPI: {typeof tpi === 'number' ? tpi.toFixed(1) : '--'}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-md text-[11px] font-mono font-black tracking-wider uppercase">
+                                <ShieldCheck size={12} /> CPS: {typeof cps === 'number' ? cps.toFixed(1) : '--'}
+                              </span>
+                              <span className="inline-block px-2.5 py-1 bg-black/40 text-slate-300 border border-slate-700/60 rounded-md text-[11px] font-mono">
+                                {finalResult?.endingTier || finalResult?.rating || 'Complete'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="inline-block px-2.5 sm:px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/50 rounded-md text-[11px] sm:text-xs font-black tracking-widest uppercase animate-pulse">
+                              Day {state?.day ?? 0} (Bucket {state?.bucket ?? 1} / 6)
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex justify-end pt-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSession(session._id, team?.name);
-                          }}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-950/50 hover:bg-red-900/70 text-red-300 border border-red-800/50 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
-                        >
-                          <Trash2 size={14} /> Delete Session &amp; Reset Team
-                        </button>
+                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 w-full sm:w-auto pt-2.5 sm:pt-0 border-t border-blue-900/30 sm:border-t-0 font-mono">
+                        <div className="text-left sm:text-right">
+                          <span className="text-gray-400 text-[10px] sm:text-xs uppercase block flex items-center gap-1 justify-start sm:justify-end">
+                            <Clock size={11} className="text-amber-400" /> Avg Speed
+                          </span>
+                          <div className="text-base sm:text-lg font-black text-amber-300">
+                            {avgSpeed > 0 ? `${avgSpeed}s` : '--'}
+                          </div>
+                          {timeouts > 0 && (
+                            <span className="text-[10px] text-red-400 block font-bold">
+                              {timeouts} timeout(s)
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-left sm:text-right">
+                          <span className="text-gray-400 text-[10px] sm:text-xs uppercase block">Failures</span>
+                          <div className={`text-base sm:text-lg font-black ${breachedFailures > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {breachedFailures} / 4
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSession(session._id, team?.name);
+                            }}
+                            className="w-9 h-9 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 hover:border-red-600/60 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                            title="Delete this game session (reset team progress)"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+
+                          <div className="w-9 h-9 rounded-xl bg-blue-900/30 flex items-center justify-center text-blue-400 border border-blue-800/40">
+                            {expandedSessions[session._id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                          </div>
+                        </div>
                       </div>
-                    </motion.div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+                    </div>
+
+                    {expandedSessions[session._id] && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-blue-900/40 flex flex-col gap-4 sm:gap-6 font-mono"
+                      >
+                        {/* 4 Telemetry Metrics */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 bg-black/40 p-3 sm:p-4 rounded-xl border border-blue-900/30">
+                          <div className="flex flex-col items-center text-center gap-1">
+                            <span className="text-gray-400 text-[10px] sm:text-xs">DRINKING WATER</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-blue-400 font-black text-base sm:text-lg">
+                              <Droplets size={16} /> {Math.round(state?.resources?.drinkingWater ?? 100)}%
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center text-center gap-1">
+                            <span className="text-gray-400 text-[10px] sm:text-xs">EMERGENCY BUDGET</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-green-400 font-black text-base sm:text-lg">
+                              <Coins size={16} /> LKR {Math.round(state?.resources?.emergencyBudget ?? 500)}M
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center text-center gap-1">
+                            <span className="text-gray-400 text-[10px] sm:text-xs">FLOOD PREPAREDNESS</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-cyan-400 font-black text-base sm:text-lg">
+                              {Math.round(state?.scores?.floodPreparedness ?? 50)}%
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center text-center gap-1">
+                            <span className="text-gray-400 text-[10px] sm:text-xs">COMMUNITY TRUST</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-purple-400 font-black text-base sm:text-lg">
+                              {Math.round(state?.community?.communityTrust ?? 50)}%
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Round-by-round Decision History with Velocity & Timeout Audit */}
+                        {state?.decisionHistory && state.decisionHistory.length > 0 && (
+                          <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                            <h4 className="text-xs uppercase tracking-wider text-cyan-400 font-bold mb-3 flex items-center gap-2">
+                              <Timer size={14} /> Round-by-Round Decision &amp; Countdown Velocity Log
+                            </h4>
+                            <div className="space-y-2 text-xs">
+                              {state.decisionHistory.map((item: any, idx: number) => (
+                                <div key={idx} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded bg-blue-950/80 border border-blue-800/80 text-blue-300 font-bold text-[10px]">
+                                      Day {item.day} (R{item.bucket})
+                                    </span>
+                                    <span className="text-white font-medium truncate max-w-[240px] sm:max-w-[320px]">
+                                      {item.scenarioTitle}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 self-end sm:self-auto">
+                                    <span className="text-amber-300 font-bold flex items-center gap-1">
+                                      <Clock size={12} /> {item.timeSpentSeconds !== undefined ? `${item.timeSpentSeconds}s` : '--'}
+                                    </span>
+                                    {item.timeoutOccurred && (
+                                      <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 text-[10px] font-bold">
+                                        TIMEOUT
+                                      </span>
+                                    )}
+                                    {item.emergencyFallback && (
+                                      <span className="px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-bold">
+                                        CONTINGENCY INTERVENTION
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end pt-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSession(session._id, team?.name);
+                            }}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-950/50 hover:bg-red-900/70 text-red-300 border border-red-800/50 text-xs font-mono font-bold transition-all cursor-pointer active:scale-95"
+                          >
+                            <Trash2 size={14} /> Delete Session &amp; Reset Team
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* ========================================================================= */}
         {/* TAB 2: TEAMS & PLAYERS (Unified page, Players must have a team)          */}

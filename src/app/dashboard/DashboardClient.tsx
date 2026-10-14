@@ -9,12 +9,12 @@ import { findAction } from '@/game/engine';
 import { ACTION_MATRIX } from '@/game/matrix';
 import WeatherOverlay from '@/components/WeatherOverlay';
 import Typewriter from '@/components/Typewriter';
-import { playUIBlip, playRadarPing, speakText, stopSpeaking } from '@/lib/audio';
+import { playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking } from '@/lib/audio';
 import { 
   Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
-  ChevronDown, ChevronUp, Eye
+  ChevronDown, ChevronUp, Eye, Clock
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -357,6 +357,22 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [showFullSituation, setShowFullSituation] = useState(false);
   const [mobileMetricsOpen, setMobileMetricsOpen] = useState(false);
 
+  // Real-time Emergency Countdown Timer (Server-Enforced)
+  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
+    if (!state.roundDeadline) return 120;
+    return Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
+  });
+  const [interventionAlert, setInterventionAlert] = useState<string | null>(null);
+
+  const warned30Ref = useRef(false);
+  const warned10Ref = useRef(false);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   // Preset Fleet Logistics Profiles
   const PRESET_FLEET_DISTRIBUTIONS: Record<string, { flood: number; dryZone: number; reserve: number; cost: number; title: string }> = {
     '4A': { flood: 52, dryZone: 18, reserve: 0, cost: 60, title: '8/12 trucks, 24/6 vehicles, 20/0 boats' },
@@ -379,6 +395,37 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
     return () => stopSpeaking();
   }, [state.bucket, currentScenario, state.day, voiceEnabled]);
+
+  // Real-time Emergency Timer Countdown Loop
+  useEffect(() => {
+    warned30Ref.current = false;
+    warned10Ref.current = false;
+
+    const tick = () => {
+      if (!state.roundDeadline) return;
+      const rem = Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
+      setSecondsLeft(rem);
+
+      if (rem <= 30 && rem > 10 && !warned30Ref.current) {
+        warned30Ref.current = true;
+        playWarningBeep(false);
+      }
+
+      if (rem <= 10 && rem > 0 && !warned10Ref.current) {
+        warned10Ref.current = true;
+        playWarningBeep(true);
+      }
+
+      if (rem === 0 && !submitting) {
+        playTimeoutBuzzer();
+        handleSubmitDecision(true);
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 500);
+    return () => clearInterval(timer);
+  }, [state.roundDeadline, state.bucket, submitting]);
 
   const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
@@ -460,90 +507,125 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const operationalRemainingCredit = operationalProjectedTreasury < 0 ? Math.max(0, 200 - Math.abs(operationalProjectedTreasury)) : 200;
 
   // Submit Handler
-  const handleSubmitDecision = async () => {
-    let payload: { rankings?: string[]; allocations?: Record<string, number> } = {};
+  const handleSubmitDecision = async (isTimeout = false) => {
+    let payload: { rankings?: string[]; allocations?: Record<string, number>; timeout?: boolean } = {};
 
-    if (state.bucket === 3) {
-      if (day4Mode === 'preset') {
-        if (!day4PresetPlan) {
-          alert('Please select a preset fiscal plan to authorize.');
-          return;
+    if (isTimeout) {
+      if (state.bucket === 3) {
+        if (day4Mode === 'preset') {
+          payload = { rankings: day4PresetPlan ? [day4PresetPlan] : [], timeout: true };
+        } else {
+          payload = {
+            allocations: {
+              evacuation: day4Custom.evacuation,
+              drinkingWater: day4Custom.drinkingWater,
+              medicalSupplies: day4Custom.medicalSupplies
+            },
+            timeout: true
+          };
         }
-        if (day4PresetPlan === '3E') {
-          alert('Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
-          return;
+      } else if (state.bucket === 4) {
+        if (day6Mode === 'preset') {
+          payload = { rankings: day6PresetPlan ? [day6PresetPlan] : [], timeout: true };
+        } else {
+          payload = {
+            allocations: {
+              trucks_flood: day6TrucksFlood,
+              trucks_dryzone: day6TrucksDry,
+              vehicles_flood: day6VehiclesFlood,
+              vehicles_dryzone: day6VehiclesDry,
+              boats_flood: day6BoatsFlood,
+              boats_dryzone: day6BoatsDry
+            },
+            timeout: true
+          };
         }
-        payload = { rankings: [day4PresetPlan] };
       } else {
-        if (day4HasNegative) {
-          alert('Allocation amounts cannot be negative.');
-          return;
-        }
-        if (day4AllocatedTotal > 100) {
-          alert(`Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
-          return;
-        }
-        if (day4AllocatedTotal <= 0) {
-          alert('Please allocate emergency funds across sectors.');
-          return;
-        }
-        if (day4IsCreditBreached) {
-          alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
-          return;
-        }
-        payload = {
-          allocations: {
-            evacuation: day4Custom.evacuation,
-            drinkingWater: day4Custom.drinkingWater,
-            medicalSupplies: day4Custom.medicalSupplies
-          }
-        };
-      }
-    } else if (state.bucket === 4) {
-      if (day6Mode === 'preset') {
-        if (!day6PresetPlan) {
-          alert('Please select a preset fleet plan to authorize.');
-          return;
-        }
-        payload = { rankings: [day6PresetPlan] };
-      } else {
-        if (day6HasNegative) {
-          alert('Fleet allocations cannot be negative.');
-          return;
-        }
-        if (day6TrucksTotal > 20) {
-          alert(`Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
-          return;
-        }
-        if (day6VehiclesTotal > 30) {
-          alert(`Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
-          return;
-        }
-        if (day6BoatsTotal > 20) {
-          alert(`Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
-          return;
-        }
-        if (day6IsCreditBreached) {
-          alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
-          return;
-        }
-        payload = {
-          allocations: {
-            trucks_flood: day6TrucksFlood,
-            trucks_dryzone: day6TrucksDry,
-            vehicles_flood: day6VehiclesFlood,
-            vehicles_dryzone: day6VehiclesDry,
-            boats_flood: day6BoatsFlood,
-            boats_dryzone: day6BoatsDry
-          }
-        };
+        payload = { rankings: selectedOrder, timeout: true };
       }
     } else {
-      if (selectedOrder.length !== 5) {
-        alert('Please rank all 5 actions in priority order.');
-        return;
+      if (state.bucket === 3) {
+        if (day4Mode === 'preset') {
+          if (!day4PresetPlan) {
+            alert('Please select a preset fiscal plan to authorize.');
+            return;
+          }
+          if (day4PresetPlan === '3E') {
+            alert('Plan 3E releases LKR 120M and breaches the statutory LKR 100M round limit. It must be rejected.');
+            return;
+          }
+          payload = { rankings: [day4PresetPlan] };
+        } else {
+          if (day4HasNegative) {
+            alert('Allocation amounts cannot be negative.');
+            return;
+          }
+          if (day4AllocatedTotal > 100) {
+            alert(`Budget allocation of LKR ${day4AllocatedTotal.toFixed(1)}M exceeds the scenario-defined LKR 100M emergency allocation ceiling.`);
+            return;
+          }
+          if (day4AllocatedTotal <= 0) {
+            alert('Please allocate emergency funds across sectors.');
+            return;
+          }
+          if (day4IsCreditBreached) {
+            alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+            return;
+          }
+          payload = {
+            allocations: {
+              evacuation: day4Custom.evacuation,
+              drinkingWater: day4Custom.drinkingWater,
+              medicalSupplies: day4Custom.medicalSupplies
+            }
+          };
+        }
+      } else if (state.bucket === 4) {
+        if (day6Mode === 'preset') {
+          if (!day6PresetPlan) {
+            alert('Please select a preset fleet plan to authorize.');
+            return;
+          }
+          payload = { rankings: [day6PresetPlan] };
+        } else {
+          if (day6HasNegative) {
+            alert('Fleet allocations cannot be negative.');
+            return;
+          }
+          if (day6TrucksTotal > 20) {
+            alert(`Truck allocation (${day6TrucksTotal}) exceeds national fleet limit of 20 heavy-duty trucks.`);
+            return;
+          }
+          if (day6VehiclesTotal > 30) {
+            alert(`Rescue vehicle allocation (${day6VehiclesTotal}) exceeds national fleet limit of 30 rescue vehicles.`);
+            return;
+          }
+          if (day6BoatsTotal > 20) {
+            alert(`Rescue boat allocation (${day6BoatsTotal}) exceeds national fleet limit of 20 rescue boats.`);
+            return;
+          }
+          if (day6IsCreditBreached) {
+            alert('Projected borrowing exceeds the LKR 200M Emergency Credit Facility ceiling.');
+            return;
+          }
+          payload = {
+            allocations: {
+              trucks_flood: day6TrucksFlood,
+              trucks_dryzone: day6TrucksDry,
+              vehicles_flood: day6VehiclesFlood,
+              vehicles_dryzone: day6VehiclesDry,
+              boats_flood: day6BoatsFlood,
+              boats_dryzone: day6BoatsDry
+            }
+          };
+        }
+      } else {
+        if (selectedOrder.length !== 5) {
+          alert('Please rank all 5 actions in priority order.');
+          return;
+        }
+        payload = { rankings: selectedOrder };
       }
-      payload = { rankings: selectedOrder };
     }
 
     setSubmitting(true);
@@ -558,6 +640,11 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
       const data = await res.json();
       if (data.success) {
+        if (data.intervention) {
+          setInterventionAlert(data.intervention.message);
+        } else {
+          setInterventionAlert(null);
+        }
         if (data.gameSession.status === 'COMPLETED') {
           router.push('/reflection');
         } else {
@@ -1891,6 +1978,38 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </motion.div>
         )}
 
+        {/* Intervention Alert Banner if Emergency Fallback Engaged */}
+        {interventionAlert && (
+          <div className="mb-3 p-3.5 rounded-xl border border-red-500/80 bg-red-950/70 text-red-200 flex items-center justify-between gap-3 text-xs font-mono shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert size={18} className="text-red-400 shrink-0 animate-pulse" />
+              <span>{interventionAlert}</span>
+            </div>
+            <button 
+              onClick={() => setInterventionAlert(null)}
+              className="px-2.5 py-1 bg-red-900/80 hover:bg-red-800 text-white rounded text-[10px] font-bold uppercase shrink-0 transition-colors"
+            >
+              Acknowledge
+            </button>
+          </div>
+        )}
+
+        {/* 30s & 10s Deliberation Warning Banners */}
+        {secondsLeft <= 30 && secondsLeft > 0 && (
+          <div className={`mb-3 p-2.5 sm:p-3 rounded-xl border flex items-center gap-2.5 text-xs font-mono font-bold transition-all ${
+            secondsLeft <= 10
+              ? 'border-red-500/80 bg-red-950/70 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.35)] animate-pulse'
+              : 'border-amber-500/70 bg-amber-950/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+          }`}>
+            <AlertTriangle size={16} className={secondsLeft <= 10 ? 'text-red-400 shrink-0 animate-bounce' : 'text-amber-400 shrink-0'} />
+            <span className="truncate">
+              {secondsLeft <= 10
+                ? `CRITICAL ALERT: Emergency protocol engagement in ${secondsLeft}s. Automated contingency fallback will deploy if not authorized.`
+                : `WARNING: Deliberation window closing (${secondsLeft}s remaining). Finalize priority directives before deadline.`}
+            </span>
+          </div>
+        )}
+
         {/* ========================================================================= */}
         {/* ACTION CARDS TRACK & AUTHORIZE SUBMIT BUTTON                              */}
         {/* ========================================================================= */}
@@ -1918,120 +2037,162 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             )}
           </div>
 
-          {/* Authorize Action Button */}
-          <AnimatePresence>
-            {state.bucket === 3 ? (
-              <motion.button
-                id="day4-authorize-btn"
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
-                whileTap={{ scale: 0.96 }}
-                disabled={submitting || (
-                  day4Mode === 'preset'
-                    ? (!day4PresetPlan || day4PresetPlan === '3E')
-                    : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
-                )}
-                onClick={handleSubmitDecision}
-                className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
-                  (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                    : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
-                }`}
-              >
-                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
-                    {submitting 
-                      ? 'EXECUTING...' 
-                      : day4Mode === 'preset'
-                      ? day4PresetPlan === '3E'
-                        ? 'PLAN 3E REJECTED (OVER CAP)'
-                        : day4PresetPlan
-                        ? `AUTHORIZE PLAN [${day4PresetPlan}]`
-                        : 'SELECT A PLAN'
-                      : day4AllocatedTotal > 100
-                      ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
-                      : day4AllocatedTotal === 0
-                      ? 'ALLOCATE FUNDS'
-                      : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
+          {/* Right Action Bar: Emergency Countdown Timer + Authorize Action Button */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+            {/* Real-time Emergency Countdown Timer */}
+            <div 
+              id="emergency-decision-clock"
+              className={`flex items-center justify-between sm:justify-start gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border backdrop-blur-xl transition-all font-mono select-none ${
+                secondsLeft <= 10
+                  ? 'border-red-500 bg-red-950/60 text-red-400 shadow-[0_0_25px_rgba(239,68,68,0.4)] animate-pulse'
+                  : secondsLeft <= 30
+                  ? 'border-amber-500/80 bg-amber-950/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                  : 'border-cyan-500/40 bg-slate-900/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Clock 
+                  size={16} 
+                  className={`shrink-0 ${
+                    secondsLeft <= 10 ? 'text-red-400 animate-spin' : secondsLeft <= 30 ? 'text-amber-400' : 'text-cyan-400'
+                  }`} 
+                />
+                <div className="flex flex-col leading-none">
+                  <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400">
+                    {secondsLeft <= 10 ? 'EMERGENCY CLOCK' : secondsLeft <= 30 ? 'TIME CRITICAL' : 'DECISION WINDOW'}
                   </span>
-                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
-                    {day4Mode === 'preset'
-                      ? day4PresetPlan ? `costs LKR ${day4PresetPlan === '3E' ? '120' : '100'}M against round cap` : 'select exactly one option from 3A–3E'
-                      : `total spend: LKR ${day4AllocatedTotal.toFixed(0)}M / 100M`}
+                  <span className={`text-base sm:text-lg font-black font-mono tracking-wider ${
+                    secondsLeft <= 10 ? 'text-red-400' : secondsLeft <= 30 ? 'text-amber-300' : 'text-white'
+                  }`}>
+                    {formatTime(secondsLeft)}
                   </span>
                 </div>
-                <Send size={18} className="shrink-0" />
-              </motion.button>
-            ) : state.bucket === 4 ? (
-              <motion.button
-                id="day6-authorize-btn"
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
-                whileTap={{ scale: 0.96 }}
-                disabled={submitting || (
-                  day6Mode === 'preset'
-                    ? !day6PresetPlan
-                    : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
-                )}
-                onClick={handleSubmitDecision}
-                className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
-                  (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                    : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
-                }`}
-              >
-                <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
-                    {submitting 
-                      ? 'EXECUTING...' 
-                      : day6Mode === 'preset'
-                      ? day6PresetPlan === '4E'
-                        ? 'HOLD FLEET IN RESERVE (LKR 0M)'
-                        : day6PresetPlan
-                        ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
-                        : 'SELECT A FLEET PLAN'
-                      : day6HasLimitViolation
-                      ? 'RESOLVE FLEET LIMIT VIOLATIONS'
-                      : day6TotalDeployed > 0
-                      ? 'DEPLOY FLEET (FEE: LKR 60M)'
-                      : 'HOLD IN RESERVE (COST: LKR 0M)'}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
-                    {day6Mode === 'preset'
-                      ? day6PresetPlan ? `deployment fee: LKR ${day6PresetPlan === '4E' ? '0' : '60'}M` : 'select exactly one option from 4A–4E'
-                      : `deployed: ${day6TotalDeployed} units | fee: LKR ${day6Cost}M`}
-                  </span>
-                </div>
-                <Send size={18} className="shrink-0" />
-              </motion.button>
-            ) : (
-              selectedOrder.length === 5 && (
+              </div>
+
+              {secondsLeft <= 30 && (
+                <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 ${
+                  secondsLeft <= 10 ? 'border-red-500 bg-red-500/20 text-red-200' : 'border-amber-500 bg-amber-500/20 text-amber-200'
+                }`}>
+                  {secondsLeft <= 10 ? '10s TIMEOUT' : '30s ALERT'}
+                </span>
+              )}
+            </div>
+
+            {/* Authorize Action Button */}
+            <AnimatePresence>
+              {state.bucket === 3 ? (
                 <motion.button
+                  id="day4-authorize-btn"
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
                   whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
                   whileTap={{ scale: 0.96 }}
-                  disabled={submitting}
-                  onClick={handleSubmitDecision}
-                  className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto cursor-pointer"
+                  disabled={submitting || (
+                    day4Mode === 'preset'
+                      ? (!day4PresetPlan || day4PresetPlan === '3E')
+                      : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
+                  )}
+                  onClick={() => handleSubmitDecision(false)}
+                  className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                    (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
+                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                  }`}
                 >
                   <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
-                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
-                      {`executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
+                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                      {submitting 
+                        ? 'EXECUTING...' 
+                        : day4Mode === 'preset'
+                        ? day4PresetPlan === '3E'
+                          ? 'PLAN 3E REJECTED (OVER CAP)'
+                          : day4PresetPlan
+                          ? `AUTHORIZE PLAN [${day4PresetPlan}]`
+                          : 'SELECT A PLAN'
+                        : day4AllocatedTotal > 100
+                        ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
+                        : day4AllocatedTotal === 0
+                        ? 'ALLOCATE FUNDS'
+                        : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                      {day4Mode === 'preset'
+                        ? day4PresetPlan ? `costs LKR ${day4PresetPlan === '3E' ? '120' : '100'}M against round cap` : 'select exactly one option from 3A–3E'
+                        : `total spend: LKR ${day4AllocatedTotal.toFixed(0)}M / 100M`}
                     </span>
                   </div>
                   <Send size={18} className="shrink-0" />
                 </motion.button>
-              )
-            )}
-          </AnimatePresence>
+              ) : state.bucket === 4 ? (
+                <motion.button
+                  id="day6-authorize-btn"
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                  whileTap={{ scale: 0.96 }}
+                  disabled={submitting || (
+                    day6Mode === 'preset'
+                      ? !day6PresetPlan
+                      : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
+                  )}
+                  onClick={() => handleSubmitDecision(false)}
+                  className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                    (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
+                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                      {submitting 
+                        ? 'EXECUTING...' 
+                        : day6Mode === 'preset'
+                        ? day6PresetPlan === '4E'
+                          ? 'HOLD FLEET IN RESERVE (LKR 0M)'
+                          : day6PresetPlan
+                          ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
+                          : 'SELECT A FLEET PLAN'
+                        : day6HasLimitViolation
+                        ? 'RESOLVE FLEET LIMIT VIOLATIONS'
+                        : day6TotalDeployed > 0
+                        ? 'DEPLOY FLEET (FEE: LKR 60M)'
+                        : 'HOLD IN RESERVE (COST: LKR 0M)'}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                      {day6Mode === 'preset'
+                        ? day6PresetPlan ? `deployment fee: LKR ${day6PresetPlan === '4E' ? '0' : '60'}M` : 'select exactly one option from 4A–4E'
+                        : `deployed: ${day6TotalDeployed} units | fee: LKR ${day6Cost}M`}
+                    </span>
+                  </div>
+                  <Send size={18} className="shrink-0" />
+                </motion.button>
+              ) : (
+                selectedOrder.length === 5 && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                    whileTap={{ scale: 0.96 }}
+                    disabled={submitting}
+                    onClick={() => handleSubmitDecision(false)}
+                    className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto cursor-pointer"
+                  >
+                    <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
+                      <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
+                        {`executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
+                      </span>
+                    </div>
+                    <Send size={18} className="shrink-0" />
+                  </motion.button>
+                )
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Cinematic Card Track: Shown when in Preset mode or in Operational rounds */}

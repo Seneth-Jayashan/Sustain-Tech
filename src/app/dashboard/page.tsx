@@ -36,6 +36,30 @@ export default async function DashboardPage() {
     await gameSession.save();
   }
 
+  // Ensure timer and shuffle state exist on existing active sessions
+  let needsSave = false;
+  const currentBucket = gameSession.state.bucket || 1;
+  if (!gameSession.state.roundDeadline || !gameSession.state.roundStartTime) {
+    const { ROUND_DEADLINE_SECONDS } = await import('@/game/timer');
+    const duration = ROUND_DEADLINE_SECONDS[currentBucket] || 75;
+    const now = new Date();
+    gameSession.state.roundStartTime = now.toISOString();
+    gameSession.state.roundDurationSeconds = duration;
+    gameSession.state.roundDeadline = new Date(now.getTime() + duration * 1000).toISOString();
+    needsSave = true;
+  }
+  if (!gameSession.state.shuffledCardOrders) {
+    const { getDefaultBucketShuffledOrder } = await import('@/game/timer');
+    gameSession.state.shuffledCardOrders = {
+      [currentBucket]: getDefaultBucketShuffledOrder(gameSession.state.seed || 'seed', currentBucket)
+    };
+    needsSave = true;
+  }
+  if (needsSave) {
+    gameSession.markModified('state');
+    await gameSession.save();
+  }
+
   // Determine current scenario for the game state
   const currentScenario = await determineNextScenario(gameSession.state);
 

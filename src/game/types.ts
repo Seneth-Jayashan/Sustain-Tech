@@ -65,8 +65,26 @@ export interface ScoreCalculationDetails {
   explanation: string;
 }
 
+export interface TpiComponent {
+  pillar: string;
+  weightPercent: number; // 35, 20, 15, 10, 10, 10
+  rawScore: number;      // 0 - 100
+  weightedContribution: number;
+  description: string;
+}
+
+export interface TpiCalculationDetails {
+  components: TpiComponent[];
+  totalTpi: number; // 0 - 100
+  averageDecisionTimeSeconds: number;
+  timeoutsCount: number;
+  fallbacksCount: number;
+}
+
 export interface FinalResult {
   cps: number; // Composite Preparedness Score (0 - 100)
+  tpi: number; // Team Performance Index (0 - 100)
+  tpiDetails?: TpiCalculationDetails;
   pathway: ScenarioOutcome;
   rating: PreparednessRating;
   endingTier: EndingTier;
@@ -83,3 +101,4 @@ export interface FinalResult {
   summary: string;
   calculationDetails?: ScoreCalculationDetails;
 }
+

@@ -52,6 +52,50 @@ export function playRadarPing() {
   osc.stop(ctx.currentTime + 1.0);
 }
 
+export function playWarningBeep(urgent = false) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = urgent ? 'sawtooth' : 'sine';
+  osc.frequency.setValueAtTime(urgent ? 880 : 540, ctx.currentTime);
+  osc.frequency.setValueAtTime(urgent ? 980 : 660, ctx.currentTime + 0.08);
+
+  gain.gain.setValueAtTime(0.12, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start();
+  osc.stop(ctx.currentTime + 0.18);
+}
+
+export function playTimeoutBuzzer() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(220, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.4);
+
+  gain.gain.setValueAtTime(0.2, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start();
+  osc.stop(ctx.currentTime + 0.4);
+}
+
 // Text-to-Speech wrapper
 export function speakText(text: string, interrupt = true) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
