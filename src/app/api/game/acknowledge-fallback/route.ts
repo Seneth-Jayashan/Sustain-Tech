@@ -88,7 +88,12 @@ export async function POST() {
     const integrityLogDoc = new IntegrityLog({
       gameSessionId: gameSession._id,
       userId: session.userId,
+      userName: session.userName || 'Anonymous Competitor',
+      teamId: session.teamId,
+      round: acknowledgedReport.completedBucket,
+      day: acknowledgedReport.completedDay,
       actionType: 'FALLBACK_ACKNOWLEDGEMENT',
+      severity: 'info',
       metadata: {
         completedBucket: acknowledgedReport.completedBucket,
         completedDay: acknowledgedReport.completedDay,
@@ -96,7 +101,8 @@ export async function POST() {
         roundStartTime: state.roundStartTime,
         roundDeadline: state.roundDeadline,
         isGameComplete
-      }
+      },
+      serverTimestamp: new Date()
     });
 
     await integrityLogDoc.validate();

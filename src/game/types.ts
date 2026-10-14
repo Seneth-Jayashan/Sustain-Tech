@@ -90,6 +90,7 @@ export interface DecisionRecord {
   bucket: number;
   day: number;
   userId: string;
+  userName?: string;
   scenarioTitle?: string;
   actionTitles?: string[];
   rankings?: string[];

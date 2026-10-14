@@ -1,25 +1,25 @@
 import { SCENARIOS } from './scenario';
 
 /**
- * Authoritative round deadline durations in seconds:
- * - Day 0 (Bucket 1): 120 seconds (2:00)
- * - Day 2 (Bucket 2): 120 seconds (2:00)
- * - Day 4 (Bucket 3): 150 seconds (2:30)
- * - Day 6 (Bucket 4): 150 seconds (2:30)
- * - Day 8 (Bucket 5): 120 seconds (2:00)
- * - Day 10 (Bucket 6): 120 seconds (2:00)
- * Total planned decision-time allowance: 780 seconds (13 minutes).
+ * Authoritative round deadline durations in seconds (20-Minute Tournament Configuration):
+ * - Day 0 (Bucket 1): 180 seconds (03:00) — Early Warning
+ * - Day 2 (Bucket 2): 180 seconds (03:00) — Compound Hazard
+ * - Day 4 (Bucket 3): 240 seconds (04:00) — Fiscal Allocation (extended allocation window)
+ * - Day 6 (Bucket 4): 240 seconds (04:00) — Emergency Fleet Distribution (extended allocation window)
+ * - Day 8 (Bucket 5): 180 seconds (03:00) — Crisis Escalation
+ * - Day 10 (Bucket 6): 180 seconds (03:00) — Recovery Operations
+ * Total planned decision-time allowance: 1200 seconds (20:00).
  */
 export const ROUND_DEADLINE_SECONDS: Record<number, number> = {
-  1: 120, // Day 0 — Early warning
-  2: 120, // Day 2 — Compound hazards
-  3: 150, // Day 4 — Critical resource allocation
-  4: 150, // Day 6 — Emergency fleet deployment
-  5: 120, // Day 8 — Crisis escalation
-  6: 120, // Day 10 — Recovery decisions
+  1: 180, // Day 0 — Early Warning
+  2: 180, // Day 2 — Compound Hazard
+  3: 240, // Day 4 — Fiscal Allocation
+  4: 240, // Day 6 — Emergency Fleet Distribution
+  5: 180, // Day 8 — Crisis Escalation
+  6: 180, // Day 10 — Recovery Operations
 };
 
-export const TOTAL_PLANNED_ALLOWANCE_SECONDS = Object.values(ROUND_DEADLINE_SECONDS).reduce((a, b) => a + b, 0); // 780
+export const TOTAL_PLANNED_ALLOWANCE_SECONDS = Object.values(ROUND_DEADLINE_SECONDS).reduce((a, b) => a + b, 0); // 1200 (20 minutes)
 
 /**
  * Returns the authoritative allocated duration for a given round bucket in seconds.

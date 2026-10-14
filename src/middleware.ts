@@ -6,7 +6,12 @@ export async function middleware(request: NextRequest) {
   const session = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute = pathname === '/login' || pathname.startsWith('/api/auth');
+  const isPublicRoute = 
+    pathname === '/login' || 
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/scenario') ||
+    pathname.startsWith('/assets') ||
+    /\.(mp3|wav|ogg|jpg|jpeg|png|svg|ico|webp)$/i.test(pathname);
 
   if (!session && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url));

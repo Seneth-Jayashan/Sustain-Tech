@@ -10,12 +10,16 @@ import { ACTION_MATRIX } from '@/game/matrix';
 import { getRoundDuration } from '@/game/timer';
 import { SimulationMode } from '@/game/types';
 import WeatherOverlay from '@/components/WeatherOverlay';
-import { playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking } from '@/lib/audio';
+import { 
+  playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking,
+  playScenarioAudio, pauseScenarioAudio, resumeScenarioAudio, stopScenarioAudio, seekScenarioAudio,
+  SCENARIO_AUDIO_MAP
+} from '@/lib/audio';
 import { 
   Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
-  ChevronDown, ChevronUp, Eye, Clock
+  ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX
 } from 'lucide-react';
 import Image from 'next/image';
 import { 
@@ -391,6 +395,47 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [showBrief, setShowBrief] = useState(true);
   const [mobileMetricsOpen, setMobileMetricsOpen] = useState(false);
 
+  // Authentic Scenario Audio Playback State
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  const formatAudioTime = (sec: number) => {
+    if (!sec || isNaN(sec) || sec < 0) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const handleToggleScenarioAudio = (forceStart = false) => {
+    if (audioPlaying && !forceStart) {
+      pauseScenarioAudio();
+      setAudioPlaying(false);
+    } else {
+      if (state.pendingFallbackAcknowledgement) return;
+      setAudioError(null);
+      playScenarioAudio(state.day, {
+        onProgress: (cur, dur) => {
+          setAudioCurrentTime(cur);
+          setAudioDuration(dur);
+        },
+        onEnded: () => {
+          setAudioPlaying(false);
+          setAudioCurrentTime(0);
+        },
+        onStateChange: (isPlaying) => {
+          setAudioPlaying(isPlaying);
+        },
+        onError: (err) => {
+          setAudioPlaying(false);
+          setAudioError(err.message || 'Audio recording unavailable');
+          notifyWarning('Scenario Audio Notice', `Day ${state.day} audio recording could not be loaded: ${err.message}. Written scenario briefing is available below.`);
+        }
+      });
+    }
+  };
+
   const roundAllowance = state.roundDurationSeconds || getRoundDuration(state.bucket);
   const simulationMode: SimulationMode = 'tournament';
 
@@ -477,29 +522,141 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     '4E': { flood: 0, dryZone: 0, reserve: 70, cost: 0, title: '0 deployed, 70 in reserve' },
   };
 
-  // ISSUE 3: Scenario narration - clear English, slower rate, single utterance per round, suppressed during reports
+  // Authentic Recorded Scenario Voice Narration
   useEffect(() => {
-    // If pending acknowledgment report is active, immediately cancel speech and return
+    // If pending acknowledgment report is active, immediately cancel audio/speech and return
     if (state.pendingFallbackAcknowledgement) {
       stopSpeaking();
+      stopScenarioAudio();
+      setAudioPlaying(false);
       return;
     }
 
     if (!currentScenario) return;
 
-    // Prevent duplicate utterances when React effects rerun, browser refreshes, or state updates within round
+    // Trigger recorded audio once per round when voice is enabled
     if (voiceEnabled && lastSpokenBucketRef.current !== state.bucket) {
       lastSpokenBucketRef.current = state.bucket;
       playRadarPing();
       setShowBrief(true);
-      const fullBriefing = `Day ${state.day}. ${currentScenario.title}. ${currentScenario.situation}.`;
-      speakText(fullBriefing);
+      setAudioError(null);
+      setAudioCurrentTime(0);
+
+      // Play recorded audio file for this scenario day
+      handleToggleScenarioAudio(true);
+    } else if (!voiceEnabled) {
+      stopSpeaking();
+      stopScenarioAudio();
+      setAudioPlaying(false);
     }
 
     return () => {
       stopSpeaking();
+      stopScenarioAudio();
+      setAudioPlaying(false);
     };
   }, [state.bucket, state.pendingFallbackAcknowledgement, currentScenario, state.day, voiceEnabled]);
+
+  // Tournament Integrity Telemetry Listeners (Review Signals)
+  useEffect(() => {
+    let hiddenStart: number | null = null;
+    let blurStart: number | null = null;
+    let lastEventTime = 0;
+
+    const sendTelemetry = (
+      actionType: string, 
+      metadata: Record<string, any> = {}, 
+      severity?: 'info' | 'review_signal' | 'high_priority'
+    ) => {
+      const now = Date.now();
+      // Throttle rapid repeated events of same type within 1.5s
+      if (now - lastEventTime < 1500 && metadata.operation !== 'paste') {
+        return;
+      }
+      lastEventTime = now;
+
+      fetch('/api/game/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType,
+          round: state.bucket,
+          day: state.day,
+          metadata: {
+            ...metadata,
+            clientTimestamp: new Date().toISOString()
+          },
+          severity
+        })
+      }).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        hiddenStart = Date.now();
+      } else if (hiddenStart) {
+        const durationMs = Date.now() - hiddenStart;
+        hiddenStart = null;
+        sendTelemetry('VISIBILITY_CHANGE', {
+          state: 'visible_after_hidden',
+          hiddenDurationMs: durationMs,
+          hiddenDurationSeconds: Math.round(durationMs / 1000)
+        }, 'review_signal');
+      }
+    };
+
+    const handleBlur = () => {
+      blurStart = Date.now();
+    };
+
+    const handleFocus = () => {
+      if (blurStart) {
+        const durationMs = Date.now() - blurStart;
+        blurStart = null;
+        if (durationMs > 2500) {
+          sendTelemetry('WINDOW_BLUR', {
+            blurDurationMs: durationMs,
+            blurDurationSeconds: Math.round(durationMs / 1000)
+          }, 'review_signal');
+        }
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      const targetTag = (e.target as HTMLElement)?.tagName || 'UNKNOWN';
+      sendTelemetry('RIGHT_CLICK_ATTEMPT', { targetTag }, 'review_signal');
+    };
+
+    const handleCopy = () => {
+      sendTelemetry('COPY_PASTE_ATTEMPT', { operation: 'copy' }, 'review_signal');
+    };
+
+    const handlePaste = () => {
+      sendTelemetry('COPY_PASTE_ATTEMPT', { operation: 'paste' }, 'review_signal');
+    };
+
+    const handleOnline = () => {
+      sendTelemetry('RECONNECT', { event: 'online_reconnected' }, 'info');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('paste', handlePaste);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handlePaste);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [state.bucket, state.day]);
 
   const submittingRef = useRef(submitting);
   useEffect(() => {
@@ -938,11 +1095,30 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             </div>
 
             <button
-              onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); playUIBlip(); }}
-              className={`flex items-center justify-center h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border backdrop-blur-xl transition-all shadow-lg text-sm sm:text-base ${voiceEnabled ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'}`}
-              title={voiceEnabled ? 'Mute advisor' : 'Unmute advisor'}
+              onClick={() => {
+                if (voiceEnabled) {
+                  if (audioPlaying) {
+                    pauseScenarioAudio();
+                    setAudioPlaying(false);
+                  } else {
+                    handleToggleScenarioAudio();
+                  }
+                } else {
+                  setVoiceEnabled(true);
+                  handleToggleScenarioAudio(true);
+                }
+                playUIBlip();
+              }}
+              className={`flex items-center justify-center h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border backdrop-blur-xl transition-all shadow-lg text-sm sm:text-base cursor-pointer ${
+                audioPlaying 
+                  ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
+                  : voiceEnabled 
+                  ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+                  : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'
+              }`}
+              title={audioPlaying ? 'Pause scenario recording' : voiceEnabled ? 'Play scenario recording' : 'Unmute voice recording'}
             >
-              {voiceEnabled ? '🔊' : '🔈'}
+              {audioPlaying ? '⏸️' : voiceEnabled ? '🔊' : '🔈'}
             </button>
 
             {/* Mobile HUD Toggle Button */}
@@ -1119,6 +1295,69 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0 cursor-pointer" title="Minimize briefing">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
+                </div>
+
+                {/* Authentic Scenario Voice Audio Player */}
+                <div className="my-2.5 p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleScenarioAudio()}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer font-bold shrink-0 shadow-md ${
+                          audioPlaying 
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30' 
+                            : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 hover:bg-cyan-500/30'
+                        }`}
+                        title={audioPlaying ? 'Pause scenario recording' : 'Play scenario recording'}
+                      >
+                        {audioPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+                      </button>
+
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-mono font-bold text-white flex items-center gap-1.5 truncate">
+                          <Volume2 size={12} className="text-cyan-400 shrink-0" />
+                          <span className="truncate">Day {state.day} Voice Dispatch</span>
+                          {audioPlaying && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping ml-1 shrink-0"></span>
+                          )}
+                        </span>
+                        <span className="text-[9px] font-mono text-slate-400 truncate">
+                          Authentic scenario recording • {SCENARIO_AUDIO_MAP[state.day]?.filename || `Day ${state.day}.mp3`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono text-[10px] sm:text-[11px] text-cyan-300 shrink-0">
+                      <span>{formatAudioTime(audioCurrentTime)}</span>
+                      <span className="text-slate-500 mx-1">/</span>
+                      <span className="text-slate-400">{formatAudioTime(audioDuration)}</span>
+                    </div>
+                  </div>
+
+                  {/* Audio Progress Scrubber */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={audioDuration || 100}
+                      step={0.5}
+                      value={audioCurrentTime}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setAudioCurrentTime(val);
+                        seekScenarioAudio(val);
+                      }}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                      title="Audio timeline scrubber"
+                    />
+                  </div>
+
+                  {audioError && (
+                    <div className="text-[10px] font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded px-2 py-1">
+                      Notice: {audioError}. Full scenario text is available below.
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed select-text">

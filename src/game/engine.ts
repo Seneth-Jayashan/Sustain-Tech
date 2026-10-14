@@ -1020,6 +1020,8 @@ export function processDecision(
     roundDurationSeconds?: number;
     timedOut?: boolean;
     fallbackApplied?: boolean;
+    userId?: string;
+    userName?: string;
     decisionMode?: SimulationMode;
     fallbackPolicyDetails?: FallbackPolicyDetails;
   }
@@ -1173,7 +1175,8 @@ export function processDecision(
   newState.decisionHistory.push({
     bucket: state.bucket,
     day: state.day,
-    userId,
+    userId: decisionMeta?.userId || userId,
+    userName: decisionMeta?.userName || (userId !== 'System Automated Fallback' && userId !== 'Contingency Autopilot' ? userId : 'Contingency Autopilot'),
     scenarioTitle: SCENARIOS[state.bucket]?.title,
     actionTitles,
     rankings: normDecision.rankings,

@@ -174,7 +174,6 @@ export function speakText(text: string, interrupt = true) {
     utterance.lang = 'en-US';
   }
   
-  // Starting speech rate around 0.80–0.85 (0.82) for clear, deliberate disaster command briefing
   utterance.rate = 0.82;
   utterance.pitch = 1.0;
   
@@ -182,7 +181,179 @@ export function speakText(text: string, interrupt = true) {
 }
 
 export function stopSpeaking() {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
+  if (typeof window === 'undefined') return;
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  stopScenarioAudio();
+}
+
+/**
+ * Authentic Scenario Voice Recordings
+ * Maps each scenario Day (0, 2, 4, 6, 8, 10) to its recorded scenario audio file in /scenario/
+ */
+export const SCENARIO_AUDIO_MAP: Record<number, { title: string; filename: string; src: string }> = {
+  0: {
+    title: 'Day 0: Early Warning and Uncertainty',
+    filename: 'Day 0: Early Warning and Uncertainty.mp3',
+    src: '/scenario/Day 0: Early Warning and Uncertainty.mp3'
+  },
+  2: {
+    title: 'Day 2: Compound Hazard',
+    filename: 'Day 2: Compound Hazard.mp3',
+    src: '/scenario/Day 2: Compound Hazard.mp3'
+  },
+  4: {
+    title: 'Day 4: Allocating LKR 100M Against LKR 120M of Needs',
+    filename: 'Day 4: Allocating LKR 100M Against LKR 120M of Needs.mp3',
+    src: '/scenario/Day 4: Allocating LKR 100M Against LKR 120M of Needs.mp3'
+  },
+  6: {
+    title: 'Day 6: Trucks, Rescue Vehicles and Boats',
+    filename: 'Day 6: Trucks, Rescue Vehicles and Boats.mp3',
+    src: '/scenario/Day 6: Trucks, Rescue Vehicles and Boats.mp3'
+  },
+  8: {
+    title: 'Day 8: Landslides, Blocked Roads, Telecom Failure and Dry-Zone Shortage',
+    filename: 'Day 8: Landslides, Blocked Roads, Telecom Failure and Dry-Zone Shortage.mp3',
+    src: '/scenario/Day 8: Landslides, Blocked Roads, Telecom Failure and Dry-Zone Shortage.mp3'
+  },
+  10: {
+    title: 'Day 10: From Emergency Response to Recovery',
+    filename: 'Day 10: From Emergency Response to Recovery.mp3',
+    src: '/scenario/Day 10: From Emergency Response to Recovery.mp3'
+  }
+};
+
+let currentScenarioAudio: HTMLAudioElement | null = null;
+let currentScenarioDay: number | null = null;
+let progressCallback: ((currentTime: number, duration: number) => void) | null = null;
+let endedCallback: (() => void) | null = null;
+let stateChangeCallback: ((isPlaying: boolean) => void) | null = null;
+
+export function getScenarioAudioConfig(day: number) {
+  return SCENARIO_AUDIO_MAP[day] || null;
+}
+
+export function playScenarioAudio(
+  day: number,
+  callbacks?: {
+    onProgress?: (currentTime: number, duration: number) => void;
+    onEnded?: () => void;
+    onStateChange?: (isPlaying: boolean) => void;
+    onError?: (error: Error) => void;
+  }
+): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+
+  // Stop any active speech synthesis
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+
+  const audioConfig = getScenarioAudioConfig(day);
+  if (!audioConfig) {
+    const err = new Error(`No scenario audio recording available for Day ${day}`);
+    callbacks?.onError?.(err);
+    return Promise.reject(err);
+  }
+
+  // If same audio is currently paused, resume it
+  if (currentScenarioAudio && currentScenarioDay === day && currentScenarioAudio.paused) {
+    return currentScenarioAudio.play().then(() => {
+      callbacks?.onStateChange?.(true);
+    }).catch(err => {
+      callbacks?.onError?.(err);
+    });
+  }
+
+  // Stop previous audio
+  stopScenarioAudio();
+
+  progressCallback = callbacks?.onProgress || null;
+  endedCallback = callbacks?.onEnded || null;
+  stateChangeCallback = callbacks?.onStateChange || null;
+
+  const audio = new Audio(audioConfig.src);
+  currentScenarioAudio = audio;
+  currentScenarioDay = day;
+
+  audio.preload = 'auto';
+
+  audio.ontimeupdate = () => {
+    if (progressCallback && audio) {
+      progressCallback(audio.currentTime, audio.duration || 0);
+    }
+  };
+
+  audio.onended = () => {
+    if (stateChangeCallback) stateChangeCallback(false);
+    if (endedCallback) endedCallback();
+  };
+
+  audio.onpause = () => {
+    if (stateChangeCallback) stateChangeCallback(false);
+  };
+
+  audio.onplay = () => {
+    if (stateChangeCallback) stateChangeCallback(true);
+  };
+
+  audio.onerror = () => {
+    const err = new Error(`Unable to load scenario audio: ${audioConfig.filename}`);
+    if (callbacks?.onError) callbacks.onError(err);
+  };
+
+  return audio.play().catch(err => {
+    // Autoplay restrictions or network failure
+    if (callbacks?.onError) callbacks.onError(err);
+  });
+}
+
+export function pauseScenarioAudio() {
+  if (currentScenarioAudio && !currentScenarioAudio.paused) {
+    currentScenarioAudio.pause();
+    if (stateChangeCallback) stateChangeCallback(false);
+  }
+}
+
+export function resumeScenarioAudio(): Promise<void> {
+  if (currentScenarioAudio && currentScenarioAudio.paused) {
+    return currentScenarioAudio.play().then(() => {
+      if (stateChangeCallback) stateChangeCallback(true);
+    });
+  }
+  return Promise.resolve();
+}
+
+export function stopScenarioAudio() {
+  if (currentScenarioAudio) {
+    try {
+      currentScenarioAudio.pause();
+      currentScenarioAudio.currentTime = 0;
+      currentScenarioAudio.src = '';
+    } catch {}
+    currentScenarioAudio = null;
+    currentScenarioDay = null;
+    if (stateChangeCallback) stateChangeCallback(false);
+  }
+}
+
+export function seekScenarioAudio(seconds: number) {
+  if (currentScenarioAudio && isFinite(seconds)) {
+    currentScenarioAudio.currentTime = Math.max(0, Math.min(seconds, currentScenarioAudio.duration || seconds));
+  }
+}
+
+export function getScenarioAudioState(): { isPlaying: boolean; day: number | null; currentTime: number; duration: number } {
+  if (!currentScenarioAudio) {
+    return { isPlaying: false, day: null, currentTime: 0, duration: 0 };
+  }
+  return {
+    isPlaying: !currentScenarioAudio.paused,
+    day: currentScenarioDay,
+    currentTime: currentScenarioAudio.currentTime || 0,
+    duration: currentScenarioAudio.duration || 0
+  };
 }
 

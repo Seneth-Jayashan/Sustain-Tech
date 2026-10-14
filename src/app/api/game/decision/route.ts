@@ -70,6 +70,28 @@ export async function POST(request: Request) {
     // Deadline check with 4-second network latency buffer for tournament mode
     const isDeadlinePassed = (now.getTime() > (roundDeadlineMs + 4000)) || Boolean(timeout);
 
+    // Forensic signal: detect client attempting to claim non-timeout after server deadline has expired
+    if (now.getTime() > (roundDeadlineMs + 4000) && !Boolean(timeout)) {
+      await IntegrityLog.create({
+        gameSessionId: gameSession._id,
+        userId: session.userId,
+        userName: session.userName || 'Anonymous Competitor',
+        teamId: session.teamId,
+        round: currentBucket,
+        day: gameSession.state.day,
+        actionType: 'DEADLINE_MANIPULATION_ATTEMPT',
+        severity: 'high_priority',
+        metadata: {
+          clientClaimedTimeout: Boolean(timeout),
+          serverCurrentTime: now.toISOString(),
+          roundDeadlineAt,
+          overtimeMs: now.getTime() - roundDeadlineMs,
+          overtimeSeconds: Math.round((now.getTime() - roundDeadlineMs) / 1000)
+        },
+        serverTimestamp: now
+      }).catch(() => {});
+    }
+
     let finalDecision: { rankings?: string[]; allocations?: Record<string, number> };
     let fallbackApplied = false;
     let timedOut = false;
@@ -87,6 +109,26 @@ export async function POST(request: Request) {
       fallbackPolicyDetails = fallbackResult.policyDetails;
       timedOut = true;
     } else {
+      // Forensic signal: detect impossible or anomalous response speeds (<800ms)
+      if (responseTimeMs < 800) {
+        await IntegrityLog.create({
+          gameSessionId: gameSession._id,
+          userId: session.userId,
+          userName: session.userName || 'Anonymous Competitor',
+          teamId: session.teamId,
+          round: currentBucket,
+          day: gameSession.state.day,
+          actionType: 'UNUSUAL_SUBMISSION_PATTERN',
+          severity: 'review_signal',
+          metadata: {
+            reason: 'Abnormally rapid response time (<800ms) for scenario analysis',
+            responseTimeMs,
+            round: currentBucket
+          },
+          serverTimestamp: now
+        }).catch(() => {});
+      }
+
       // Normal In-Time Submission Validation
       const isAllocationRound = currentBucket === 3 || currentBucket === 4;
 
@@ -106,6 +148,24 @@ export async function POST(request: Request) {
         gameSession.state.resources?.emergencyBudget
       );
       if (!constraintCheck.valid) {
+        await IntegrityLog.create({
+          gameSessionId: gameSession._id,
+          userId: session.userId,
+          userName: session.userName || 'Anonymous Competitor',
+          teamId: session.teamId,
+          round: currentBucket,
+          day: gameSession.state.day,
+          actionType: 'INVALID_SUBMISSION_ATTEMPT',
+          severity: 'review_signal',
+          metadata: {
+            error: constraintCheck.error,
+            attemptedRankings: rankings,
+            attemptedAllocations: allocations,
+            currentBudget: gameSession.state.resources?.emergencyBudget
+          },
+          serverTimestamp: now
+        }).catch(() => {});
+
         return NextResponse.json({ error: constraintCheck.error }, { status: 400 });
       }
 
@@ -120,6 +180,8 @@ export async function POST(request: Request) {
       session.userId, 
       finalDecision,
       {
+        userId: session.userId,
+        userName: session.userName,
         roundStartedAt,
         roundDeadlineAt,
         decisionSubmittedAt,
@@ -147,10 +209,17 @@ export async function POST(request: Request) {
       ? 'TIMEOUT_SUBMISSION' 
       : 'SUBMISSION';
 
+    const severity: 'info' | 'review_signal' | 'high_priority' = fallbackApplied ? 'review_signal' : timedOut ? 'review_signal' : 'info';
+
     const integrityLogDoc = new IntegrityLog({
       gameSessionId: gameSession._id,
       userId: session.userId,
+      userName: session.userName || 'Anonymous Competitor',
+      teamId: session.teamId,
+      round: currentBucket,
+      day: gameSession.state.day,
       actionType,
+      severity,
       metadata: { 
         bucket: currentBucket, 
         rankings: finalDecision.rankings, 
@@ -163,7 +232,8 @@ export async function POST(request: Request) {
         timedOut,
         fallbackApplied,
         decisionMode
-      }
+      },
+      serverTimestamp: now
     });
 
     await integrityLogDoc.validate();
@@ -197,6 +267,24 @@ export async function POST(request: Request) {
       if (!updatedSession) {
         await mongoSession.abortTransaction();
         await mongoSession.endSession();
+
+        await IntegrityLog.create({
+          gameSessionId: gameSession._id,
+          userId: session.userId,
+          userName: session.userName || 'Anonymous Competitor',
+          teamId: session.teamId,
+          round: currentBucket,
+          day: gameSession.state.day,
+          actionType: 'REPEATED_REQUEST',
+          severity: 'review_signal',
+          metadata: {
+            reason: 'Concurrent or duplicate submission rejected; bucket already advanced',
+            attemptedBucket: currentBucket,
+            currentBucket: gameSession.state.bucket
+          },
+          serverTimestamp: new Date()
+        }).catch(() => {});
+
         return NextResponse.json({ 
           error: 'Decision for this round has already been submitted or processed.',
           alreadySubmitted: true
@@ -242,6 +330,23 @@ export async function POST(request: Request) {
         );
 
         if (!updatedSession) {
+          await IntegrityLog.create({
+            gameSessionId: gameSession._id,
+            userId: session.userId,
+            userName: session.userName || 'Anonymous Competitor',
+            teamId: session.teamId,
+            round: currentBucket,
+            day: gameSession.state.day,
+            actionType: 'REPEATED_REQUEST',
+            severity: 'review_signal',
+            metadata: {
+              reason: 'Concurrent or duplicate submission rejected; bucket already advanced',
+              attemptedBucket: currentBucket,
+              currentBucket: gameSession.state.bucket
+            },
+            serverTimestamp: new Date()
+          }).catch(() => {});
+
           return NextResponse.json({ 
             error: 'Decision for this round has already been submitted or processed.',
             alreadySubmitted: true

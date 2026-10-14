@@ -1015,6 +1015,19 @@ export default function AdminClient() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
+                              router.push(`/admin/sessions/${session._id}`);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 flex items-center gap-1.5 font-mono text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.15)] cursor-pointer"
+                            title="Open comprehensive forensic investigation dashboard"
+                          >
+                            <Search size={13} />
+                            <span className="hidden sm:inline">Investigate</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleDeleteSession(session._id, team?.name);
                             }}
                             className="w-9 h-9 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 hover:border-red-600/60 flex items-center justify-center transition-all cursor-pointer active:scale-95"
@@ -1102,7 +1115,18 @@ export default function AdminClient() {
                           </div>
                         )}
 
-                        <div className="flex justify-end pt-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/admin/sessions/${session._id}`);
+                            }}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-500/50 text-xs font-mono font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-pointer"
+                          >
+                            <Search size={14} /> Open Full Forensic Investigation Dashboard
+                          </button>
+
                           <button
                             type="button"
                             onClick={(e) => {

@@ -206,10 +206,10 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                     <span className="text-lg sm:text-xl font-black font-mono text-emerald-400">
                       {formatMinutesSeconds(totalCampaignSeconds)}
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono">/ 13m</span>
+                    <span className="text-[10px] text-slate-500 font-mono">/ 20m</span>
                   </div>
                   <span className="text-[9px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                    <Clock size={10} className="text-emerald-400 shrink-0" /> 780s allowance
+                    <Clock size={10} className="text-emerald-400 shrink-0" /> 1200s allowance
                   </span>
                 </div>
 
@@ -570,7 +570,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                         <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
                           <span className="text-slate-400 text-[10px] uppercase block mb-1">Total Campaign Time</span>
                           <span className="text-emerald-400 font-black text-base">{formatMinutesSeconds(totalCampaignSeconds)}</span>
-                          <span className="text-[10px] text-slate-500 block mt-1">Planned cap: 13m 00s (780s)</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Planned cap: 20m 00s (1200s)</span>
                         </div>
                         <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
                           <span className="text-slate-400 text-[10px] uppercase block mb-1">Average Response Speed</span>

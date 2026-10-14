@@ -1409,17 +1409,17 @@ test('Action Card Invariance: Shuffled display position never alters action cost
   assert.strictEqual(resA.scores.floodPreparedness, resB.scores.floodPreparedness, 'Preparedness scores must be invariant under card layout');
 });
 
-test('Timing Assertion 1: All six durations equal configured values and total 780 seconds (13 minutes)', () => {
-  assert.strictEqual(getRoundDuration(1), 120, 'Day 0 deadline must be 120s (2:00)');
-  assert.strictEqual(getRoundDuration(2), 120, 'Day 2 deadline must be 120s (2:00)');
-  assert.strictEqual(getRoundDuration(3), 150, 'Day 4 deadline must be 150s (2:30)');
-  assert.strictEqual(getRoundDuration(4), 150, 'Day 6 deadline must be 150s (2:30)');
-  assert.strictEqual(getRoundDuration(5), 120, 'Day 8 deadline must be 120s (2:00)');
-  assert.strictEqual(getRoundDuration(6), 120, 'Day 10 deadline must be 120s (2:00)');
-  assert.strictEqual(TOTAL_PLANNED_ALLOWANCE_SECONDS, 780, 'Total planned allowance must be exactly 780s (13 minutes)');
+test('Timing Assertion 1: All six durations equal configured values and total 1200 seconds (20 minutes)', () => {
+  assert.strictEqual(getRoundDuration(1), 180, 'Day 0 deadline must be 180s (3:00)');
+  assert.strictEqual(getRoundDuration(2), 180, 'Day 2 deadline must be 180s (3:00)');
+  assert.strictEqual(getRoundDuration(3), 240, 'Day 4 deadline must be 240s (4:00)');
+  assert.strictEqual(getRoundDuration(4), 240, 'Day 6 deadline must be 240s (4:00)');
+  assert.strictEqual(getRoundDuration(5), 180, 'Day 8 deadline must be 180s (3:00)');
+  assert.strictEqual(getRoundDuration(6), 180, 'Day 10 deadline must be 180s (3:00)');
+  assert.strictEqual(TOTAL_PLANNED_ALLOWANCE_SECONDS, 1200, 'Total planned allowance must be exactly 1200s (20 minutes)');
 
   const sumValues = [1, 2, 3, 4, 5, 6].map(b => ROUND_DEADLINE_SECONDS[b]).reduce((a, b) => a + b, 0);
-  assert.strictEqual(sumValues, 780, 'Sum of ROUND_DEADLINE_SECONDS must equal 780 seconds');
+  assert.strictEqual(sumValues, 1200, 'Sum of ROUND_DEADLINE_SECONDS must equal 1200 seconds');
 });
 
 test('Timing Assertion 2: Server-calculated response time is correct based on request timestamp minus start time', () => {
@@ -1485,7 +1485,7 @@ test('Timing Assertion 4: Refreshing or reconnecting retains original start and 
 
   assert.ok(originalStart, 'Original start time must exist');
   assert.ok(originalDeadline, 'Original deadline must exist');
-  assert.strictEqual(originalDuration, 120, 'Original Day 0 allowance must be 120s');
+  assert.strictEqual(originalDuration, 180, 'Original Day 0 allowance must be 180s');
 
   // Simulate reconnect/refresh: /api/game/state and page.tsx check if roundDeadline exists
   // If exists, it MUST NOT be overwritten or reset
