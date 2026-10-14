@@ -9,7 +9,7 @@ import { findAction } from '@/game/engine';
 import { ACTION_MATRIX } from '@/game/matrix';
 import { getRoundDuration } from '@/game/timer';
 import { SimulationMode } from '@/game/types';
-import WeatherOverlay from '@/components/WeatherOverlay';
+import WeatherOverlay, { AtmosphereMode } from '@/components/WeatherOverlay';
 import { 
   playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking,
   playScenarioAudio, pauseScenarioAudio, resumeScenarioAudio, stopScenarioAudio, seekScenarioAudio,
@@ -19,7 +19,8 @@ import {
   Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
-  ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX
+  ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX,
+  Waves, Sun, Scale
 } from 'lucide-react';
 import Image from 'next/image';
 import { 
@@ -354,6 +355,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const router = useRouter();
   const [state, setState] = useState<GameState>(initialState);
   const [currentScenario, setCurrentScenario] = useState<any>(initialScenario);
+  const [atmosphereMode, setAtmosphereMode] = useState<AtmosphereMode>('auto');
   
   // Operational Ranking Rounds (Buckets 1, 2, 5, 6)
   const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
@@ -1007,32 +1009,34 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   return (
     <div className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden text-slate-200 selection:bg-cyan-500/30 font-sans bg-black flex flex-col justify-between">
       
-      {/* Animated Dynamic Background Layer */}
-      <motion.div 
-        animate={{ 
-          background: [
-            'radial-gradient(circle at 20% 30%, #0f172a 0%, #020617 100%)',
-            'radial-gradient(circle at 80% 70%, #064e3b 0%, #020617 100%)',
-            'radial-gradient(circle at 50% 50%, #4c1d95 0%, #020617 100%)',
-            'radial-gradient(circle at 20% 30%, #0f172a 0%, #020617 100%)',
-          ]
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-        className="fixed inset-0 z-0 pointer-events-none"
-      >
+      {/* Animated Dynamic Background Layer with Disaster Environmental FX */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Real-time Environmental Disaster Overlay (Images + Earth Cracks + Floating Heavy Water) */}
+        <WeatherOverlay 
+          floodScore={state.scores.floodPreparedness} 
+          droughtScore={state.scores.droughtPreparedness}
+          drinkingWater={state.resources?.drinkingWater}
+          riverLevel={state.environment?.riverLevel}
+          rainfall={state.environment?.rainfall}
+          day={state.day}
+          bucket={state.bucket}
+          activeAtmosphere={atmosphereMode}
+          onAtmosphereChange={setAtmosphereMode}
+        />
+
         {/* Holographic Hex Grid */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDAgTDIwIDIwIE0yMCAyMCBMNDAgMTAgTTIwIDIwIEwwIDEwIiBzdHJva2U9InJnYmEoNiwgMTgyLCAyMTIsIDAuMDgpIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-20"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDAgTDIwIDIwIE0yMCAyMCBMNDAgMTAgTTIwIDIwIEwwIDEwIiBzdHJva2U9InJnYmEoNiwgMTgyLCAyMTIsIDAuMDgpIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-15 pointer-events-none"></div>
         
         {/* Floating Ambient Orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none mix-blend-screen opacity-60">
-          {[...Array(8)].map((_, i) => (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none mix-blend-screen opacity-40">
+          {[...Array(6)].map((_, i) => (
             <motion.div
               key={i}
               className="absolute rounded-full blur-3xl"
               style={{
-                width: Math.random() * 300 + 200,
-                height: Math.random() * 300 + 200,
-                background: i % 2 === 0 ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                width: Math.random() * 250 + 150,
+                height: Math.random() * 250 + 150,
+                background: i % 2 === 0 ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)',
               }}
               initial={{
                 x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
@@ -1053,7 +1057,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         </div>
 
         {/* Central Dashboard Visualizers */}
-        <div className="fixed inset-0 flex items-center justify-center gap-4 sm:gap-12 md:gap-24 lg:gap-32 pointer-events-none pb-28 sm:pb-32 px-2">
+        <div className="fixed inset-0 flex items-center justify-center gap-4 sm:gap-12 md:gap-24 lg:gap-32 pointer-events-none pb-28 sm:pb-32 px-2 z-[4]">
           <motion.div 
             initial={{ scale: 0.85, opacity: 0 }} 
             animate={{ scale: 1, opacity: 1 }} 
@@ -1072,11 +1076,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </motion.div>
         </div>
 
-        <WeatherOverlay floodScore={state.scores.floodPreparedness} droughtScore={state.scores.droughtPreparedness} />
-
         {/* Cinematic Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_rgba(2,6,23,0.95)_100%)] pointer-events-none z-10"></div>
-      </motion.div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_30%,_rgba(2,6,23,0.85)_100%)] pointer-events-none z-10"></div>
+      </div>
 
       {/* Top HUD */}
       <motion.header
@@ -1134,6 +1136,72 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               <Activity size={14} className="text-cyan-400" />
               <span className="hidden xs:inline">HUD</span>
             </button>
+
+            {/* Real-time Disaster Atmosphere Regime Switcher */}
+            <div className="flex items-center gap-1 bg-slate-900/80 backdrop-blur-xl border border-slate-700/80 rounded-xl sm:rounded-2xl p-1 shadow-lg pointer-events-auto">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 border-r border-slate-700/80">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    (atmosphereMode === 'flood' || (atmosphereMode === 'auto' && (state.scores.floodPreparedness < 38 || (state.environment?.riverLevel ?? 50) > 70)))
+                      ? 'bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse'
+                      : (atmosphereMode === 'drought' || (atmosphereMode === 'auto' && (state.scores.droughtPreparedness < 35 || (state.resources?.drinkingWater ?? 50) < 35)))
+                      ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse'
+                      : 'bg-purple-400 shadow-[0_0_8px_#c084fc]'
+                  }`}
+                />
+                <span className="text-[9px] font-mono font-bold tracking-wider text-slate-300 hidden xl:inline uppercase">
+                  {atmosphereMode}
+                </span>
+              </div>
+
+              <button
+                onClick={() => { setAtmosphereMode('auto'); playUIBlip(); }}
+                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all ${
+                  atmosphereMode === 'auto'
+                    ? 'bg-cyan-500 text-slate-950 shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Auto: Reacts dynamically in real-time to game hazard conditions"
+              >
+                Auto
+              </button>
+              <button
+                onClick={() => { setAtmosphereMode('dual'); playUIBlip(); }}
+                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                  atmosphereMode === 'dual'
+                    ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Dual: RainAndDry.png compound hazard background"
+              >
+                <Scale size={11} />
+                <span className="hidden sm:inline">Dual</span>
+              </button>
+              <button
+                onClick={() => { setAtmosphereMode('flood'); playUIBlip(); }}
+                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                  atmosphereMode === 'flood'
+                    ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.6)]'
+                    : 'text-slate-400 hover:text-cyan-300 hover:bg-slate-800'
+                }`}
+                title="Flood: Flood.png background with heavy floating water and waves"
+              >
+                <Waves size={11} />
+                <span>Flood</span>
+              </button>
+              <button
+                onClick={() => { setAtmosphereMode('drought'); playUIBlip(); }}
+                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                  atmosphereMode === 'drought'
+                    ? 'bg-amber-500 text-slate-950 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+                    : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800'
+                }`}
+                title="Drought: Drought.png background with glowing earth cracks"
+              >
+                <Sun size={11} />
+                <span>Drought</span>
+              </button>
+            </div>
           </div>
 
           {/* Right: Budget Display & Metrics */}
