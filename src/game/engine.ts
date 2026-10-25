@@ -9,6 +9,7 @@ import { GameState, getInitialGameState } from './state';
 import { getRoundDuration, getDefaultBucketShuffledOrder } from './timer';
 
 export const FALLBACK_INTERVENTION_PENALTY_PER_ROUND = 2; // Documented deduction of 2 points per fallback intervention
+export const FAILURE_PENALTY_PER_BREACHED_CONDITION = 3; // Failure penalties: 3 points per breached crisis condition
 
 
 export interface DecisionDelta {
@@ -193,7 +194,7 @@ export function evaluateDynamicInterRoundEvents(state: GameState): DynamicEventT
 /**
  * National Emergency Credit Facility Ceiling (LKR Millions).
  * The Ministry of Finance / Central Bank authorizes emergency overdraft borrowing up to LKR 200M.
- * Drawing below 0M triggers the fiscalInsolvency crisis penalty (-12 pts on CPS) and liquidity stress.
+ * Drawing below 0M triggers the fiscalInsolvency crisis penalty (-3 pts on CPS) and liquidity stress.
  * Exceeding LKR 200M debt triggers a hard sovereign borrowing halt.
  */
 export const EMERGENCY_CREDIT_FACILITY_CAP = 200;
@@ -1399,7 +1400,7 @@ export function calculateTpi(
         humanDecisionsCount: 0,
         participationMultiplier: 0,
         unadjustedTpi: 0,
-        timeoutPenaltyPoints: fallbacksCount * 10
+        timeoutPenaltyPoints: fallbacksCount * FALLBACK_INTERVENTION_PENALTY_PER_ROUND
       }
     };
   }
@@ -1450,8 +1451,8 @@ export function calculateTpi(
   ) / 10));
 
   // Transparent tournament participation & timeout adjustment:
-  // TPI = clamp(unadjustedTpi - 10 * F, 0, 100) * (H / 6)
-  const timeoutPenaltyPoints = fallbacksCount * 10;
+  // TPI = clamp(unadjustedTpi - F_pen, 0, 100) * (H / 6)
+  const timeoutPenaltyPoints = fallbacksCount * FALLBACK_INTERVENTION_PENALTY_PER_ROUND;
   const participationMultiplier = humanDecisionsCount / 6;
   const clampedTpiSubtotal = Math.max(0, Math.min(100, unadjustedTpi - timeoutPenaltyPoints));
   const finalTpi = Math.max(0, Math.min(100, Math.round(clampedTpiSubtotal * participationMultiplier * 10) / 10));
@@ -1579,15 +1580,15 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
       0.15 * communityTrust) * 10
   ) / 10;
 
-  // Failure penalties: -3 points per breached crisis condition
-  const failurePenaltyPoints = breachedFailuresCount * 3;
+  // Failure penalties: points per breached crisis condition must be 3
+  const failurePenaltyPoints = breachedFailuresCount * FAILURE_PENALTY_PER_BREACHED_CONDITION;
 
   // ---------------------------------------------------------------------------
   // TOURNAMENT SCORING FORMULA:
-  // CPS = clamp(B - P - 10 * F, 0, 100) * (H / 6)
+  // CPS = clamp(B - P - F_pen, 0, 100) * (H / 6)
   // B: Weighted baseline sum (5 pillars)
-  // P: Crisis failure deductions (breachedFailuresCount * 3)
-  // F: Fallback interventions count (10 pts per fallback)
+  // P: Crisis failure deductions (breachedFailuresCount * FAILURE_PENALTY_PER_BREACHED_CONDITION, i.e. 3 pts per breach)
+  // F_pen: Fallback interventions count (fallbacksCount * FALLBACK_INTERVENTION_PENALTY_PER_ROUND, i.e. 2 pts per fallback)
   // H: Human-authorized decisions count (between 0 and 6)
   // ---------------------------------------------------------------------------
   const timeoutDeduction = fallbacksCount * FALLBACK_INTERVENTION_PENALTY_PER_ROUND;
@@ -1683,9 +1684,9 @@ export function calculateFinalOutcome(state: GameState): FinalResult {
   if (humanDecisionsCount === 0) {
     explanation = 'Command failure: Zero human decisions were authorized across the six decision windows (6 fallback interventions). The automated contingency system executed holding actions, resulting in a command score of 0.0 / 100 (Tier 4).';
   } else if (fallbacksCount > 0) {
-    explanation = `Baseline (${baselineWeightedSum.toFixed(1)}) minus ${failurePenaltyPoints.toFixed(1)} pts crisis deductions and minus ${timeoutDeduction.toFixed(1)} pts timeout deductions (${fallbacksCount} @ 10 pts) = ${clampedSubtotal.toFixed(1)} pts subtotal, multiplied by human participation ratio ${humanDecisionsCount}/6 (${(participationMultiplier * 100).toFixed(1)}%) yields ${cps.toFixed(1)} pts.`;
+    explanation = `Baseline (${baselineWeightedSum.toFixed(1)}) minus ${failurePenaltyPoints.toFixed(1)} pts crisis deductions (${breachedFailuresCount} @ ${FAILURE_PENALTY_PER_BREACHED_CONDITION} pts) and minus ${timeoutDeduction.toFixed(1)} pts timeout deductions (${fallbacksCount} @ ${FALLBACK_INTERVENTION_PENALTY_PER_ROUND} pts) = ${clampedSubtotal.toFixed(1)} pts subtotal, multiplied by human participation ratio ${humanDecisionsCount}/6 (${(participationMultiplier * 100).toFixed(1)}%) yields ${cps.toFixed(1)} pts.`;
   } else if (failurePenaltyPoints > 0) {
-    explanation = `Baseline (${baselineWeightedSum.toFixed(1)}) minus ${failurePenaltyPoints.toFixed(1)} pts crisis deductions across 6 human-authorized rounds yields ${cps.toFixed(1)} pts.`;
+    explanation = `Baseline (${baselineWeightedSum.toFixed(1)}) minus ${failurePenaltyPoints.toFixed(1)} pts crisis deductions (${breachedFailuresCount} @ ${FAILURE_PENALTY_PER_BREACHED_CONDITION} pts) across 6 human-authorized rounds yields ${cps.toFixed(1)} pts.`;
   } else {
     explanation = `Baseline is ${baselineWeightedSum.toFixed(1)} pts across 6 human-authorized rounds with zero crisis or timeout deductions.`;
   }

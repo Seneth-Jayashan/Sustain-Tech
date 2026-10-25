@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ShieldAlert, Droplets, Coins, LogOut, RefreshCcw, ChevronDown, ChevronUp, 
-  Activity, Users, LayoutDashboard, Settings, FileText, Database, Plus, Trash2, 
+import {
+  ShieldAlert, Droplets, Coins, LogOut, RefreshCcw, ChevronDown, ChevronUp,
+  Activity, Users, LayoutDashboard, Settings, FileText, Database, Plus, Trash2,
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
   Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu,
   Clock, Zap, Trophy, Timer
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { notifyConfirm } from '@/lib/notifications';
 
 const sortCompletedSessions = (sessionList: any[]) => {
@@ -61,14 +62,14 @@ export default function AdminClient() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'scenarios'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // Data states
   const [sessions, setSessions] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [allActions, setAllActions] = useState<any[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
@@ -78,7 +79,7 @@ export default function AdminClient() {
   const [teamModal, setTeamModal] = useState<{ open: boolean; mode: 'create' | 'edit'; team?: any }>({ open: false, mode: 'create' });
   const [playerModal, setPlayerModal] = useState<{ open: boolean; mode: 'create' | 'edit'; teamId?: string; player?: any }>({ open: false, mode: 'create' });
   const [adminModal, setAdminModal] = useState<{ open: boolean; mode: 'create' | 'edit'; adminUser?: any }>({ open: false, mode: 'create' });
-  
+
   const [scenarioModal, setScenarioModal] = useState<{ open: boolean; mode: 'create' | 'edit'; scenario?: any }>({ open: false, mode: 'create' });
   const [addActionModal, setAddActionModal] = useState<{ open: boolean; scenario?: any }>({ open: false });
   const [editActionModal, setEditActionModal] = useState<{ open: boolean; action?: any }>({ open: false });
@@ -87,7 +88,7 @@ export default function AdminClient() {
   const [teamForm, setTeamForm] = useState({ name: '' });
   const [playerForm, setPlayerForm] = useState({ name: '', email: '', password: '', teamId: '' });
   const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '' });
-  
+
   const [scenarioForm, setScenarioForm] = useState({ scenarioId: '', title: '', situation: '', day: 0 });
   const [actionSourceMode, setActionSourceMode] = useState<'dropdown' | 'create'>('dropdown');
   const [selectedDropdownActionId, setSelectedDropdownActionId] = useState('');
@@ -123,7 +124,7 @@ export default function AdminClient() {
         ]);
         const teamsData = await teamsRes.json();
         const usersData = await usersRes.json();
-        
+
         if (teamsData.success) {
           setTeams(teamsData.teams || []);
           // Auto-expand all teams by default
@@ -168,7 +169,7 @@ export default function AdminClient() {
   // -------------------------------------------------------------
   const handleDeleteSession = async (sessionId: string, teamName?: string) => {
     const isAll = sessionId === 'all';
-    const confirmMsg = isAll 
+    const confirmMsg = isAll
       ? 'Are you sure you want to delete ALL game sessions? All active and completed simulations will be erased so teams can restart from Day 0.'
       : `Delete game session for team "${teamName || 'Unassigned'}"? This will reset the simulation state so the team can start fresh.`;
 
@@ -213,8 +214,8 @@ export default function AdminClient() {
     }
     try {
       const method = teamModal.mode === 'create' ? 'POST' : 'PUT';
-      const body = teamModal.mode === 'create' 
-        ? { name: teamForm.name.trim() } 
+      const body = teamModal.mode === 'create'
+        ? { name: teamForm.name.trim() }
         : { _id: teamModal.team._id, name: teamForm.name.trim() };
 
       const res = await fetch('/api/admin/manage-teams', {
@@ -271,11 +272,11 @@ export default function AdminClient() {
   };
 
   const openEditPlayer = (player: any) => {
-    setPlayerForm({ 
-      name: player.name, 
-      email: player.email, 
-      password: '', 
-      teamId: typeof player.teamId === 'object' ? player.teamId?._id : player.teamId 
+    setPlayerForm({
+      name: player.name,
+      email: player.email,
+      password: '',
+      teamId: typeof player.teamId === 'object' ? player.teamId?._id : player.teamId
     });
     setPlayerModal({ open: true, mode: 'edit', player });
   };
@@ -409,11 +410,11 @@ export default function AdminClient() {
   // -------------------------------------------------------------
   const openCreateScenario = () => {
     const nextDay = scenarios.length * 2;
-    setScenarioForm({ 
-      scenarioId: `scenario_day_${nextDay}`, 
-      title: '', 
-      situation: '', 
-      day: nextDay 
+    setScenarioForm({
+      scenarioId: `scenario_day_${nextDay}`,
+      title: '',
+      situation: '',
+      day: nextDay
     });
     setScenarioModal({ open: true, mode: 'create' });
   };
@@ -705,19 +706,18 @@ export default function AdminClient() {
     <div className="min-h-screen bg-[#020617] text-white selection:bg-blue-500/30 font-sans flex relative overflow-hidden">
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.03)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none z-0"></div>
-      
+
       {/* Notifications Toast */}
       <AnimatePresence>
         {notification && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-xl shadow-2xl font-mono text-sm ${
-              notification.type === 'success' 
-                ? 'bg-green-950/80 border-green-500/50 text-green-300' 
+            className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-xl shadow-2xl font-mono text-sm ${notification.type === 'success'
+                ? 'bg-green-950/80 border-green-500/50 text-green-300'
                 : 'bg-red-950/80 border-red-500/50 text-red-300'
-            }`}
+              }`}
           >
             {notification.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
             <span>{notification.message}</span>
@@ -738,7 +738,7 @@ export default function AdminClient() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          <button
             type="button"
             onClick={fetchData}
             aria-label="Sync State"
@@ -806,11 +806,10 @@ export default function AdminClient() {
                         setSearchTerm('');
                         setMobileMenuOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-3.5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${
-                        isActive 
-                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]' 
+                      className={`flex items-center gap-3 px-3.5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${isActive
+                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
                           : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
-                      }`}
+                        }`}
                     >
                       <Icon size={18} /> {item.label}
                     </button>
@@ -819,7 +818,7 @@ export default function AdminClient() {
               </div>
 
               <div className="pt-4 border-t border-blue-900/40">
-                <button 
+                <button
                   onClick={handleLogout}
                   className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase"
                 >
@@ -834,8 +833,13 @@ export default function AdminClient() {
       {/* Desktop Sidebar */}
       <div className="hidden md:flex relative z-20 w-64 border-r border-blue-900/40 bg-black/70 backdrop-blur-2xl flex-col shrink-0">
         <div className="p-6 border-b border-blue-900/40">
-          <div className="w-12 h-12 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-[0_0_20px_rgba(37,99,235,0.25)] mb-4">
-            <ShieldAlert size={28} />
+          <div className="flex items-center gap-2 mb-3">
+            {/* <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white/95 p-0.5 border border-blue-500/40 shadow shrink-0">
+              <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
+            </div> */}
+            <div className="relative h-8 w-36 overflow-hidden rounded-lg bg-white/95 px-1 shadow border border-blue-500/30">
+              <Image src="/assets/images/Banner.jpg" alt="Symposium" fill className="object-contain" unoptimized />
+            </div>
           </div>
           <h1 className="text-lg font-black tracking-widest uppercase text-white">Central Command</h1>
           <p className="text-xs font-mono text-blue-400/80 mt-0.5">Disaster Management Admin</p>
@@ -849,11 +853,10 @@ export default function AdminClient() {
               <button
                 key={item.id}
                 onClick={() => { setActiveTab(item.id as any); setSearchTerm(''); }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${
-                  isActive 
-                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]' 
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${isActive
+                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
                     : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
-                }`}
+                  }`}
               >
                 <Icon size={18} /> {item.label}
               </button>
@@ -862,7 +865,7 @@ export default function AdminClient() {
         </div>
 
         <div className="p-4 border-t border-blue-900/40">
-          <button 
+          <button
             onClick={handleLogout}
             className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase"
           >
@@ -884,10 +887,10 @@ export default function AdminClient() {
               {activeTab === 'scenarios' && 'Manage simulation operational buckets and link actionable decision cards'}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {activeTab === 'overview' && sessions.length > 0 && (
-              <button 
+              <button
                 onClick={() => handleDeleteSession('all')}
                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 rounded-xl transition-all font-mono text-xs cursor-pointer active:scale-95"
                 title="Erase all active & completed sessions to reset all teams"
@@ -895,7 +898,7 @@ export default function AdminClient() {
                 <Trash2 size={14} /> Clear All Sessions
               </button>
             )}
-            <button 
+            <button
               onClick={fetchData}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 border border-blue-700/40 rounded-xl transition-all font-mono text-xs cursor-pointer active:scale-95"
             >
@@ -918,7 +921,7 @@ export default function AdminClient() {
                   NO ACTIVE SESSIONS REGISTERED IN SECTOR
                 </div>
               )}
-              
+
               {sortedSessions.map((session, i) => {
                 const team = session.teamId;
                 const state = session.state;
@@ -927,13 +930,13 @@ export default function AdminClient() {
                 const tpi = finalResult?.tpi ?? finalResult?.cps;
                 const cps = finalResult?.cps;
                 const tpiDetails = finalResult?.tpiDetails;
-                const avgSpeed = tpiDetails?.averageDecisionTimeSeconds ?? (state?.decisionHistory?.length 
-                  ? Math.round(state.decisionHistory.reduce((acc: number, d: any) => acc + (d.timeSpentSeconds || 0), 0) / state.decisionHistory.length) 
+                const avgSpeed = tpiDetails?.averageDecisionTimeSeconds ?? (state?.decisionHistory?.length
+                  ? Math.round(state.decisionHistory.reduce((acc: number, d: any) => acc + (d.timeSpentSeconds || 0), 0) / state.decisionHistory.length)
                   : 0);
                 const timeouts = tpiDetails?.timeoutsCount ?? state?.decisionHistory?.filter((d: any) => d.timeoutOccurred).length ?? 0;
                 const fallbacks = tpiDetails?.fallbacksCount ?? state?.decisionHistory?.filter((d: any) => d.emergencyFallback).length ?? 0;
                 const breachedFailures = Object.values(finalResult?.failureStates || {}).filter(Boolean).length;
-                
+
                 let rankNumber = 0;
                 if (isCompleted) {
                   completedRank++;
@@ -941,18 +944,17 @@ export default function AdminClient() {
                 }
 
                 return (
-                  <motion.div 
+                  <motion.div
                     key={session._id}
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className={`p-4 sm:p-6 rounded-2xl border backdrop-blur-md flex flex-col ${
-                      isCompleted 
-                        ? 'border-emerald-500/40 bg-emerald-950/10' 
+                    className={`p-4 sm:p-6 rounded-2xl border backdrop-blur-md flex flex-col ${isCompleted
+                        ? 'border-emerald-500/40 bg-emerald-950/10'
                         : 'border-blue-500/30 bg-blue-950/10 hover:border-blue-500/50'
-                    }`}
+                      }`}
                   >
-                    <div 
+                    <div
                       className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full cursor-pointer select-none"
                       onClick={() => setExpandedSessions(prev => ({ ...prev, [session._id]: !prev[session._id] }))}
                     >
@@ -966,7 +968,7 @@ export default function AdminClient() {
                           <span className="text-xs font-mono text-blue-400 uppercase tracking-widest">{team?.name || 'Unassigned Team'}</span>
                         </div>
                         <span className="text-lg sm:text-xl font-black text-white">{session.currentUserId?.name || 'Session Commander'}</span>
-                        
+
                         <div className="mt-1.5 sm:mt-2 flex flex-wrap items-center gap-2">
                           {isCompleted ? (
                             <>
@@ -1044,7 +1046,7 @@ export default function AdminClient() {
                     </div>
 
                     {expandedSessions[session._id] && (
-                      <motion.div 
+                      <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-blue-900/40 flex flex-col gap-4 sm:gap-6 font-mono"
@@ -1156,9 +1158,9 @@ export default function AdminClient() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-950/20 p-4 rounded-2xl border border-blue-900/40">
               <div className="relative w-full sm:w-72">
                 <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Filter teams or players..." 
+                <input
+                  type="text"
+                  placeholder="Filter teams or players..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-black/50 text-white rounded-xl border border-blue-900/50 focus:border-blue-500 font-mono text-xs focus:outline-none"
@@ -1166,7 +1168,7 @@ export default function AdminClient() {
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <button 
+                <button
                   onClick={openCreateTeam}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
                 >
@@ -1184,14 +1186,14 @@ export default function AdminClient() {
               )}
 
               {teams
-                .filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                .filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   (t.players && t.players.some((p: any) => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.email.toLowerCase().includes(searchTerm.toLowerCase()))))
                 .map((team) => {
                   const teamPlayers = team.players || [];
                   const isExpanded = expandedTeams[team._id] ?? true;
 
                   return (
-                    <motion.div 
+                    <motion.div
                       key={team._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1200,7 +1202,7 @@ export default function AdminClient() {
                       {/* Team Header */}
                       <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-950/40 to-transparent border-b border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                         <div className="flex items-center gap-3">
-                          <button 
+                          <button
                             type="button"
                             onClick={() => setExpandedTeams(prev => ({ ...prev, [team._id]: !prev[team._id] }))}
                             className="w-8 h-8 rounded-lg bg-blue-900/30 flex items-center justify-center text-blue-400 hover:bg-blue-800/40 transition-colors shrink-0"
@@ -1220,21 +1222,21 @@ export default function AdminClient() {
 
                         {/* Team Actions */}
                         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                          <button 
+                          <button
                             type="button"
                             onClick={() => openAddPlayer(team._id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer active:scale-95"
                           >
                             <UserPlus size={14} /> Add Player
                           </button>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => openEditTeam(team)}
                             className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/40 rounded-lg font-mono text-xs transition-all cursor-pointer active:scale-95"
                           >
                             <Edit3 size={14} />
                           </button>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleDeleteTeam(team)}
                             className="px-3 py-1.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-lg font-mono text-xs transition-all cursor-pointer active:scale-95"
@@ -1251,7 +1253,7 @@ export default function AdminClient() {
                           {teamPlayers.length === 0 ? (
                             <div className="text-center py-6 sm:py-8 border border-dashed border-gray-800 rounded-xl bg-black/20">
                               <p className="text-gray-500 font-mono text-xs">No players assigned to {team.name} yet.</p>
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => openAddPlayer(team._id)}
                                 className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-lg font-mono text-xs hover:bg-blue-600/30 transition-all cursor-pointer active:scale-95"
@@ -1285,7 +1287,7 @@ export default function AdminClient() {
                                       </td>
                                       <td className="py-3 text-right">
                                         <div className="inline-flex items-center gap-1.5 sm:gap-2">
-                                          <button 
+                                          <button
                                             type="button"
                                             onClick={() => openEditPlayer(player)}
                                             className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 transition-colors text-xs cursor-pointer active:scale-95"
@@ -1293,7 +1295,7 @@ export default function AdminClient() {
                                           >
                                             Edit
                                           </button>
-                                          <button 
+                                          <button
                                             type="button"
                                             onClick={() => handleDeleteUser(player._id, player.name)}
                                             className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 transition-colors cursor-pointer active:scale-95"
@@ -1328,7 +1330,7 @@ export default function AdminClient() {
                     Admin accounts operate across all teams and sectors (no team assignment needed).
                   </p>
                 </div>
-                <button 
+                <button
                   type="button"
                   onClick={openAddAdmin}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 border border-yellow-500/40 font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95"
@@ -1364,14 +1366,14 @@ export default function AdminClient() {
                           </td>
                           <td className="p-3.5 sm:p-4 text-right">
                             <div className="inline-flex items-center gap-1.5 sm:gap-2">
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => openEditAdmin(admin)}
                                 className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 transition-colors cursor-pointer active:scale-95"
                               >
                                 Edit
                               </button>
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => handleDeleteUser(admin._id, admin.name)}
                                 className="px-2.5 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 transition-colors cursor-pointer active:scale-95"
@@ -1399,9 +1401,9 @@ export default function AdminClient() {
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 bg-blue-950/20 p-3.5 sm:p-4 rounded-2xl border border-blue-900/40">
               <div className="relative w-full sm:w-72">
                 <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Filter scenarios or actions..." 
+                <input
+                  type="text"
+                  placeholder="Filter scenarios or actions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-black/50 text-white rounded-xl border border-blue-900/50 focus:border-blue-500 font-mono text-xs focus:outline-none"
@@ -1409,7 +1411,7 @@ export default function AdminClient() {
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <button 
+                <button
                   type="button"
                   onClick={openCreateScenario}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] cursor-pointer active:scale-95"
@@ -1428,7 +1430,7 @@ export default function AdminClient() {
               )}
 
               {scenarios
-                .filter(s => s.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                .filter(s => s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   s.scenarioId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   (s.actions && s.actions.some((a: any) => a.title.toLowerCase().includes(searchTerm.toLowerCase()))))
                 .map((scenario) => {
@@ -1436,7 +1438,7 @@ export default function AdminClient() {
                   const scenarioDay = scenario.conditions?.find((c: any) => c.field === 'day')?.value ?? 0;
 
                   return (
-                    <motion.div 
+                    <motion.div
                       key={scenario._id}
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1461,14 +1463,14 @@ export default function AdminClient() {
 
                         {/* Scenario Controls */}
                         <div className="flex items-center gap-1.5 sm:gap-2 self-start sm:self-auto flex-wrap">
-                          <button 
+                          <button
                             type="button"
                             onClick={() => openAddActionForScenario(scenario)}
                             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-xl font-mono text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
                           >
                             <Plus size={15} /> Add Action
                           </button>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => openEditScenario(scenario)}
                             className="px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/40 rounded-xl font-mono text-xs transition-all cursor-pointer active:scale-95"
@@ -1476,7 +1478,7 @@ export default function AdminClient() {
                           >
                             <Edit3 size={15} />
                           </button>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleDeleteScenario(scenario)}
                             className="px-3 py-2 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl font-mono text-xs transition-all cursor-pointer active:scale-95"
@@ -1499,7 +1501,7 @@ export default function AdminClient() {
                           <div className="text-center py-8 sm:py-10 border border-dashed border-gray-800 rounded-xl bg-black/20">
                             <p className="text-gray-500 font-mono text-xs">No actions attached to this scenario.</p>
                             <p className="text-gray-600 font-mono text-[11px] mt-1">Actions must have a scenario. Attach existing actions or create new ones below.</p>
-                            <button 
+                            <button
                               type="button"
                               onClick={() => openAddActionForScenario(scenario)}
                               className="mt-3 sm:mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-xl font-mono text-xs hover:bg-blue-600/30 transition-all cursor-pointer active:scale-95"
@@ -1513,7 +1515,7 @@ export default function AdminClient() {
                               const impacts = action.baseImpacts || {};
 
                               return (
-                                <div 
+                                <div
                                   key={action._id || action.actionId || idx}
                                   className="p-3 sm:p-4 bg-black/50 border border-gray-800/80 hover:border-blue-900/60 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 transition-all"
                                 >
@@ -1536,37 +1538,32 @@ export default function AdminClient() {
                                   {/* Middle: Impact Badges */}
                                   <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                                     {impacts.floodPreparedness !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
-                                        (impacts.floodPreparedness || 0) > 0 ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
-                                      }`}>
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${(impacts.floodPreparedness || 0) > 0 ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
+                                        }`}>
                                         Flood {(impacts.floodPreparedness || 0) > 0 ? `+${impacts.floodPreparedness}` : impacts.floodPreparedness}%
                                       </span>
                                     )}
                                     {impacts.droughtPreparedness !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
-                                        (impacts.droughtPreparedness || 0) > 0 ? 'bg-blue-950/60 text-blue-400 border border-blue-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
-                                      }`}>
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${(impacts.droughtPreparedness || 0) > 0 ? 'bg-blue-950/60 text-blue-400 border border-blue-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
+                                        }`}>
                                         Drought {(impacts.droughtPreparedness || 0) > 0 ? `+${impacts.droughtPreparedness}` : impacts.droughtPreparedness}%
                                       </span>
                                     )}
                                     {impacts.emergencyBudget !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
-                                        (impacts.emergencyBudget || 0) >= 0 ? 'bg-green-950/60 text-green-400 border border-green-800/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
-                                      }`}>
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${(impacts.emergencyBudget || 0) >= 0 ? 'bg-green-950/60 text-green-400 border border-green-800/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
+                                        }`}>
                                         Budget {(impacts.emergencyBudget || 0) > 0 ? `+${impacts.emergencyBudget}` : impacts.emergencyBudget}M
                                       </span>
                                     )}
                                     {impacts.communityTrust !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
-                                        (impacts.communityTrust || 0) > 0 ? 'bg-purple-950/60 text-purple-400 border border-purple-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
-                                      }`}>
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${(impacts.communityTrust || 0) > 0 ? 'bg-purple-950/60 text-purple-400 border border-purple-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
+                                        }`}>
                                         Trust {(impacts.communityTrust || 0) > 0 ? `+${impacts.communityTrust}` : impacts.communityTrust}%
                                       </span>
                                     )}
                                     {impacts.informationQuality !== 0 && (
-                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${
-                                        (impacts.informationQuality || 0) > 0 ? 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
-                                      }`}>
+                                      <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold ${(impacts.informationQuality || 0) > 0 ? 'bg-indigo-950/60 text-indigo-400 border border-indigo-800/40' : 'bg-red-950/60 text-red-400 border border-red-800/40'
+                                        }`}>
                                         Intel {(impacts.informationQuality || 0) > 0 ? `+${impacts.informationQuality}` : impacts.informationQuality}%
                                       </span>
                                     )}
@@ -1574,7 +1571,7 @@ export default function AdminClient() {
 
                                   {/* Right: Actions & Reordering */}
                                   <div className="flex items-center gap-1.5 shrink-0 self-start md:self-auto">
-                                    <button 
+                                    <button
                                       type="button"
                                       onClick={() => handleReorderAction(scenario, idx, 'up')}
                                       disabled={idx === 0}
@@ -1583,7 +1580,7 @@ export default function AdminClient() {
                                     >
                                       <ArrowUp size={14} />
                                     </button>
-                                    <button 
+                                    <button
                                       type="button"
                                       onClick={() => handleReorderAction(scenario, idx, 'down')}
                                       disabled={idx === scenActions.length - 1}
@@ -1592,14 +1589,14 @@ export default function AdminClient() {
                                     >
                                       <ArrowDown size={14} />
                                     </button>
-                                    <button 
+                                    <button
                                       type="button"
                                       onClick={() => openEditAction(action)}
                                       className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-300 rounded border border-gray-800 text-xs font-mono cursor-pointer active:scale-95"
                                     >
                                       Edit
                                     </button>
-                                    <button 
+                                    <button
                                       type="button"
                                       onClick={() => handleRemoveActionFromScenario(scenario, action.actionId)}
                                       className="px-2 py-1 bg-red-950/20 hover:bg-red-900/30 text-red-400 rounded border border-red-800/30 text-xs font-mono cursor-pointer active:scale-95"
@@ -1628,7 +1625,7 @@ export default function AdminClient() {
       <AnimatePresence>
         {teamModal.open && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -1646,7 +1643,7 @@ export default function AdminClient() {
 
               <div>
                 <label className="block text-xs font-mono text-blue-300 uppercase mb-2">Team Name</label>
-                <input 
+                <input
                   type="text"
                   placeholder="e.g. Team Alpha"
                   value={teamForm.name}
@@ -1660,14 +1657,14 @@ export default function AdminClient() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
-                <button 
+                <button
                   type="button"
                   onClick={() => setTeamModal({ open: false, mode: 'create' })}
                   className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleSaveTeam}
                   className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
@@ -1686,7 +1683,7 @@ export default function AdminClient() {
       <AnimatePresence>
         {playerModal.open && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -1705,7 +1702,7 @@ export default function AdminClient() {
               <div className="space-y-3.5 sm:space-y-4">
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Assigned Team (Mandatory)</label>
-                  <select 
+                  <select
                     value={playerForm.teamId}
                     onChange={(e) => setPlayerForm(prev => ({ ...prev, teamId: e.target.value }))}
                     className="w-full bg-black/50 text-white p-3 rounded-xl border border-blue-900/60 focus:border-blue-500 font-mono text-sm focus:outline-none"
@@ -1720,7 +1717,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Player Name</label>
-                  <input 
+                  <input
                     type="text"
                     placeholder="e.g. Commander Sarah"
                     value={playerForm.name}
@@ -1731,7 +1728,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Email Address</label>
-                  <input 
+                  <input
                     type="email"
                     placeholder="player@sustaintech.online"
                     value={playerForm.email}
@@ -1744,7 +1741,7 @@ export default function AdminClient() {
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">
                     {playerModal.mode === 'create' ? 'Password' : 'New Password (leave blank to keep current)'}
                   </label>
-                  <input 
+                  <input
                     type="password"
                     placeholder="••••••••"
                     value={playerForm.password}
@@ -1755,14 +1752,14 @@ export default function AdminClient() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
-                <button 
+                <button
                   type="button"
                   onClick={() => setPlayerModal({ open: false, mode: 'create' })}
                   className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleSavePlayer}
                   className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
@@ -1781,7 +1778,7 @@ export default function AdminClient() {
       <AnimatePresence>
         {adminModal.open && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -1805,7 +1802,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-yellow-300 uppercase mb-1.5">Admin Full Name</label>
-                  <input 
+                  <input
                     type="text"
                     placeholder="e.g. Chief Controller"
                     value={adminForm.name}
@@ -1816,7 +1813,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-yellow-300 uppercase mb-1.5">Admin Email</label>
-                  <input 
+                  <input
                     type="email"
                     placeholder="admin@sustaintech.online"
                     value={adminForm.email}
@@ -1829,7 +1826,7 @@ export default function AdminClient() {
                   <label className="block text-xs font-mono text-yellow-300 uppercase mb-1.5">
                     {adminModal.mode === 'create' ? 'Password' : 'New Password (leave blank to keep current)'}
                   </label>
-                  <input 
+                  <input
                     type="password"
                     placeholder="••••••••"
                     value={adminForm.password}
@@ -1840,14 +1837,14 @@ export default function AdminClient() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-yellow-900/40">
-                <button 
+                <button
                   type="button"
                   onClick={() => setAdminModal({ open: false, mode: 'create' })}
                   className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleSaveAdmin}
                   className="w-full sm:w-auto px-5 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-black font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
@@ -1866,7 +1863,7 @@ export default function AdminClient() {
       <AnimatePresence>
         {scenarioModal.open && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -1886,7 +1883,7 @@ export default function AdminClient() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Scenario ID</label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g. scenario_day_0"
                       value={scenarioForm.scenarioId}
@@ -1897,7 +1894,7 @@ export default function AdminClient() {
                   </div>
                   <div>
                     <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Timeline Day</label>
-                    <input 
+                    <input
                       type="number"
                       placeholder="e.g. 0"
                       value={scenarioForm.day}
@@ -1909,7 +1906,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Scenario Title</label>
-                  <input 
+                  <input
                     type="text"
                     placeholder="e.g. Initial Warning - Pre-Event Readiness"
                     value={scenarioForm.title}
@@ -1920,7 +1917,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Situation Briefing</label>
-                  <textarea 
+                  <textarea
                     rows={4}
                     placeholder="Detailed tactical situation summary shown to players..."
                     value={scenarioForm.situation}
@@ -1931,14 +1928,14 @@ export default function AdminClient() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
-                <button 
+                <button
                   type="button"
                   onClick={() => setScenarioModal({ open: false, mode: 'create' })}
                   className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleSaveScenario}
                   className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
@@ -1957,7 +1954,7 @@ export default function AdminClient() {
       <AnimatePresence>
         {addActionModal.open && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -1978,25 +1975,23 @@ export default function AdminClient() {
 
               {/* Selector Tabs: Dropdown vs Create New */}
               <div className="flex rounded-xl bg-black/50 p-1 border border-blue-900/40 font-mono text-xs">
-                <button 
+                <button
                   type="button"
                   onClick={() => setActionSourceMode('dropdown')}
-                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    actionSourceMode === 'dropdown' 
-                      ? 'bg-blue-600 text-white font-bold' 
+                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${actionSourceMode === 'dropdown'
+                      ? 'bg-blue-600 text-white font-bold'
                       : 'text-gray-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Link2 size={14} /> Attach from Dropdown
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setActionSourceMode('create')}
-                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    actionSourceMode === 'create' 
-                      ? 'bg-blue-600 text-white font-bold' 
+                  className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${actionSourceMode === 'create'
+                      ? 'bg-blue-600 text-white font-bold'
                       : 'text-gray-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Plus size={14} /> Create New Action
                 </button>
@@ -2007,7 +2002,7 @@ export default function AdminClient() {
                 <div className="space-y-4 py-2">
                   <div>
                     <label className="block text-xs font-mono text-blue-300 uppercase mb-2">Select Action to Attach</label>
-                    <select 
+                    <select
                       value={selectedDropdownActionId}
                       onChange={(e) => setSelectedDropdownActionId(e.target.value)}
                       className="w-full bg-black/50 text-white p-3 rounded-xl border border-blue-900/60 focus:border-blue-500 font-mono text-sm focus:outline-none"
@@ -2054,14 +2049,14 @@ export default function AdminClient() {
                   )}
 
                   <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setAddActionModal({ open: false })}
                       className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={handleAttachExistingAction}
                       disabled={!selectedDropdownActionId}
@@ -2079,7 +2074,7 @@ export default function AdminClient() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Action ID (Code)</label>
-                      <input 
+                      <input
                         type="text"
                         placeholder="e.g. B1_ACT_1"
                         value={newActionForm.actionId}
@@ -2089,7 +2084,7 @@ export default function AdminClient() {
                     </div>
                     <div>
                       <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Action Title</label>
-                      <input 
+                      <input
                         type="text"
                         placeholder="e.g. Deploy Rapid Canal Clearing"
                         value={newActionForm.title}
@@ -2101,7 +2096,7 @@ export default function AdminClient() {
 
                   <div>
                     <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Description & Objective</label>
-                    <textarea 
+                    <textarea
                       rows={2}
                       placeholder="Operational directives and resource deployments..."
                       value={newActionForm.description}
@@ -2115,7 +2110,7 @@ export default function AdminClient() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 font-mono text-xs">
                       <div>
                         <label className="block text-gray-400 mb-1 text-[11px]">Flood Prep (+/- %)</label>
-                        <input 
+                        <input
                           type="number"
                           value={newActionForm.floodPreparedness}
                           onChange={(e) => setNewActionForm(prev => ({ ...prev, floodPreparedness: Number(e.target.value) || 0 }))}
@@ -2124,7 +2119,7 @@ export default function AdminClient() {
                       </div>
                       <div>
                         <label className="block text-gray-400 mb-1 text-[11px]">Drought Prep (+/- %)</label>
-                        <input 
+                        <input
                           type="number"
                           value={newActionForm.droughtPreparedness}
                           onChange={(e) => setNewActionForm(prev => ({ ...prev, droughtPreparedness: Number(e.target.value) || 0 }))}
@@ -2133,7 +2128,7 @@ export default function AdminClient() {
                       </div>
                       <div>
                         <label className="block text-gray-400 mb-1 text-[11px]">Budget (LKR M)</label>
-                        <input 
+                        <input
                           type="number"
                           value={newActionForm.emergencyBudget}
                           onChange={(e) => setNewActionForm(prev => ({ ...prev, emergencyBudget: Number(e.target.value) || 0 }))}
@@ -2142,7 +2137,7 @@ export default function AdminClient() {
                       </div>
                       <div>
                         <label className="block text-gray-400 mb-1 text-[11px]">Community Trust (+/- %)</label>
-                        <input 
+                        <input
                           type="number"
                           value={newActionForm.communityTrust}
                           onChange={(e) => setNewActionForm(prev => ({ ...prev, communityTrust: Number(e.target.value) || 0 }))}
@@ -2151,7 +2146,7 @@ export default function AdminClient() {
                       </div>
                       <div>
                         <label className="block text-gray-400 mb-1 text-[11px]">Intel Quality (+/- %)</label>
-                        <input 
+                        <input
                           type="number"
                           value={newActionForm.informationQuality}
                           onChange={(e) => setNewActionForm(prev => ({ ...prev, informationQuality: Number(e.target.value) || 0 }))}
@@ -2162,14 +2157,14 @@ export default function AdminClient() {
                   </div>
 
                   <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setAddActionModal({ open: false })}
                       className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={handleCreateNewActionForScenario}
                       className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"
@@ -2190,7 +2185,7 @@ export default function AdminClient() {
       <AnimatePresence>
         {editActionModal.open && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -2209,7 +2204,7 @@ export default function AdminClient() {
               <div className="space-y-3.5 sm:space-y-4">
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Action Title</label>
-                  <input 
+                  <input
                     type="text"
                     value={newActionForm.title}
                     onChange={(e) => setNewActionForm(prev => ({ ...prev, title: e.target.value }))}
@@ -2219,7 +2214,7 @@ export default function AdminClient() {
 
                 <div>
                   <label className="block text-xs font-mono text-blue-300 uppercase mb-1.5">Description</label>
-                  <textarea 
+                  <textarea
                     rows={2}
                     value={newActionForm.description}
                     onChange={(e) => setNewActionForm(prev => ({ ...prev, description: e.target.value }))}
@@ -2232,7 +2227,7 @@ export default function AdminClient() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 font-mono text-xs">
                     <div>
                       <label className="block text-gray-400 mb-1 text-[11px]">Flood Prep (+/- %)</label>
-                      <input 
+                      <input
                         type="number"
                         value={newActionForm.floodPreparedness}
                         onChange={(e) => setNewActionForm(prev => ({ ...prev, floodPreparedness: Number(e.target.value) || 0 }))}
@@ -2241,7 +2236,7 @@ export default function AdminClient() {
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1 text-[11px]">Drought Prep (+/- %)</label>
-                      <input 
+                      <input
                         type="number"
                         value={newActionForm.droughtPreparedness}
                         onChange={(e) => setNewActionForm(prev => ({ ...prev, droughtPreparedness: Number(e.target.value) || 0 }))}
@@ -2250,7 +2245,7 @@ export default function AdminClient() {
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1 text-[11px]">Budget (LKR M)</label>
-                      <input 
+                      <input
                         type="number"
                         value={newActionForm.emergencyBudget}
                         onChange={(e) => setNewActionForm(prev => ({ ...prev, emergencyBudget: Number(e.target.value) || 0 }))}
@@ -2259,7 +2254,7 @@ export default function AdminClient() {
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1 text-[11px]">Community Trust (+/- %)</label>
-                      <input 
+                      <input
                         type="number"
                         value={newActionForm.communityTrust}
                         onChange={(e) => setNewActionForm(prev => ({ ...prev, communityTrust: Number(e.target.value) || 0 }))}
@@ -2268,7 +2263,7 @@ export default function AdminClient() {
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1 text-[11px]">Intel Quality (+/- %)</label>
-                      <input 
+                      <input
                         type="number"
                         value={newActionForm.informationQuality}
                         onChange={(e) => setNewActionForm(prev => ({ ...prev, informationQuality: Number(e.target.value) || 0 }))}
@@ -2280,14 +2275,14 @@ export default function AdminClient() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-blue-900/40">
-                <button 
+                <button
                   type="button"
                   onClick={() => setEditActionModal({ open: false })}
                   className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleSaveEditedAction}
                   className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center"

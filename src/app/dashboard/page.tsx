@@ -81,7 +81,7 @@ export default async function DashboardPage() {
   const scenarioData = JSON.parse(JSON.stringify(currentScenario));
 
   return (
-    <main className="min-h-screen min-h-[100dvh] bg-[var(--background)] overflow-x-hidden">
+    <main className="h-screen h-[100dvh] max-h-screen w-screen max-w-screen overflow-hidden bg-[var(--background)]">
       <DashboardClient initialState={stateData} teamName={session.teamName} initialScenario={scenarioData} />
     </main>
   );

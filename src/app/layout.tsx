@@ -14,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SustainTech: 10 Days to Decide",
-  description: "A Flood / Drought Preparedness Decision Simulation",
+  title: "SustainTech: 10 Days to Decide | Annual Research Symposium 2026",
+  description: "Disaster Command & Strategic Resilience Simulator — Annual Research Symposium 2026",
+  icons: {
+    icon: "/assets/images/Logo.jpg",
+    apple: "/assets/images/Logo.jpg",
+  },
 };
 
 export const viewport: Viewport = {

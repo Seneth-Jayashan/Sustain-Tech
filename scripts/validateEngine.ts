@@ -11,7 +11,8 @@ import {
   createFallbackDecision,
   calculateTpi,
   AUTHORITATIVE_FALLBACK_POLICIES,
-  FALLBACK_INTERVENTION_PENALTY_PER_ROUND
+  FALLBACK_INTERVENTION_PENALTY_PER_ROUND,
+  FAILURE_PENALTY_PER_BREACHED_CONDITION
 } from '../src/game/engine';
 import {
   ROUND_DEADLINE_SECONDS,
@@ -702,13 +703,13 @@ test('Explicit Rule Check 1: CPS 85 with Decision Quality 64 and zero failures y
 
 test('Explicit Rule Check 2: CPS 85 with one failure condition yields Tier 3', () => {
   const state = getInitialGameState('test-cps85-one-failure');
-  // Baseline 97 minus 12 failure penalty = 85.0
+  // Baseline 88 minus 3 failure penalty = 85.0
   state.scores = {
-    floodPreparedness: 97,
-    droughtPreparedness: 97,
-    resourceScore: 97,
-    informationQuality: 97,
-    communityTrust: 97,
+    floodPreparedness: 88,
+    droughtPreparedness: 88,
+    resourceScore: 88,
+    informationQuality: 88,
+    communityTrust: 88,
     decisionQuality: 90
   };
   state.resources.emergencyBudget = 0; // Breaches fiscal insolvency (1 failure state)
@@ -758,8 +759,8 @@ test('End-Game Reporting Case 1: Financially bankrupt player with otherwise acce
 
   const result = calculateFinalOutcome(state);
 
-  // 1. Correct Tier
-  assert.strictEqual(result.endingTier, 'Tier 4: Systemic Crisis');
+  // 1. Correct Tier: 49.9 - 3 = 46.9 (>= 40 with 1 failure yields Tier 3)
+  assert.strictEqual(result.endingTier, 'Tier 3: Pyrrhic Survival');
 
   // 2. Accurately identifies breached thresholds (ONLY fiscal solvency failed)
   assert.strictEqual(result.failureStates.fiscalInsolvency, true, 'Fiscal solvency must be breached');
@@ -769,15 +770,14 @@ test('End-Game Reporting Case 1: Financially bankrupt player with otherwise acce
   assert.strictEqual(Object.values(result.failureStates).filter(Boolean).length, 1);
 
   // 3. Explains why final score was assigned
-  assert.strictEqual(result.cps, 37.9, 'CPS must be exactly 37.9 (49.9 baseline - 12 insolvency penalty)');
+  assert.strictEqual(result.cps, 46.9, 'CPS must be exactly 46.9 (49.9 baseline - 3 insolvency penalty)');
   assert.ok(result.calculationDetails !== undefined, 'Calculation audit details must be present');
   assert.strictEqual(result.calculationDetails!.baselineWeightedSum, 49.9);
-  assert.strictEqual(result.calculationDetails!.failurePenaltyPoints, 12);
+  assert.strictEqual(result.calculationDetails!.failurePenaltyPoints, 3);
   assert.strictEqual(result.calculationDetails!.arithmeticMean, 55.3);
 
   // 4. Narrative does NOT falsely claim multiple failures breached; accurately cites treasury exhaustion
-  assert.ok(result.summary.includes('The emergency treasury was exhausted'), 'Summary must mention emergency treasury exhaustion');
-  assert.ok(result.summary.includes('Composite Preparedness Score fell below the critical survival threshold'), 'Summary must mention CPS falling below survival threshold');
+  assert.ok(result.summary.includes('exhaustion of the emergency treasury'), 'Summary must mention emergency treasury exhaustion');
   assert.ok(!result.summary.includes('Multiple failure thresholds were breached'), 'Summary must NOT claim multiple thresholds were breached');
 });
 
@@ -893,17 +893,17 @@ test('End-Game Reporting Case 4: Complete Six-Round Playthrough with Treasury De
 
   // 2. Exact linear CPS reconciliation:
   // Baseline = 100(0.25) + 76(0.25) + 0(0.20) + 100(0.15) + 100(0.15) = 25 + 19 + 0 + 15 + 15 = 74.0
-  // Penalty = 12.0
-  // CPS = 74.0 - 12.0 = 62.0
-  assert.strictEqual(outcome.cps, 62.0, `CPS must be exactly 62.0, got ${outcome.cps}`);
+  // Penalty = 3.0
+  // CPS = 74.0 - 3.0 = 71.0
+  assert.strictEqual(outcome.cps, 71.0, `CPS must be exactly 71.0, got ${outcome.cps}`);
   assert.strictEqual(outcome.calculationDetails!.baselineWeightedSum, 74.0);
-  assert.strictEqual(outcome.calculationDetails!.failurePenaltyPoints, 12);
+  assert.strictEqual(outcome.calculationDetails!.failurePenaltyPoints, 3);
   assert.strictEqual(outcome.calculationDetails!.curveAdjustment, 0);
 
   // Contributions add up exactly:
   const contributionSum = outcome.calculationDetails!.weightedComponents.reduce((acc, c) => acc + c.contribution, 0);
   assert.strictEqual(Math.round(contributionSum * 10) / 10, 74.0);
-  assert.strictEqual(Math.round((contributionSum - outcome.calculationDetails!.failurePenaltyPoints) * 10) / 10, 62.0);
+  assert.strictEqual(Math.round((contributionSum - outcome.calculationDetails!.failurePenaltyPoints) * 10) / 10, 71.0);
 
   // 3. Ending Tier: Tier 3 Pyrrhic Survival
   assert.strictEqual(outcome.endingTier, 'Tier 3: Pyrrhic Survival', 'Single insolvency breach must yield Tier 3');
@@ -2100,9 +2100,8 @@ test('Briefing UI Regression: Typewriter is completely removed, full scenario re
   // 4. Internal scroll without clipping
   assert.ok(code.includes('overflow-y-auto'), 'Briefing container must provide internal vertical scrolling');
 
-  // 5. Normal document flow to eliminate overlap with decision cards
-  assert.ok(code.includes('relative z-30'), 'Briefing container must be positioned in document flow to avoid overlapping action cards');
-  assert.ok(code.includes('self-start'), 'Briefing container must align to container flow');
+  // 5. Layering to eliminate overlap with decision cards
+  assert.ok(code.includes('z-30'), 'Briefing container must have high z-index (z-30) to avoid conflict with action cards');
 
   // 6. Minimize and restore controls preserved without resetting round deadline
   assert.ok(code.includes('showBrief'), 'showBrief state must be preserved');
@@ -2448,11 +2447,11 @@ test('Fix B: Partial timeouts (1 human decision, 5 fallbacks) applies tournament
   assert.strictEqual(finalOutcome.calculationDetails?.allTimeoutZeroOverride, false);
   assert.strictEqual(finalOutcome.calculationDetails?.humanDecisionsCount, 1);
   assert.strictEqual(finalOutcome.calculationDetails?.fallbackCount, 5);
-  assert.strictEqual(finalOutcome.calculationDetails?.fallbackInterventionPenalty, 50, '5 fallbacks * 10 penalty = 50 pts penalty');
+  assert.strictEqual(finalOutcome.calculationDetails?.fallbackInterventionPenalty, 10, '5 fallbacks * 2 penalty = 10 pts penalty');
 
-  // Verify CPS calculation: clamp(B - P - 10 * F, 0, 100) * (H / 6)
+  // Verify CPS calculation: clamp(B - P - F_pen, 0, 100) * (H / 6)
   const calc = finalOutcome.calculationDetails!;
-  const clampedSubtotal = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - 50));
+  const clampedSubtotal = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - 10));
   const expectedCps = Math.round(clampedSubtotal * (1 / 6) * 10) / 10;
   assert.strictEqual(finalOutcome.cps, expectedCps);
   assert.ok(finalOutcome.cps < 10, 'CPS must be strictly below 10 for 1 human decision and 5 fallbacks');
@@ -2942,7 +2941,7 @@ test('Verification 1: Five timeouts and only one human decision yields CPS < 10,
   const outcome = calculateFinalOutcome(state);
   assert.strictEqual(outcome.calculationDetails?.humanDecisionsCount, 1);
   assert.strictEqual(outcome.calculationDetails?.fallbackCount, 5);
-  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 50);
+  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 10);
   assert.ok(outcome.cps < 10, `CPS (${outcome.cps}) must be strictly below 10 for 1 human decision and 5 fallbacks`);
   assert.ok(outcome.tpi < 10, `TPI (${outcome.tpi}) must be strictly below 10 for 1 human decision and 5 fallbacks`);
   assert.strictEqual(outcome.endingTier, 'Tier 4: Systemic Crisis', 'Ending tier must be Tier 4');
@@ -3016,13 +3015,13 @@ test('Verification 4: One timeout among otherwise human-authorized rounds docks 
   const outcome = calculateFinalOutcome(state);
   assert.strictEqual(outcome.calculationDetails?.humanDecisionsCount, 5);
   assert.strictEqual(outcome.calculationDetails?.fallbackCount, 1);
-  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 10);
+  assert.strictEqual(outcome.calculationDetails?.fallbackInterventionPenalty, 2);
   assert.strictEqual(outcome.calculationDetails?.participationMultiplier, Math.round((5 / 6) * 1000) / 1000);
 
   const calc = outcome.calculationDetails!;
-  const clamped = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - 10));
+  const clamped = Math.max(0, Math.min(100, calc.baselineWeightedSum - calc.failurePenaltyPoints - 2));
   const expectedCps = Math.round(clamped * (5 / 6) * 10) / 10;
-  assert.strictEqual(outcome.cps, expectedCps, 'CPS must match formula clamp(B - P - 10*1, 0, 100) * (5/6)');
+  assert.strictEqual(outcome.cps, expectedCps, 'CPS must match formula clamp(B - P - 2*1, 0, 100) * (5/6)');
 });
 
 test('Verification 5: Timeout fallbacks are recorded exactly once and do not double-charge the treasury', () => {
