@@ -1710,7 +1710,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 {day4ProjectedTreasury < 0 && (
                   <div className="text-amber-300 bg-amber-950/70 p-1.5 rounded-lg border border-amber-500/40 flex items-center gap-2">
                     <AlertTriangle size={14} className="shrink-0" />
-                    <span><strong>DEFICIT WARNING:</strong> Spending drives provincial reserves into negative balance (-LKR {Math.abs(day4ProjectedTreasury).toFixed(0)}M). Drawing from Emergency Credit Facility incurs the fiscal insolvency deduction (-12 pts CPS).</span>
+                    <span><strong>DEFICIT WARNING:</strong> Spending drives provincial reserves into negative balance (-LKR {Math.abs(day4ProjectedTreasury).toFixed(0)}M). Drawing from Emergency Credit Facility incurs the fiscal insolvency deduction (-3 pts CPS).</span>
                   </div>
                 )}
               </div>

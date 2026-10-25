@@ -432,22 +432,22 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                           <span>Breached Crisis Thresholds (P):</span>
                           <span className={`font-black ${calc.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                             {calc.breachedFailuresCount} {calc.breachedFailuresCount === 1 ? 'condition' : 'conditions'}
-                            {calc.failurePenaltyPoints > 0 ? ` (-${calc.failurePenaltyPoints.toFixed(1)} pts @ 12 pts/breach)` : ' (0.0 pts)'}
+                            {calc.failurePenaltyPoints > 0 ? ` (-${calc.failurePenaltyPoints.toFixed(1)} pts @ 3 pts/breach)` : ' (0.0 pts)'}
                           </span>
                         </div>
 
                         {/* Timeout Deductions */}
                         <div className="flex justify-between items-center text-slate-300">
-                          <span>Contingency Fallback Deductions (10 × F):</span>
+                          <span>Contingency Fallback Deductions (2 × F):</span>
                           <span className={`font-black ${(calc.fallbackCount ?? 0) > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                             {calc.fallbackCount ?? 0} {calc.fallbackCount === 1 ? 'round' : 'rounds'}
-                            {(calc.fallbackCount ?? 0) > 0 ? ` (-${((calc.timeoutDeduction ?? (calc.fallbackCount ?? 0) * 10)).toFixed(1)} pts @ 10 pts/round)` : ' (0.0 pts)'}
+                            {(calc.fallbackCount ?? 0) > 0 ? ` (-${((calc.timeoutDeduction ?? (calc.fallbackCount ?? 0) * 2)).toFixed(1)} pts @ 2 pts/round)` : ' (0.0 pts)'}
                           </span>
                         </div>
 
                         {/* Clamped Subtotal */}
                         <div className="flex justify-between items-center pt-1.5 border-t border-slate-800/60 text-slate-300">
-                          <span>Clamped Subtotal [clamp(B - P - 10×F, 0, 100)]:</span>
+                          <span>Clamped Subtotal [clamp(B - P - 2×F, 0, 100)]:</span>
                           <span className="font-black text-cyan-300">
                             {(calc.clampedSubtotal ?? calc.scoreAfterPenalties).toFixed(1)} pts
                           </span>
