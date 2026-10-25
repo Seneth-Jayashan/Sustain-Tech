@@ -48,33 +48,33 @@ const GlitchText = ({ text, className }: { text: string, className?: string }) =
 };
 
 const WaterTank = ({ percent }: { percent: number }) => (
-  <div className="relative w-40 sm:w-52 md:w-56 h-60 sm:h-72 md:h-80 border border-slate-700/50 rounded-[28px] sm:rounded-[40px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-end p-2">
+  <div className="relative w-32 sm:w-40 md:w-44 h-36 sm:h-44 md:h-48 border border-slate-700/50 rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-end p-1.5 sm:p-2">
     {/* Grid Background */}
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
     
-    <div className="absolute top-4 sm:top-6 w-full text-center z-20 font-mono">
-      <span className="text-[9px] sm:text-[11px] tracking-[0.2em] sm:tracking-[0.3em] text-slate-400 font-bold uppercase">Reservoir Cap</span>
-      <div className={`text-4xl sm:text-5xl md:text-6xl font-black mt-0.5 sm:mt-1 tracking-tighter drop-shadow-lg ${percent > 90 ? 'text-red-400' : percent < 30 ? 'text-amber-400' : 'text-cyan-400'}`}>
+    <div className="absolute top-2 sm:top-3 w-full text-center z-20 font-mono">
+      <span className="text-[8px] sm:text-[10px] tracking-[0.2em] text-slate-400 font-bold uppercase">Reservoir Cap</span>
+      <div className={`text-2xl sm:text-3xl md:text-4xl font-black mt-0.5 tracking-tighter drop-shadow-lg ${percent > 90 ? 'text-red-400' : percent < 30 ? 'text-amber-400' : 'text-cyan-400'}`}>
         {percent}%
       </div>
-      {percent > 90 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="text-[9px] sm:text-[10px] text-red-100 font-black tracking-widest mt-1.5 sm:mt-2 bg-red-600/80 mx-4 sm:mx-10 py-0.5 sm:py-1 rounded uppercase shadow-[0_0_15px_rgba(239,68,68,0.8)]">Critical Spill</motion.div>}
-      {percent < 30 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="text-[9px] sm:text-[10px] text-amber-100 font-black tracking-widest mt-1.5 sm:mt-2 bg-amber-600/80 mx-4 sm:mx-10 py-0.5 sm:py-1 rounded uppercase shadow-[0_0_15px_rgba(245,158,11,0.8)]">Low Level</motion.div>}
+      {percent > 90 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="text-[8px] sm:text-[9px] text-red-100 font-black tracking-widest mt-0.5 bg-red-600/80 mx-2 sm:mx-6 py-0.5 rounded uppercase shadow-[0_0_15px_rgba(239,68,68,0.8)]">Critical Spill</motion.div>}
+      {percent < 30 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 0.8 }} className="text-[8px] sm:text-[9px] text-amber-100 font-black tracking-widest mt-0.5 bg-amber-600/80 mx-2 sm:mx-6 py-0.5 rounded uppercase shadow-[0_0_15px_rgba(245,158,11,0.8)]">Low Level</motion.div>}
     </div>
 
     {/* The Water Liquid */}
-    <div className="w-full relative rounded-[20px] sm:rounded-[32px] overflow-hidden border border-white/10 bg-slate-900/50" style={{ height: '70%' }}>
+    <div className="w-full relative rounded-[16px] sm:rounded-[22px] overflow-hidden border border-white/10 bg-slate-900/50" style={{ height: '65%' }}>
       <motion.div
         initial={{ height: 0 }}
         animate={{ height: `${Math.min(100, percent)}%` }}
         transition={{ type: 'spring', bounce: 0.2, duration: 2 }}
-        className={`absolute bottom-0 w-full rounded-b-[20px] sm:rounded-b-[32px] overflow-hidden ${
+        className={`absolute bottom-0 w-full rounded-b-[16px] sm:rounded-b-[22px] overflow-hidden ${
           percent > 90 ? 'bg-gradient-to-t from-red-600 to-red-400 shadow-[0_-10px_30px_rgba(239,68,68,0.5)]' 
           : percent < 30 ? 'bg-gradient-to-t from-amber-600 to-amber-400 shadow-[0_-10px_30px_rgba(245,158,11,0.5)]'
           : 'bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-[0_-10px_30px_rgba(6,182,212,0.5)]'
         }`}
       >
-        <div className="absolute top-0 w-[200%] h-4 -ml-[50%] animate-wave bg-white/20 mix-blend-overlay"></div>
-        <div className="absolute top-1 w-[200%] h-4 -ml-[25%] animate-wave bg-white/10 mix-blend-overlay" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
+        <div className="absolute top-0 w-[200%] h-3 -ml-[50%] animate-wave bg-white/20 mix-blend-overlay"></div>
+        <div className="absolute top-1 w-[200%] h-3 -ml-[25%] animate-wave bg-white/10 mix-blend-overlay" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
       </motion.div>
     </div>
   </div>
@@ -83,17 +83,17 @@ const WaterTank = ({ percent }: { percent: number }) => (
 const CommsGrid = ({ health }: { health: number }) => {
   const isFailing = health < 40;
   return (
-    <div className="relative w-40 sm:w-52 md:w-56 h-60 sm:h-72 md:h-80 border border-slate-700/50 rounded-[28px] sm:rounded-[40px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-6">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+    <div className="relative w-32 sm:w-40 md:w-44 h-36 sm:h-44 md:h-48 border border-slate-700/50 rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-between p-2 sm:p-3">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
 
       <div className="text-center z-20 font-mono w-full">
-        <span className="text-[9px] sm:text-[11px] tracking-[0.2em] sm:tracking-[0.3em] text-slate-400 font-bold uppercase">Network Integrity</span>
-        <div className={`text-4xl sm:text-5xl md:text-6xl font-black mt-0.5 sm:mt-1 tracking-tighter drop-shadow-lg ${isFailing ? 'text-red-400' : 'text-emerald-400'}`}>
+        <span className="text-[8px] sm:text-[10px] tracking-[0.2em] text-slate-400 font-bold uppercase">Network Integrity</span>
+        <div className={`text-2xl sm:text-3xl md:text-4xl font-black mt-0.5 tracking-tighter drop-shadow-lg ${isFailing ? 'text-red-400' : 'text-emerald-400'}`}>
           {Math.round(health)}%
         </div>
       </div>
       
-      <div className="relative w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center my-1 sm:mt-4">
+      <div className="relative w-14 h-14 sm:w-18 sm:h-18 md:w-20 md:h-20 flex items-center justify-center my-0.5">
         {/* Radar Sweep */}
         <motion.div
           animate={{ rotate: 360 }}
@@ -108,19 +108,19 @@ const CommsGrid = ({ health }: { health: number }) => {
         ))}
         
         {/* Center Icon */}
-        <div className={`z-20 p-2 sm:p-3 rounded-full backdrop-blur-md ${isFailing ? 'bg-red-900/80 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-emerald-900/80 shadow-[0_0_20px_rgba(16,185,129,0.6)]'}`}>
-          {isFailing ? <WifiOff size={18} className="text-red-300 animate-pulse sm:w-6 sm:h-6" /> : <RadioTower size={18} className="text-emerald-300 sm:w-6 sm:h-6" />}
+        <div className={`z-20 p-1.5 sm:p-2 rounded-full backdrop-blur-md ${isFailing ? 'bg-red-900/80 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-emerald-900/80 shadow-[0_0_20px_rgba(16,185,129,0.6)]'}`}>
+          {isFailing ? <WifiOff size={15} className="text-red-300 animate-pulse sm:w-5 sm:h-5" /> : <RadioTower size={15} className="text-emerald-300 sm:w-5 sm:h-5" />}
         </div>
       </div>
 
-      <div className={`w-full py-1 sm:py-2 rounded-lg text-center font-bold text-[10px] sm:text-xs uppercase tracking-widest ${isFailing ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+      <div className={`w-full py-0.5 sm:py-1 rounded-md text-center font-bold text-[9px] sm:text-[10px] uppercase tracking-wider ${isFailing ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
         {isFailing ? 'Signal Lost' : 'Optimal'}
       </div>
     </div>
   );
 };
 
-// 3D Tilt Card Component with Accurate Cost Labels
+// 3D Tilt Card Component (Cost Display Removed from Actions)
 interface ActionCardProps {
   action: any;
   bucket: number;
@@ -153,48 +153,26 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
     y.set(0);
   }
 
-  // Cost Label & Validation Determination
+  // Efficacy & Validation Determination (Cost Display Removed from Action Cards)
   const canonicalAction = findAction(action.id, bucket) || action;
   const is3E = bucket === 3 && (action.id === '3E' || action.id === 'B3_ACT_5');
   const is4E = bucket === 4 && (action.id === '4E' || action.id === 'B4_ACT_5');
 
-  let costLabel = '';
-  let costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
   let efficacyLabel = '';
 
   if (bucket === 3) {
     if (is3E) {
-      costLabel = 'Cost: LKR 120M';
-      costBadgeClass = 'text-red-400 bg-red-950/80 border-red-500/50';
-      efficacyLabel = 'Breaches scenario limit — Invalid';
+      efficacyLabel = 'Breaches limit — Invalid';
     } else {
-      costLabel = 'Cost: LKR 100M';
-      costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
-      efficacyLabel = isSelected ? 'Selected Plan' : 'Within scenario allocation limit';
+      efficacyLabel = isSelected ? 'Selected Plan' : 'Within allocation limit';
     }
   } else if (bucket === 4) {
     if (is4E) {
-      costLabel = 'No direct cost';
-      costBadgeClass = 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30';
       efficacyLabel = isSelected ? 'Selected Reserve Plan' : 'Held in Reserve';
     } else {
-      costLabel = 'Cost: LKR 60M';
-      costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
-      efficacyLabel = isSelected ? 'Selected Fleet Plan' : 'Mobilization Fee';
+      efficacyLabel = isSelected ? 'Selected Fleet Plan' : 'Mobilization Plan';
     }
   } else {
-    const netBudget = canonicalAction.impacts?.emergencyBudget ?? action.impacts?.emergencyBudget ?? 0;
-    if (netBudget < 0) {
-      costLabel = `Cost: −LKR ${Math.abs(netBudget)}M`;
-      costBadgeClass = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30';
-    } else if (netBudget > 0) {
-      costLabel = `Grant: +LKR ${netBudget}M`;
-      costBadgeClass = 'text-cyan-300 bg-cyan-950/80 border-cyan-500/40 font-bold';
-    } else {
-      costLabel = 'No direct cost';
-      costBadgeClass = 'text-slate-300 bg-slate-900/60 border-slate-700';
-    }
-
     if (isSelected) {
       efficacyLabel = rankIndex === 0 ? 'Immediate (100%)' :
                       rankIndex === 1 ? 'Fast (85%)' :
@@ -211,19 +189,19 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
       onMouseMove={handleMouse}
       onMouseLeave={handleMouseLeave}
       layout
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      initial={{ opacity: 0, y: 15, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      whileTap={{ scale: 0.96 }}
+      whileTap={{ scale: 0.97 }}
       style={{ rotateX, rotateY }}
       onClick={onClick}
-      className={`relative flex-shrink-0 w-[84vw] max-w-[320px] sm:w-[300px] md:w-[325px] min-h-[195px] rounded-2xl border text-left p-4 sm:p-5 transition-colors duration-300 snap-center group overflow-hidden touch-pan-x select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`relative w-full h-[142px] sm:h-[152px] md:h-[162px] rounded-xl sm:rounded-2xl border text-left p-2.5 sm:p-3 transition-colors duration-300 group overflow-hidden select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col justify-between ${
         isSelected
           ? is3E
-            ? 'border-red-500 bg-red-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(239,68,68,0.4)]'
-            : 'border-emerald-400 bg-emerald-950/60 backdrop-blur-xl shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+            ? 'border-red-500 bg-red-950/60 backdrop-blur-xl shadow-[0_0_30px_rgba(239,68,68,0.4)]'
+            : 'border-emerald-400 bg-emerald-950/60 backdrop-blur-xl shadow-[0_0_30px_rgba(16,185,129,0.3)]'
           : is3E
           ? 'border-red-900/50 bg-slate-900/60 backdrop-blur-md hover:border-red-500/60 hover:bg-red-950/20'
-          : 'border-slate-700 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800/80 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]'
+          : 'border-slate-700 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800/80 hover:border-cyan-500/60 hover:shadow-[0_0_20px_rgba(6,182,212,0.2)]'
       }`}
     >
       {/* Dynamic Animated Glow */}
@@ -231,7 +209,7 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
         <motion.div 
           animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
           transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-          className={`absolute inset-0 rounded-2xl blur-xl -z-10 bg-[length:200%_200%] ${
+          className={`absolute inset-0 rounded-xl sm:rounded-2xl blur-xl -z-10 bg-[length:200%_200%] ${
             is3E
               ? 'bg-gradient-to-tr from-red-500/20 via-transparent to-red-400/10'
               : 'bg-gradient-to-tr from-emerald-500/20 via-transparent to-emerald-400/10'
@@ -239,29 +217,29 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
         />
       )}
 
-      {/* Cyberpunk Tech Lines (2D layered to avoid 3D clip occlusion in Gecko/WebRender) */}
+      {/* Cyberpunk Tech Lines */}
       <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
       <div className={`absolute bottom-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent ${is3E ? 'via-red-400' : 'via-cyan-400'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
 
-      {/* Card Body - Contained in relative z-10 stacking context */}
-      <div className="relative z-10 flex flex-col justify-between h-full">
-        <div>
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-xl backdrop-blur-md border ${
+      {/* Card Body */}
+      <div className="relative z-10 flex flex-col justify-between h-full min-h-0 w-full">
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex justify-between items-center mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <div className={`p-1 sm:p-1.5 rounded-lg backdrop-blur-md border ${
                 isSelected 
                   ? is3E 
-                    ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
                   : is3E
                   ? 'bg-red-950/40 border-red-800 text-red-400'
                   : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
               }`}>
-                {is3E ? <AlertTriangle size={18} /> : <Terminal size={18} />}
+                {is3E ? <AlertTriangle size={14} /> : <Terminal size={14} />}
               </div>
               
               {/* Action ID Badge */}
-              <span className={`font-mono text-xs font-black px-2 py-0.5 rounded border tracking-wider select-none ${
+              <span className={`font-mono text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded border tracking-wider select-none ${
                 is3E
                   ? 'bg-red-950/80 border-red-500/50 text-red-300'
                   : isSelected
@@ -280,18 +258,18 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
                     initial={{ scale: 0, rotate: 90 }}
                     animate={{ scale: 1, rotate: 0 }}
                     exit={{ scale: 0 }}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center font-black shadow-lg text-sm ${
-                      is3E ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.8)]'
+                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black shadow-lg text-xs ${
+                      is3E ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.8)]'
                     }`}
                   >
-                    {is3E ? '✕' : <CheckCircle2 size={16} />}
+                    {is3E ? '✕' : <CheckCircle2 size={13} />}
                   </motion.div>
                 ) : is3E ? (
-                  <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                  <span className="text-[8px] font-mono font-bold text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">
                     REJECTED
                   </span>
                 ) : (
-                  <span className="text-[9px] font-mono text-slate-400 group-hover:text-cyan-400 transition-colors uppercase font-bold">
+                  <span className="text-[8px] sm:text-[9px] font-mono text-slate-400 group-hover:text-cyan-400 transition-colors uppercase font-bold">
                     Select
                   </span>
                 )
@@ -301,7 +279,7 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
                     initial={{ scale: 0, rotate: 180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     exit={{ scale: 0, rotate: -180 }}
-                    className="w-8 h-8 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_20px_rgba(16,185,129,0.8)] text-lg"
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-400 text-black flex items-center justify-center font-black shadow-[0_0_15px_rgba(16,185,129,0.8)] text-xs sm:text-sm"
                   >
                     {rankIndex + 1}
                   </motion.div>
@@ -311,7 +289,7 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
           </div>
 
           {/* Action Title */}
-          <span className={`font-bold block leading-tight text-[13px] tracking-wide transition-colors ${
+          <span className={`font-bold block leading-tight text-[11px] sm:text-xs md:text-[12px] tracking-tight transition-colors line-clamp-2 ${
             isSelected ? 'text-white' : 'text-slate-100 group-hover:text-white'
           }`}>
             {action.title}
@@ -319,26 +297,28 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
 
           {/* Action Description */}
           {action.description && (
-            <span className="text-[11px] font-mono text-slate-300 mt-1.5 block line-clamp-2 leading-relaxed">
+            <span className="text-[9px] sm:text-[10px] font-mono text-slate-300 mt-0.5 sm:mt-1 block line-clamp-2 leading-tight">
               {action.description}
             </span>
           )}
         </div>
 
-        {/* Real Financial Cost & Priority / Status Efficacy */}
-        <div className="mt-3.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2.5">
-          <span className={`font-bold px-2.5 py-0.5 rounded-md border text-[10px] sm:text-[11px] ${costBadgeClass}`}>
-            {costLabel}
-          </span>
-          <span className={`font-bold px-2 py-0.5 rounded-md border text-[10px] truncate max-w-[140px] ${
+        {/* Priority / Status Efficacy (Cost Display Removed from Action) */}
+        <div className="mt-1 sm:mt-1.5 flex items-center justify-between text-[10px] font-mono border-t border-slate-800/80 pt-1 shrink-0">
+          <span className={`font-bold px-2 py-0.5 rounded border text-[9px] sm:text-[10px] truncate max-w-full ${
             is3E 
               ? 'text-red-300 bg-red-950/80 border-red-500/40'
               : isSelected 
               ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
-              : 'text-slate-400 border-slate-800'
+              : 'text-slate-400 border-slate-800 bg-slate-900/60'
           }`}>
             {efficacyLabel}
           </span>
+          {isSelected && (
+            <span className="text-[9px] font-mono font-bold text-emerald-400 shrink-0">
+              ✓ Active
+            </span>
+          )}
         </div>
       </div>
     </motion.button>
@@ -1007,7 +987,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const waterPercent = Math.max(5, Math.min(100, Math.round(state.scores?.droughtPreparedness ?? state.resources?.drinkingWater ?? 50)));
 
   return (
-    <div className="relative min-h-screen w-full overflow-y-auto overflow-x-hidden text-slate-200 selection:bg-cyan-500/30 font-sans bg-black flex flex-col justify-between">
+    <div className="relative h-screen max-h-screen w-screen max-w-screen overflow-hidden text-slate-200 selection:bg-cyan-500/30 font-sans bg-black flex flex-col justify-between select-none">
       
       {/* Animated Dynamic Background Layer with Disaster Environmental FX */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -1056,8 +1036,8 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           ))}
         </div>
 
-        {/* Central Dashboard Visualizers */}
-        <div className="fixed inset-0 flex items-center justify-center gap-4 sm:gap-12 md:gap-24 lg:gap-32 pointer-events-none pb-28 sm:pb-32 px-2 z-[4]">
+        {/* Central Dashboard Visualizers - Perfectly positioned in upper-middle background */}
+        <div className="fixed inset-0 flex items-center justify-center gap-6 sm:gap-14 md:gap-20 pointer-events-none pb-44 sm:pb-48 px-2 z-[4]">
           <motion.div 
             initial={{ scale: 0.85, opacity: 0 }} 
             animate={{ scale: 1, opacity: 1 }} 
@@ -1080,20 +1060,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_30%,_rgba(2,6,23,0.85)_100%)] pointer-events-none z-10"></div>
       </div>
 
-      {/* Top HUD */}
+      {/* Top HUD - Sleek compact executive bar */}
       <motion.header
-        initial={{ y: -100, opacity: 0 }}
+        initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", bounce: 0.3, damping: 20 }}
-        className="sticky top-0 inset-x-0 z-50 p-2 sm:p-4 md:p-6 flex flex-col gap-2 pointer-events-none safe-top"
+        className="shrink-0 z-50 px-3 sm:px-6 py-1.5 sm:py-2 flex flex-col gap-1 pointer-events-none safe-top"
       >
         <div className="flex justify-between items-center w-full">
-          {/* Left: Day & Audio & Mobile HUD */}
-          <div className="flex gap-2 sm:gap-3 pointer-events-auto items-center">
-            <div className="flex flex-col items-center bg-slate-900/80 backdrop-blur-xl rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
+          {/* Left: Day & Audio & Briefing & Modes */}
+          <div className="flex gap-2 sm:gap-2.5 pointer-events-auto items-center">
+            <div className="flex flex-col items-center bg-slate-900/80 backdrop-blur-xl rounded-xl p-1.5 px-2.5 sm:px-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <GlitchText text={`DAY ${state.day}`} className="text-xl sm:text-3xl md:text-4xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400" />
-              <span className="text-[8px] sm:text-[10px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-cyan-400 font-bold mt-0.5">SustainTech</span>
+              <GlitchText text={`DAY ${state.day}`} className="text-lg sm:text-2xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400" />
+              <span className="text-[7px] sm:text-[9px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-cyan-400 font-bold">SustainTech</span>
             </div>
 
             <button
@@ -1111,7 +1091,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 }
                 playUIBlip();
               }}
-              className={`flex items-center justify-center h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border backdrop-blur-xl transition-all shadow-lg text-sm sm:text-base cursor-pointer ${
+              className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl border backdrop-blur-xl transition-all shadow-md text-xs sm:text-sm cursor-pointer ${
                 audioPlaying 
                   ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
                   : voiceEnabled 
@@ -1123,25 +1103,41 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               {audioPlaying ? '⏸️' : voiceEnabled ? '🔊' : '🔈'}
             </button>
 
+            {/* Scenario Briefing Toggle Button in HUD */}
+            <button
+              onClick={() => { setShowBrief(!showBrief); playUIBlip(); }}
+              className={`flex items-center gap-1.5 h-8 sm:h-9 px-2 sm:px-3 rounded-xl border backdrop-blur-xl font-mono text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer pointer-events-auto ${
+                showBrief 
+                  ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+                  : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-white'
+              }`}
+              title={showBrief ? 'Minimize briefing dialog' : 'Open scenario briefing dialog'}
+            >
+              <div className="relative w-4 h-4 rounded-full overflow-hidden border border-cyan-400 shrink-0">
+                <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
+              </div>
+              <span className="hidden sm:inline">{showBrief ? 'Hide Brief' : 'Briefing'}</span>
+            </button>
+
             {/* Mobile HUD Toggle Button */}
             <button
               onClick={() => { setMobileMetricsOpen(!mobileMetricsOpen); playUIBlip(); }}
-              className={`lg:hidden flex items-center gap-1.5 h-9 px-2.5 rounded-xl border backdrop-blur-xl font-mono text-[11px] font-bold transition-all ${
+              className={`lg:hidden flex items-center gap-1 h-8 sm:h-9 px-2 rounded-xl border backdrop-blur-xl font-mono text-[10px] sm:text-[11px] font-bold transition-all ${
                 mobileMetricsOpen 
                   ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
                   : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-500/50'
               }`}
               title="Toggle Metrics HUD"
             >
-              <Activity size={14} className="text-cyan-400" />
+              <Activity size={13} className="text-cyan-400" />
               <span className="hidden xs:inline">HUD</span>
             </button>
 
             {/* Real-time Disaster Atmosphere Regime Switcher */}
-            <div className="flex items-center gap-1 bg-slate-900/80 backdrop-blur-xl border border-slate-700/80 rounded-xl sm:rounded-2xl p-1 shadow-lg pointer-events-auto">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 border-r border-slate-700/80">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-900/80 backdrop-blur-xl border border-slate-700/80 rounded-xl p-0.5 sm:p-1 shadow-lg pointer-events-auto">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 border-r border-slate-700/80">
                 <span
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-1.5 h-1.5 rounded-full ${
                     (atmosphereMode === 'flood' || (atmosphereMode === 'auto' && (state.scores.floodPreparedness < 38 || (state.environment?.riverLevel ?? 50) > 70)))
                       ? 'bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse'
                       : (atmosphereMode === 'drought' || (atmosphereMode === 'auto' && (state.scores.droughtPreparedness < 35 || (state.resources?.drinkingWater ?? 50) < 35)))
@@ -1149,16 +1145,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       : 'bg-purple-400 shadow-[0_0_8px_#c084fc]'
                   }`}
                 />
-                <span className="text-[9px] font-mono font-bold tracking-wider text-slate-300 hidden xl:inline uppercase">
+                <span className="text-[8px] font-mono font-bold tracking-wider text-slate-300 hidden xl:inline uppercase">
                   {atmosphereMode}
                 </span>
               </div>
 
               <button
                 onClick={() => { setAtmosphereMode('auto'); playUIBlip(); }}
-                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all ${
                   atmosphereMode === 'auto'
-                    ? 'bg-cyan-500 text-slate-950 shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+                    ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_rgba(6,182,212,0.5)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
                 title="Auto: Reacts dynamically in real-time to game hazard conditions"
@@ -1167,64 +1163,64 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </button>
               <button
                 onClick={() => { setAtmosphereMode('dual'); playUIBlip(); }}
-                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${
                   atmosphereMode === 'dual'
-                    ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                    ? 'bg-purple-500 text-white shadow-[0_0_8px_rgba(168,85,247,0.5)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
                 title="Dual: RainAndDry.png compound hazard background"
               >
-                <Scale size={11} />
+                <Scale size={10} />
                 <span className="hidden sm:inline">Dual</span>
               </button>
               <button
                 onClick={() => { setAtmosphereMode('flood'); playUIBlip(); }}
-                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${
                   atmosphereMode === 'flood'
-                    ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.6)]'
+                    ? 'bg-blue-500 text-white shadow-[0_0_8px_rgba(59,130,246,0.6)]'
                     : 'text-slate-400 hover:text-cyan-300 hover:bg-slate-800'
                 }`}
                 title="Flood: Flood.png background with heavy floating water and waves"
               >
-                <Waves size={11} />
+                <Waves size={10} />
                 <span>Flood</span>
               </button>
               <button
                 onClick={() => { setAtmosphereMode('drought'); playUIBlip(); }}
-                className={`px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${
                   atmosphereMode === 'drought'
-                    ? 'bg-amber-500 text-slate-950 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+                    ? 'bg-amber-500 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.6)]'
                     : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800'
                 }`}
                 title="Drought: Drought.png background with glowing earth cracks"
               >
-                <Sun size={11} />
+                <Sun size={10} />
                 <span>Drought</span>
               </button>
             </div>
           </div>
 
           {/* Right: Budget Display & Metrics */}
-          <div className="flex gap-2 sm:gap-4 pointer-events-auto items-center">
+          <div className="flex gap-2.5 sm:gap-3.5 pointer-events-auto items-center">
             {/* Budget Display - Highly styled with deficit awareness */}
-            <div className={`flex items-center gap-2 sm:gap-3.5 bg-slate-900/80 backdrop-blur-xl rounded-xl sm:rounded-2xl p-2 sm:p-3 border ${
+            <div className={`flex items-center gap-2.5 bg-slate-900/80 backdrop-blur-xl rounded-xl p-2 sm:p-2.5 sm:px-3.5 border ${
               state.resources.emergencyBudget < 0
-                ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.25)]'
+                ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.25)]'
                 : state.resources.emergencyBudget === 0
-                ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)]'
-                : 'border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]'
+                ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                : 'border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
             } relative overflow-hidden`}>
-              <div className={`absolute top-0 right-0 w-12 sm:w-16 h-12 sm:h-16 ${state.resources.emergencyBudget <= 0 ? 'bg-red-500/20' : 'bg-emerald-500/20'} blur-2xl rounded-full`}></div>
-              <div className={`${state.resources.emergencyBudget <= 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'} p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border shrink-0`}>
-                <Coins size={18} className="sm:w-[22px] sm:h-[22px]" />
+              <div className={`absolute top-0 right-0 w-14 h-14 ${state.resources.emergencyBudget <= 0 ? 'bg-red-500/20' : 'bg-emerald-500/20'} blur-xl rounded-full`}></div>
+              <div className={`${state.resources.emergencyBudget <= 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'} p-1.5 sm:p-2 rounded-xl border shrink-0`}>
+                <Coins size={20} className="sm:w-[22px] sm:h-[22px]" />
               </div>
-              <div className="flex flex-col items-end pr-1 sm:pr-2">
-                <span className={`text-[8px] sm:text-[10px] font-mono font-bold tracking-wider sm:tracking-widest uppercase ${
+              <div className="flex flex-col items-end pr-0.5 sm:pr-1">
+                <span className={`text-[8px] sm:text-[10px] font-mono font-bold tracking-widest uppercase ${
                   state.resources.emergencyBudget < 0 ? 'text-red-400' : state.resources.emergencyBudget === 0 ? 'text-amber-400' : 'text-emerald-500/80'
                 }`}>
                   {state.resources.emergencyBudget < 0 ? 'Credit Drawn' : 'Budget'}
                 </span>
-                <div className={`font-black font-mono text-base sm:text-2xl tracking-tight ${
+                <div className={`font-black font-mono text-base sm:text-xl md:text-2xl tracking-tight leading-none ${
                   state.resources.emergencyBudget < 0 
                     ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' 
                     : state.resources.emergencyBudget === 0
@@ -1243,44 +1239,49 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
             {/* Quick Metrics - Desktop Always */}
             <div className="hidden lg:flex flex-col gap-1.5">
-              {[
-                { label: 'FLOOD', val: state.scores.floodPreparedness, icon: Navigation, border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
-                { label: 'DROUGHT', val: state.scores.droughtPreparedness, icon: Droplets, border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' },
-                { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
-                { label: 'TRUST', val: state.community.communityTrust, icon: Users, border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' }
-              ].map((metric, idx) => (
-                <motion.div 
-                  key={metric.label}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.08 }}
-                  className={`flex items-center justify-between w-44 xl:w-48 px-3 py-1 rounded-xl backdrop-blur-xl border bg-slate-900/80 shadow-lg ${metric.border} ${metric.text}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <metric.icon size={13} className="opacity-80" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.15em]">{metric.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${Math.min(100, Math.max(0, metric.val))}%` }} 
-                        className={`h-full ${metric.bar} shadow-[0_0_10px_currentColor]`} 
-                      />
+              <div className="flex gap-2">
+                {[
+                  { label: 'FLOOD', val: state.scores.floodPreparedness, icon: Navigation, border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
+                  { label: 'DROUGHT', val: state.scores.droughtPreparedness, icon: Droplets, border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' }
+                ].map((metric) => (
+                  <div 
+                    key={metric.label}
+                    className={`flex items-center justify-between w-32 xl:w-36 px-2.5 py-1 sm:py-1.5 rounded-xl backdrop-blur-xl border bg-slate-900/80 shadow-md ${metric.border} ${metric.text}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <metric.icon size={13} className="opacity-90" />
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider">{metric.label}</span>
                     </div>
-                    <span className="font-bold text-xs font-mono">{Math.round(metric.val)}%</span>
+                    <span className="font-bold text-xs sm:text-[13px] font-mono">{Math.round(metric.val)}%</span>
                   </div>
-                </motion.div>
-              ))}
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {[
+                  { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
+                  { label: 'TRUST', val: state.community.communityTrust, icon: Users, border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' }
+                ].map((metric) => (
+                  <div 
+                    key={metric.label}
+                    className={`flex items-center justify-between w-32 xl:w-36 px-2.5 py-1 sm:py-1.5 rounded-xl backdrop-blur-xl border bg-slate-900/80 shadow-md ${metric.border} ${metric.text}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <metric.icon size={13} className="opacity-90" />
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider">{metric.label}</span>
+                    </div>
+                    <span className="font-bold text-xs sm:text-[13px] font-mono">{Math.round(metric.val)}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-slate-900/80 border border-red-500/30 text-red-400 backdrop-blur-xl transition-all hover:bg-red-950/80 hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+              className="flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-slate-900/80 border border-red-500/30 text-red-400 backdrop-blur-xl transition-all hover:bg-red-950/80 hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
               title="Sign Out"
             >
-              <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <LogOut size={18} />
             </button>
           </div>
         </div>
@@ -1292,7 +1293,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="lg:hidden pointer-events-auto bg-slate-950/95 border border-cyan-500/40 rounded-2xl p-2.5 backdrop-blur-2xl shadow-2xl grid grid-cols-2 gap-2 mt-1"
+              className="lg:hidden pointer-events-auto bg-slate-950/95 border border-cyan-500/40 rounded-xl p-2 backdrop-blur-2xl shadow-2xl grid grid-cols-2 gap-1.5 mt-1"
             >
               {[
                 { label: 'FLOOD', val: state.scores.floodPreparedness, icon: Navigation, border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
@@ -1300,12 +1301,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
                 { label: 'TRUST', val: state.community.communityTrust, icon: Users, border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' }
               ].map((metric) => (
-                <div key={metric.label} className={`p-2 rounded-xl border bg-slate-900/90 ${metric.border} ${metric.text} flex flex-col gap-1`}>
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold">
-                    <span className="flex items-center gap-1.5"><metric.icon size={11} /> {metric.label}</span>
+                <div key={metric.label} className={`p-1.5 rounded-lg border bg-slate-900/90 ${metric.border} ${metric.text} flex flex-col gap-0.5`}>
+                  <div className="flex items-center justify-between text-[9px] font-mono font-bold">
+                    <span className="flex items-center gap-1"><metric.icon size={10} /> {metric.label}</span>
                     <span>{Math.round(metric.val)}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
                     <div style={{ width: `${Math.min(100, Math.max(0, metric.val))}%` }} className={`h-full ${metric.bar}`} />
                   </div>
                 </div>
@@ -1315,26 +1316,26 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         </AnimatePresence>
       </motion.header>
 
-      {/* Narrative HUD - Advisor Briefing */}
+      {/* Narrative HUD - Advisor Briefing Floating Overlay (Never pushes the bottom deck down) */}
       <AnimatePresence>
         {showBrief && (
-          <div className="relative z-30 w-full max-w-xl xl:max-w-2xl px-3 sm:px-6 md:px-8 pt-1 pb-3 pointer-events-auto self-start">
+          <div className="absolute top-16 left-3 sm:left-6 md:left-8 z-30 w-[94vw] max-w-lg xl:max-w-xl pointer-events-auto">
             <motion.div
-              initial={{ x: -200, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -200, opacity: 0 }}
-              transition={{ type: "spring", damping: 22, stiffness: 120 }}
-              className="relative flex flex-col gap-2 sm:gap-3"
+              initial={{ scale: 0.95, opacity: 0, y: -10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: -10 }}
+              transition={{ type: "spring", damping: 24, stiffness: 200 }}
+              className="relative flex flex-col gap-1.5"
             >
               {/* Advisor Avatar Pop-in with Collapse Action */}
-              <div className="flex items-end justify-between gap-3 sm:gap-4">
-                <div className="flex items-end gap-3 sm:gap-4">
-                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 sm:border-4 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-black z-20 shrink-0">
+              <div className="flex items-end justify-between gap-3">
+                <div className="flex items-end gap-2.5">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.5)] bg-black z-20 shrink-0">
                     <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
                     <div className="absolute inset-0 bg-cyan-500/10 mix-blend-overlay"></div>
                   </div>
-                  <div className="bg-cyan-950/80 border border-cyan-500/50 px-3 sm:px-4 py-1 sm:py-1.5 rounded-t-xl rounded-br-xl backdrop-blur-md mb-1 shadow-lg">
-                    <span className="text-cyan-400 font-black tracking-wider sm:tracking-widest text-[10px] sm:text-xs uppercase flex items-center gap-1.5 sm:gap-2">
+                  <div className="bg-cyan-950/90 border border-cyan-500/50 px-3 py-1 rounded-t-xl rounded-br-xl backdrop-blur-md shadow-lg">
+                    <span className="text-cyan-400 font-black tracking-wider text-[10px] sm:text-xs uppercase flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                       Priority Scenario Briefing
                     </span>
@@ -1343,7 +1344,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
                 <button 
                   onClick={() => setShowBrief(false)} 
-                  className="mb-1 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/90 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5 hover:bg-slate-800 transition-all cursor-pointer"
+                  className="mb-0.5 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/95 border border-cyan-500/40 px-2.5 py-1 rounded-xl shadow-lg flex items-center gap-1 hover:bg-slate-800 transition-all cursor-pointer"
                   title="Minimize briefing to focus on allocation decisions"
                 >
                   <ChevronUp size={14} />
@@ -1353,50 +1354,49 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
               {/* Message Box */}
               <div 
-                className="relative bg-slate-900/95 backdrop-blur-2xl border border-slate-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden sm:ml-6 md:ml-8 z-10 max-h-[38vh] sm:max-h-[46vh] overflow-y-auto"
-                style={{ scrollbarWidth: 'thin' }}
+                className="relative bg-slate-950/95 backdrop-blur-2xl border border-slate-700/90 rounded-2xl p-3 sm:p-4 shadow-2xl overflow-hidden sm:ml-4 z-10 max-h-[calc(100vh-330px)] sm:max-h-[44vh] flex flex-col"
               >
-                <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl rounded-full pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-3xl rounded-full pointer-events-none"></div>
                 
-                <div className="flex justify-between items-start mb-2 gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight">{currentScenario.title}</h2>
-                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0 cursor-pointer" title="Minimize briefing">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <div className="flex justify-between items-start mb-1.5 gap-2 shrink-0">
+                  <h2 className="text-sm sm:text-base font-black text-white tracking-tight">{currentScenario.title}</h2>
+                  <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800/80 p-1 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0 cursor-pointer" title="Minimize briefing">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 </div>
 
                 {/* Authentic Scenario Voice Audio Player */}
-                <div className="my-2.5 p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-2.5">
+                <div className="my-1.5 p-2 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col gap-1.5 shrink-0">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <button
                         type="button"
                         onClick={() => handleToggleScenarioAudio()}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer font-bold shrink-0 shadow-md ${
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer font-bold shrink-0 shadow-md ${
                           audioPlaying 
                             ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30' 
                             : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 hover:bg-cyan-500/30'
                         }`}
                         title={audioPlaying ? 'Pause scenario recording' : 'Play scenario recording'}
                       >
-                        {audioPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+                        {audioPlaying ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
                       </button>
 
                       <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-mono font-bold text-white flex items-center gap-1.5 truncate">
-                          <Volume2 size={12} className="text-cyan-400 shrink-0" />
+                        <span className="text-[10px] sm:text-[11px] font-mono font-bold text-white flex items-center gap-1.5 truncate">
+                          <Volume2 size={11} className="text-cyan-400 shrink-0" />
                           <span className="truncate">Day {state.day} Voice Dispatch</span>
                           {audioPlaying && (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping ml-1 shrink-0"></span>
                           )}
                         </span>
-                        <span className="text-[9px] font-mono text-slate-400 truncate">
+                        <span className="text-[8px] sm:text-[9px] font-mono text-slate-400 truncate">
                           Authentic scenario recording • {SCENARIO_AUDIO_MAP[state.day]?.filename || `Day ${state.day}.mp3`}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-right font-mono text-[10px] sm:text-[11px] text-cyan-300 shrink-0">
+                    <div className="text-right font-mono text-[9px] sm:text-[10px] text-cyan-300 shrink-0">
                       <span>{formatAudioTime(audioCurrentTime)}</span>
                       <span className="text-slate-500 mx-1">/</span>
                       <span className="text-slate-400">{formatAudioTime(audioDuration)}</span>
@@ -1416,49 +1416,49 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                         setAudioCurrentTime(val);
                         seekScenarioAudio(val);
                       }}
-                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
                       title="Audio timeline scrubber"
                     />
                   </div>
 
                   {audioError && (
-                    <div className="text-[10px] font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded px-2 py-1">
+                    <div className="text-[9px] font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded px-2 py-0.5">
                       Notice: {audioError}. Full scenario text is available below.
                     </div>
                   )}
                 </div>
 
-                <div className="text-slate-300 font-sans text-xs sm:text-sm leading-relaxed select-text">
-                  <p className="whitespace-pre-line leading-relaxed">{currentScenario.situation}</p>
+                {/* Situation text (with internal scroll if needed) */}
+                <div className="text-slate-300 font-sans text-xs leading-relaxed select-text overflow-y-auto pr-1 my-1 flex-1" style={{ scrollbarWidth: 'thin' }}>
+                  <p className="whitespace-pre-line">{currentScenario.situation}</p>
+                  {currentScenario.events && currentScenario.events.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-800">
+                      <div className="flex flex-col gap-1">
+                        {currentScenario.events.map((ev: string, i: number) => (
+                          <div key={i} className="text-[10px] font-mono text-cyan-200/90 flex items-start gap-1.5">
+                            <span className="text-cyan-400">•</span>
+                            <span>{ev}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {currentScenario.events && currentScenario.events.length > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-slate-800">
-                    <div className="flex flex-col gap-1.5">
-                      {currentScenario.events.map((ev: string, i: number) => (
-                        <div key={i} className="text-[10px] sm:text-[11px] font-mono text-cyan-200/90 flex items-start gap-2">
-                          <span className="text-cyan-400 mt-0.5">•</span>
-                          <span>{ev}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Bottom Dismiss / Proceed Button */}
-                <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-mono text-slate-400 hidden xs:inline">
-                    Read situation, then proceed to allocation below
+                <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between gap-2 shrink-0">
+                  <span className="text-[9px] font-mono text-slate-400 hidden xs:inline">
+                    Read situation, then allocate below
                   </span>
                   <button
                     onClick={() => {
                       setShowBrief(false);
                       playUIBlip();
                     }}
-                    className="w-full xs:w-auto px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ml-auto shadow-md cursor-pointer"
+                    className="w-full xs:w-auto px-3 py-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 transition-colors ml-auto shadow-md cursor-pointer"
                   >
-                    <span>Proceed to Allocation & Decisions</span>
-                    <ChevronDown size={14} />
+                    <span>Proceed to Decisions</span>
+                    <ChevronDown size={13} />
                   </button>
                 </div>
               </div>
@@ -1468,7 +1468,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       </AnimatePresence>
 
       {!showBrief && (
-        <div className="relative z-30 px-3 sm:px-6 md:px-8 pt-1 pb-3 pointer-events-auto self-start">
+        <div className="absolute top-16 left-3 sm:left-6 md:left-8 z-30 pointer-events-auto">
           <motion.button
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -1477,17 +1477,17 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               setShowBrief(true);
               playUIBlip();
             }}
-            className="bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1.5 sm:p-2 rounded-2xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 group cursor-pointer"
+            className="bg-slate-900/95 border border-cyan-500/40 text-cyan-400 p-1 sm:p-1.5 rounded-xl backdrop-blur-xl hover:bg-slate-800 transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-2 pr-3 group cursor-pointer"
           >
-            <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+            <div className="relative w-7 h-7 rounded-full overflow-hidden border border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
               <Image src="/assets/portrait_advisor.jpg" alt="Advisor" fill className="object-cover" unoptimized />
             </div>
             <div className="flex flex-col items-start text-left">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
-                <span>Scenario Briefing</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1">
+                <span>Briefing</span>
                 <span className="text-cyan-400 text-[9px] font-mono font-normal">Day {state.day}</span>
               </span>
-              <span className="text-[9px] font-mono text-cyan-400/80">Click to expand briefing</span>
+              <span className="text-[8px] font-mono text-cyan-400/80">Click to expand</span>
             </div>
           </motion.button>
         </div>
@@ -1519,16 +1519,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       <motion.div
         initial={{ y: 400 }}
         animate={{ y: 0 }}
-        transition={{ type: "spring", bounce: 0, duration: 1 }}
-        className="relative md:sticky bottom-0 inset-x-0 min-h-[300px] sm:min-h-[350px] bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-40 flex flex-col justify-end pb-4 sm:pb-8 pt-3 sm:pt-4 px-3 sm:px-6 md:px-10 mt-auto safe-bottom"
+        transition={{ type: "spring", bounce: 0, duration: 0.8 }}
+        className="shrink-0 w-full bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-40 flex flex-col justify-end pb-2 sm:pb-3 pt-1 px-3 sm:px-6 md:px-8 safe-bottom"
       >
         {/* Active Dynamic Events Alert Banner */}
         {state.activeDynamicEvents && state.activeDynamicEvents.length > 0 && (
-          <div className="mb-2 max-h-16 overflow-y-auto flex flex-wrap gap-1.5 sm:gap-2 pr-1" style={{ scrollbarWidth: 'thin' }}>
+          <div className="mb-1.5 max-h-12 overflow-y-auto flex flex-wrap gap-1.5 sm:gap-2 pr-1" style={{ scrollbarWidth: 'thin' }}>
             {state.activeDynamicEvents.map((evt: any, i: number) => (
               <div 
                 key={i} 
-                className={`px-2.5 py-0.5 sm:py-1 rounded-lg border font-mono text-[9px] sm:text-[10px] flex items-center gap-1.5 backdrop-blur-xl shadow-md ${
+                className={`px-2 py-0.5 rounded-lg border font-mono text-[9px] sm:text-[10px] flex items-center gap-1.5 backdrop-blur-xl shadow-md ${
                   evt.impactType === 'positive' 
                     ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300' 
                     : evt.impactType === 'warning'
@@ -1547,7 +1547,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         {/* DAY 4: FISCAL ALLOCATION CONTROLS & SUMMARY TRAY                          */}
         {/* ========================================================================= */}
         {state.bucket === 3 && (
-          <div className="mb-3 sm:mb-4 bg-slate-900/95 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-2xl">
+          <div className="mb-2 bg-slate-900/95 border border-slate-700/80 rounded-xl p-2 sm:p-2.5 backdrop-blur-xl shadow-2xl max-h-[36vh] overflow-y-auto">
             {/* Header with Title and Mode Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
               <div className="flex flex-col">
@@ -1923,7 +1923,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         {/* DAY 6: FLEET DISTRIBUTION CONTROLS & SUMMARY TRAY                         */}
         {/* ========================================================================= */}
         {state.bucket === 4 && (
-          <div className="mb-3 sm:mb-4 bg-slate-900/95 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-2xl">
+          <div className="mb-2 bg-slate-900/95 border border-slate-700/80 rounded-xl p-2 sm:p-2.5 backdrop-blur-xl shadow-2xl max-h-[36vh] overflow-y-auto">
             {/* Header with Title and Mode Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
               <div className="flex flex-col">
@@ -2317,76 +2317,67 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-3 sm:mb-4 bg-slate-900/95 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-2xl"
+            className="mb-1.5 sm:mb-2 bg-slate-900/95 border border-slate-700/80 rounded-xl p-2 sm:p-2.5 backdrop-blur-xl shadow-2xl"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 pb-2.5 sm:pb-3 border-b border-slate-800">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                <span className="text-[11px] sm:text-xs font-mono text-cyan-400 uppercase tracking-wider sm:tracking-widest font-black flex items-center gap-1.5">
-                  <Terminal size={14} /> Priority Sequence:
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 pb-1.5 sm:pb-2 border-b border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className="text-[10px] sm:text-xs font-mono text-cyan-400 uppercase tracking-wider font-black flex items-center gap-1.5">
+                  <Terminal size={13} /> Priority Sequence:
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
+                <span className="text-[9px] sm:text-[10px] font-mono text-slate-400">
                   Ranks 1–3 Execute | Ranks 4–5 Standby
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono justify-between sm:justify-start w-full sm:w-auto">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400">Actual Treasury:</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-mono justify-between sm:justify-start w-full sm:w-auto">
+                <div className="flex items-center gap-1">
+                  <span className="text-slate-400">Treasury:</span>
                   <span className="font-bold text-white">LKR {currentBudget}M</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400">Top-3 Net Impact:</span>
-                  <span className={`font-black ${operationalDrain > 0 ? 'text-amber-400' : operationalDrain < 0 ? 'text-cyan-300' : 'text-slate-300'}`}>
-                    {selectedOrder.length >= 3 
-                      ? operationalDrain > 0 ? `−LKR ${operationalDrain}M` : operationalDrain < 0 ? `+LKR ${Math.abs(operationalDrain)}M (Grant)` : 'LKR 0M'
-                      : '— (Select Top 3)'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <span className="text-slate-400">Projected:</span>
                   <span className={`font-black ${operationalProjectedTreasury < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                     {operationalProjectedTreasury < 0 ? `-LKR ${Math.abs(operationalProjectedTreasury)}M` : `LKR ${operationalProjectedTreasury}M`}
                   </span>
                   {operationalProjectedTreasury < 0 && (
-                    <span className="text-[9px] text-red-300 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">
-                      {operationalRemainingCredit}M Avail of 200M Cap
+                    <span className="text-[8px] text-red-300 bg-red-950/80 px-1 py-0.5 rounded border border-red-500/40">
+                      {operationalRemainingCredit}M of 200M Cap
                     </span>
                   )}
                 </div>
                 <button
                   onClick={() => setSelectedOrder([])}
-                  className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-400 hover:text-red-400 bg-slate-800/80 hover:bg-red-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-700 transition-colors ml-auto sm:ml-0"
+                  className="flex items-center gap-1 text-[9px] sm:text-[10px] text-slate-400 hover:text-red-400 bg-slate-800/80 hover:bg-red-950/40 px-2 py-0.5 rounded-lg border border-slate-700 transition-colors ml-auto sm:ml-0 cursor-pointer"
                 >
-                  <RotateCcw size={11} /> Clear
+                  <RotateCcw size={10} /> Clear
                 </button>
               </div>
             </div>
 
             {/* 5 Ordered Slots */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-2.5">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2 pt-1.5">
               {[0, 1, 2, 3, 4].map((slotIdx) => {
                 const actionId = selectedOrder[slotIdx];
                 const action = actionId ? (findAction(actionId, state.bucket) || currentScenario?.actions?.find((a: any) => a.id === actionId)) : null;
                 const isExecuting = slotIdx < 3;
-                const netBudget = action?.impacts?.emergencyBudget ?? 0;
                 
                 return (
                   <div
                     key={slotIdx}
-                    className={`relative p-2 sm:p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
+                    className={`relative p-1.5 sm:p-2 rounded-lg border flex flex-col justify-between transition-all ${
                       action 
                         ? isExecuting
-                          ? 'bg-emerald-950/40 border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                          ? 'bg-emerald-950/40 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                           : 'bg-slate-950/50 border-slate-700/60 opacity-60'
                         : 'bg-black/30 border-dashed border-slate-800 text-slate-600'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-[9px] sm:text-[10px] font-mono font-black uppercase px-1.5 py-0.5 rounded ${
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-[8px] sm:text-[9px] font-mono font-black uppercase px-1 py-0.2 rounded ${
                         isExecuting ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-400'
                       }`}>
                         Rank {slotIdx + 1}
                       </span>
-                      <span className={`text-[8px] sm:text-[9px] font-mono uppercase font-bold tracking-wider ${
+                      <span className={`text-[8px] font-mono uppercase font-bold tracking-wider ${
                         isExecuting ? 'text-emerald-400' : 'text-slate-500'
                       }`}>
                         {isExecuting ? 'Executes' : 'Standby'}
@@ -2395,21 +2386,17 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
                     {action ? (
                       <div>
-                        <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs text-white">
-                          <span className="text-cyan-400 font-mono text-[10px]">[{action.id}]</span>
+                        <div className="flex items-center gap-1 font-bold text-[10px] sm:text-[11px] text-white">
+                          <span className="text-cyan-400 font-mono text-[9px]">[{action.id}]</span>
                           <span className="truncate">{action.title}</span>
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-400">
-                          <span className="truncate font-semibold">
-                            {netBudget < 0 
-                              ? `Cost: −LKR ${Math.abs(netBudget)}M`
-                              : netBudget > 0
-                              ? `Grant: +LKR ${netBudget}M`
-                              : 'No direct cost'}
+                        <div className="mt-0.5 flex items-center justify-between text-[8px] sm:text-[9px] font-mono text-slate-400">
+                          <span className="truncate text-slate-400">
+                            {isExecuting ? 'Priority Execution' : 'Standby Reserve'}
                           </span>
                           <button
                             onClick={() => toggleSelection(action.id)}
-                            className="text-slate-500 hover:text-red-400 p-0.5 ml-1"
+                            className="text-slate-500 hover:text-red-400 p-0.5 ml-1 transition-colors cursor-pointer"
                             title="Remove"
                           >
                             ✕
@@ -2417,7 +2404,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                         </div>
                       </div>
                     ) : (
-                      <span className="text-[10px] font-mono text-slate-500 italic py-1 sm:py-2">
+                      <span className="text-[9px] font-mono text-slate-500 italic py-1 truncate">
                         Tap card below...
                       </span>
                     )}
@@ -2451,15 +2438,15 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               ? 'border-amber-500/60 bg-amber-950/40 text-amber-200'
               : 'border-slate-700 bg-slate-900/60 text-slate-300'
           }`}>
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle size={16} className={secondsLeft <= 15 ? 'text-amber-400 shrink-0' : 'text-slate-400 shrink-0'} />
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={14} className={secondsLeft <= 15 ? 'text-amber-400 shrink-0' : 'text-slate-400 shrink-0'} />
               <span className="truncate">
                 {secondsLeft <= 15
-                  ? `Notice: ${secondsLeft}s remaining before round deadline. Automated contingency fallback will deploy if not authorized.`
-                  : `Deliberation notice: ${secondsLeft}s remaining in round allowance. Finalize priority directives before deadline.`}
+                  ? `Notice: ${secondsLeft}s remaining before round deadline. Automated fallback will deploy if not authorized.`
+                  : `Deliberation notice: ${secondsLeft}s remaining in round allowance.`}
               </span>
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
               secondsLeft <= 15
                 ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
                 : 'border-slate-700 bg-slate-800 text-slate-400'
@@ -2472,9 +2459,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         {/* ========================================================================= */}
         {/* ACTION CARDS TRACK & AUTHORIZE SUBMIT BUTTON                              */}
         {/* ========================================================================= */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 mb-3 sm:mb-4">
-          <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-start">
-            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-[0.2em] text-slate-300 flex items-center gap-2 sm:gap-3 truncate">
+        <div className="flex items-center justify-between gap-2 mb-1 sm:mb-1.5">
+          <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-start">
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-[0.15em] text-slate-300 flex items-center gap-2 truncate">
               <span className="truncate">
                 {state.bucket === 3 
                   ? day4Mode === 'preset' ? 'Select One Preset Plan' : 'Custom Sector Inputs'
@@ -2483,47 +2470,40 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   : 'Priority Directives'}
               </span>
               {state.bucket !== 3 && state.bucket !== 4 && (
-                <span className="text-white bg-slate-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg border border-slate-700 shadow-inner text-xs font-mono shrink-0">
+                <span className="text-white bg-slate-800 px-1.5 sm:px-2 py-0.5 rounded border border-slate-700 shadow-inner text-[10px] sm:text-xs font-mono shrink-0">
                   {selectedOrder.length}/5
                 </span>
               )}
             </h3>
 
             {state.bucket !== 3 && state.bucket !== 4 && selectedOrder.length < 5 && (
-              <span className="text-[10px] sm:text-xs text-cyan-400 animate-pulse font-mono border border-cyan-500/30 bg-cyan-500/10 px-2 sm:px-3 py-1 rounded-full tracking-wider sm:tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.2)] shrink-0">
+              <span className="text-[9px] sm:text-[10px] text-cyan-400 animate-pulse font-mono border border-cyan-500/30 bg-cyan-500/10 px-1.5 sm:px-2 py-0.5 rounded-full tracking-wider shadow-[0_0_10px_rgba(6,182,212,0.2)] shrink-0">
                 NEED {5 - selectedOrder.length}
               </span>
             )}
           </div>
 
           {/* Right Action Bar: Emergency Countdown Timer + Authorize Action Button */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Authoritative Tournament Decision Clock */}
-            <div className="flex items-center gap-2">
-              <div 
-                id="emergency-decision-clock"
-                className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border backdrop-blur-xl transition-all font-mono select-none ${
-                  state.pendingFallbackAcknowledgement || secondsLeft <= 15
-                    ? 'border-amber-500/50 bg-amber-950/30 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                    : 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
-                }`}
-              >
-                <Clock size={16} className={state.pendingFallbackAcknowledgement || secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
-                <div className="flex flex-col leading-none">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400">
-                      {state.pendingFallbackAcknowledgement ? 'PAUSED' : 'REMAINING'}
-                    </span>
-                    <span className="text-[9px] font-mono text-slate-500">
-                      (Cap: {formatTime(roundAllowance)})
-                    </span>
-                  </div>
-                  <span className={`text-base sm:text-lg font-black font-mono tracking-wider ${
-                    state.pendingFallbackAcknowledgement ? 'text-amber-300' : (secondsLeft <= 15 ? 'text-amber-300' : 'text-white')
-                  }`}>
-                    {state.pendingFallbackAcknowledgement ? 'PAUSED' : formatTime(secondsLeft)}
-                  </span>
-                </div>
+            <div 
+              id="emergency-decision-clock"
+              className={`flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-lg border backdrop-blur-xl transition-all font-mono select-none ${
+                state.pendingFallbackAcknowledgement || secondsLeft <= 15
+                  ? 'border-amber-500/50 bg-amber-950/30 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                  : 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.1)]'
+              }`}
+            >
+              <Clock size={13} className={state.pendingFallbackAcknowledgement || secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
+              <div className="flex flex-col leading-none">
+                <span className="text-[7px] uppercase font-bold tracking-wider text-amber-400">
+                  {state.pendingFallbackAcknowledgement ? 'PAUSED' : 'REMAINING'}
+                </span>
+                <span className={`text-xs sm:text-sm font-black font-mono tracking-wider ${
+                  state.pendingFallbackAcknowledgement ? 'text-amber-300' : (secondsLeft <= 15 ? 'text-amber-300' : 'text-white')
+                }`}>
+                  {state.pendingFallbackAcknowledgement ? 'PAUSED' : formatTime(secondsLeft)}
+                </span>
               </div>
             </div>
 
@@ -2534,7 +2514,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   id="day4-authorize-btn"
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 30px rgba(16,185,129,0.5)" }}
                   whileTap={{ scale: 0.96 }}
                   disabled={submitting || (
                     day4Mode === 'preset'
@@ -2542,15 +2522,15 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
                   )}
                   onClick={() => handleSubmitDecision(false)}
-                  className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                  className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg overflow-hidden relative group cursor-pointer ${
                     (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
                       ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
                   }`}
                 >
                   <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                    <span className="text-[10px] sm:text-xs tracking-wider font-black">
                       {submitting 
                         ? 'EXECUTING...' 
                         : day4Mode === 'preset'
@@ -2565,20 +2545,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                         ? 'ALLOCATE FUNDS'
                         : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
                     </span>
-                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                    <span className="text-[8px] sm:text-[9px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
                       {day4Mode === 'preset'
-                        ? day4PresetPlan ? `costs LKR ${day4PresetPlan === '3E' ? '120' : '100'}M against round cap` : 'select exactly one option from 3A–3E'
+                        ? day4PresetPlan ? `allocation plan ${day4PresetPlan}` : 'select exactly one option from 3A–3E'
                         : `total spend: LKR ${day4AllocatedTotal.toFixed(0)}M / 100M`}
                     </span>
                   </div>
-                  <Send size={18} className="shrink-0" />
+                  <Send size={14} className="shrink-0" />
                 </motion.button>
               ) : state.bucket === 4 ? (
                 <motion.button
                   id="day6-authorize-btn"
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                  whileHover={{ scale: 1.02, boxShadow: "0px 0px 30px rgba(16,185,129,0.5)" }}
                   whileTap={{ scale: 0.96 }}
                   disabled={submitting || (
                     day6Mode === 'preset'
@@ -2586,36 +2566,36 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
                   )}
                   onClick={() => handleSubmitDecision(false)}
-                  className={`px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 transition-colors shadow-lg overflow-hidden relative group w-full sm:w-auto ${
+                  className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg overflow-hidden relative group cursor-pointer ${
                     (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
                       ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer'
+                      : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
                   }`}
                 >
                   <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">
+                    <span className="text-[10px] sm:text-xs tracking-wider font-black">
                       {submitting 
                         ? 'EXECUTING...' 
                         : day6Mode === 'preset'
                         ? day6PresetPlan === '4E'
-                          ? 'HOLD FLEET IN RESERVE (LKR 0M)'
+                          ? 'HOLD FLEET IN RESERVE'
                           : day6PresetPlan
                           ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
                           : 'SELECT A FLEET PLAN'
                         : day6HasLimitViolation
                         ? 'RESOLVE FLEET LIMIT VIOLATIONS'
                         : day6TotalDeployed > 0
-                        ? 'DEPLOY FLEET (FEE: LKR 60M)'
-                        : 'HOLD IN RESERVE (COST: LKR 0M)'}
+                        ? 'DEPLOY FLEET'
+                        : 'HOLD IN RESERVE'}
                     </span>
-                    <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
+                    <span className="text-[8px] sm:text-[9px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
                       {day6Mode === 'preset'
-                        ? day6PresetPlan ? `deployment fee: LKR ${day6PresetPlan === '4E' ? '0' : '60'}M` : 'select exactly one option from 4A–4E'
-                        : `deployed: ${day6TotalDeployed} units | fee: LKR ${day6Cost}M`}
+                        ? day6PresetPlan ? `deployment plan ${day6PresetPlan}` : 'select exactly one option from 4A–4E'
+                        : `deployed: ${day6TotalDeployed} units`}
                     </span>
                   </div>
-                  <Send size={18} className="shrink-0" />
+                  <Send size={14} className="shrink-0" />
                 </motion.button>
               ) : (
                 selectedOrder.length === 5 && (
@@ -2623,20 +2603,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    whileHover={{ scale: 1.02, boxShadow: "0px 0px 40px rgba(16,185,129,0.5)" }}
+                    whileHover={{ scale: 1.02, boxShadow: "0px 0px 30px rgba(16,185,129,0.5)" }}
                     whileTap={{ scale: 0.96 }}
                     disabled={submitting}
                     onClick={() => handleSubmitDecision(false)}
-                    className="bg-emerald-500 text-[#020617] px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-wider sm:tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden relative group w-full sm:w-auto cursor-pointer"
+                    className="bg-emerald-500 text-[#020617] px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-emerald-400 transition-colors shadow-[0_0_15px_rgba(16,185,129,0.4)] overflow-hidden relative group cursor-pointer"
                   >
                     <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                     <div className="flex flex-col text-left">
-                      <span className="text-xs sm:text-sm tracking-wider sm:tracking-[0.2em] font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
-                      <span className="text-[9px] sm:text-[10px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
+                      <span className="text-[10px] sm:text-xs tracking-wider font-black">{submitting ? 'EXECUTING...' : 'AUTHORIZE DIRECTIVES'}</span>
+                      <span className="text-[8px] sm:text-[9px] font-mono lowercase tracking-normal text-emerald-950 font-bold truncate">
                         {`executes top 3: ${selectedOrder.slice(0, 3).join(', ')}`}
                       </span>
                     </div>
-                    <Send size={18} className="shrink-0" />
+                    <Send size={14} className="shrink-0" />
                   </motion.button>
                 )
               )}
@@ -2644,9 +2624,9 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           </div>
         </div>
 
-        {/* Cinematic Card Track: Shown when in Preset mode or in Operational rounds */}
+        {/* Cinematic Card Track: 5-column grid across the window, fits 100% without horizontal scroll */}
         {(state.bucket !== 3 && state.bucket !== 4) || (state.bucket === 3 && day4Mode === 'preset') || (state.bucket === 4 && day6Mode === 'preset') ? (
-          <div className="flex gap-3 sm:gap-6 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory relative touch-pan-x" style={{ scrollbarWidth: 'thin' }}>
+          <div className="grid grid-cols-5 gap-2 sm:gap-2.5 md:gap-3 w-full pb-0.5 pt-0.5">
             {currentScenario.actions.map((action: any) => {
               if (state.bucket === 3 && day4Mode === 'preset') {
                 const isSelected = day4PresetPlan === action.id;
