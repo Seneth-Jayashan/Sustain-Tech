@@ -703,7 +703,7 @@ export default function AdminClient() {
   const adminUsersList = allUsers.filter(u => u.role === 'admin');
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white selection:bg-blue-500/30 font-sans flex relative overflow-hidden">
+    <div className="h-screen max-h-screen w-full bg-[#020617] text-white selection:bg-blue-500/30 font-sans flex flex-col md:flex-row relative overflow-hidden">
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.03)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none z-0"></div>
 
@@ -726,7 +726,7 @@ export default function AdminClient() {
       </AnimatePresence>
 
       {/* Mobile Top Command Header */}
-      <div className="md:hidden sticky top-0 z-40 bg-black/85 backdrop-blur-xl border-b border-blue-900/40 px-4 py-3 flex items-center justify-between safe-top">
+      <header className="md:hidden sticky top-0 z-40 bg-black/85 backdrop-blur-xl border-b border-blue-900/40 px-4 py-3 flex items-center justify-between safe-top shrink-0 w-full">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/40 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
             <ShieldAlert size={18} />
@@ -755,7 +755,7 @@ export default function AdminClient() {
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Mobile Drawer Navigation Backdrop & Drawer */}
       <AnimatePresence>
@@ -773,54 +773,56 @@ export default function AdminClient() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-[#030914] border-r border-blue-900/50 flex flex-col p-4 shadow-2xl safe-top safe-bottom"
+              className="md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-[#030914] border-r border-blue-900/50 flex flex-col justify-between p-4 shadow-2xl safe-top safe-bottom overflow-y-auto"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-blue-900/40">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center border border-blue-500/40">
-                    <ShieldAlert size={20} />
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-blue-900/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center border border-blue-500/40">
+                      <ShieldAlert size={20} />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-black tracking-widest uppercase text-white">Central Command</h2>
+                      <p className="text-[10px] font-mono text-blue-400/80">Disaster Admin</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-black tracking-widest uppercase text-white">Central Command</h2>
-                    <p className="text-[10px] font-mono text-blue-400/80">Disaster Admin</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-8 h-8 rounded-lg bg-white/5 text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-8 h-8 rounded-lg bg-white/5 text-gray-400 hover:text-white flex items-center justify-center"
-                >
-                  <X size={18} />
-                </button>
-              </div>
 
-              <div className="flex-1 py-4 flex flex-col gap-2">
-                {navItems.map(item => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id as any);
-                        setSearchTerm('');
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 px-3.5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${isActive
-                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
-                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
-                        }`}
-                    >
-                      <Icon size={18} /> {item.label}
-                    </button>
-                  );
-                })}
+                <nav className="py-4 flex flex-col gap-2">
+                  {navItems.map(item => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id as any);
+                          setSearchTerm('');
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-3.5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all cursor-pointer ${isActive
+                            ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
+                            : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+                          }`}
+                      >
+                        <Icon size={18} /> {item.label}
+                      </button>
+                    );
+                  })}
+                </nav>
               </div>
 
               <div className="pt-4 border-t border-blue-900/40">
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase"
+                  className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"
                 >
                   <LogOut size={16} /> Sign Out
                 </button>
@@ -830,52 +832,54 @@ export default function AdminClient() {
         )}
       </AnimatePresence>
 
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex relative z-20 w-64 border-r border-blue-900/40 bg-black/70 backdrop-blur-2xl flex-col shrink-0">
-        <div className="p-6 border-b border-blue-900/40">
-          <div className="flex items-center gap-2 mb-3">
-            {/* <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white/95 p-0.5 border border-blue-500/40 shadow shrink-0">
-              <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
-            </div> */}
-            <div className="relative h-8 w-36 overflow-hidden rounded-lg bg-white/95 px-1 shadow border border-blue-500/30">
-              <Image src="/assets/images/Banner.jpg" alt="Symposium" fill className="object-contain" unoptimized />
+      {/* Desktop Sidebar - Fixed to Window Height (h-screen) with independent scroll if needed */}
+      <aside className="hidden md:flex sticky top-0 h-screen max-h-screen w-64 border-r border-blue-900/40 bg-black/70 backdrop-blur-2xl flex-col justify-between shrink-0 z-20 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-900/40">
+        <div>
+          <div className="p-6 border-b border-blue-900/40">
+            <div className="flex items-center gap-2 mb-3">
+              {/* <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white/95 p-0.5 border border-blue-500/40 shadow shrink-0">
+                <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
+              </div> */}
+              <div className="relative h-8 w-36 overflow-hidden rounded-lg bg-white/95 px-1 shadow border border-blue-500/30">
+                <Image src="/assets/images/Banner.jpg" alt="Symposium" fill className="object-contain" unoptimized />
+              </div>
             </div>
+            <h1 className="text-lg font-black tracking-widest uppercase text-white">Central Command</h1>
+            <p className="text-xs font-mono text-blue-400/80 mt-0.5">Disaster Management Admin</p>
           </div>
-          <h1 className="text-lg font-black tracking-widest uppercase text-white">Central Command</h1>
-          <p className="text-xs font-mono text-blue-400/80 mt-0.5">Disaster Management Admin</p>
-        </div>
 
-        <div className="flex-1 py-6 flex flex-col gap-2 px-3">
-          {navItems.map(item => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setActiveTab(item.id as any); setSearchTerm(''); }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all ${isActive
-                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
-                  }`}
-              >
-                <Icon size={18} /> {item.label}
-              </button>
-            );
-          })}
+          <nav className="py-6 flex flex-col gap-2 px-3">
+            {navItems.map(item => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id as any); setSearchTerm(''); }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-mono text-xs tracking-wider uppercase transition-all cursor-pointer ${isActive
+                      ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+                    }`}
+                >
+                  <Icon size={18} /> {item.label}
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
         <div className="p-4 border-t border-blue-900/40">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"
           >
             <LogOut size={16} /> Sign Out
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Command Console */}
-      <div className="flex-1 relative z-10 overflow-y-auto p-3.5 sm:p-6 md:p-8 scrollbar-thin scrollbar-thumb-blue-900/40">
+      {/* Main Command Console - Independently scrollable, preventing sidebar stretching */}
+      <main className="flex-1 h-full min-h-0 min-w-0 relative z-10 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 md:p-8 scrollbar-thin scrollbar-thumb-blue-900/40">
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 border-b border-blue-900/40 pb-4 sm:pb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-black tracking-widest uppercase text-white flex items-center gap-2 sm:gap-3">
@@ -1617,7 +1621,7 @@ export default function AdminClient() {
             </div>
           </div>
         )}
-      </div>
+      </main>
 
       {/* ========================================================================= */}
       {/* MODAL 1: CREATE / EDIT TEAM                                               */}

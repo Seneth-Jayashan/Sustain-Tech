@@ -235,7 +235,7 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
           </div>
 
           {/* Action buttons: Export CSV & JSON */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={handleExportCSV}
               className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200 font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
@@ -840,7 +840,7 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full font-mono text-xs text-left">
+                  <table className="w-full min-w-[760px] font-mono text-xs text-left">
                     <thead className="bg-slate-950/80 text-[10px] uppercase text-slate-400 border-b border-slate-800">
                       <tr>
                         <th className="p-3">Round</th>

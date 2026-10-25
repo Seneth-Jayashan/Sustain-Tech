@@ -112,7 +112,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
               {/* <div className="relative h-10 w-10 sm:h-12 sm:w-12 overflow-hidden rounded-xl bg-white/95 p-1 border border-cyan-500/30 shrink-0 shadow flex items-center justify-center">
                 <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized priority />
               </div> */}
-              <div className="hidden sm:flex relative h-10 sm:h-12 w-36 sm:w-48 overflow-hidden rounded-xl bg-white/95 px-2 items-center justify-center shadow">
+              <div className="flex relative h-8 sm:h-10 md:h-12 w-28 sm:w-36 md:w-48 overflow-hidden rounded-xl bg-white/95 px-2 items-center justify-center shadow">
                 <Image src="/assets/images/Banner.jpg" alt="Annual Research Symposium 2026" fill className="object-contain" unoptimized priority />
               </div>
             </div>
