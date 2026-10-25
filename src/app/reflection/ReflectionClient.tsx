@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState } from '@/game/state';
 import { FinalResult, ScoreCalculationDetails } from '@/game/types';
-import { 
-  LogOut, ShieldCheck, AlertCircle, Droplets, Coins, RadioTower, Users, Award, 
+import {
+  LogOut, ShieldCheck, AlertCircle, Droplets, Coins, RadioTower, Users, Award,
   CheckCircle2, XCircle, ArrowRight, Calculator, ChevronDown, ChevronUp, Info,
   Clock, Zap, ShieldAlert
 } from 'lucide-react';
@@ -23,7 +24,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
   const resources = finalState.resources;
   const information = finalState.information;
   const community = finalState.community;
-  
+
   const getRatingBadge = (tier: string) => {
     if (tier?.includes('Tier 1')) {
       return { color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/50', glow: 'shadow-[0_0_30px_rgba(16,185,129,0.3)]' };
@@ -53,13 +54,13 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
   ];
 
   const failureItems = [
-    { 
-      label: 'Fiscal Solvency', 
-      failed: result.failureStates?.fiscalInsolvency, 
-      metric: resources.emergencyBudget < 0 
-        ? `-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M Drawn (${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M Facility Avail)` 
-        : `LKR ${Math.round(resources.emergencyBudget)}M Remaining`, 
-      threshold: '> 0M Cash Reserve (Deficit Penalty)' 
+    {
+      label: 'Fiscal Solvency',
+      failed: result.failureStates?.fiscalInsolvency,
+      metric: resources.emergencyBudget < 0
+        ? `-LKR ${Math.abs(Math.round(resources.emergencyBudget))}M Drawn (${Math.max(0, 200 - Math.abs(Math.round(resources.emergencyBudget)))}M Facility Avail)`
+        : `LKR ${Math.round(resources.emergencyBudget)}M Remaining`,
+      threshold: '> 0M Cash Reserve (Deficit Penalty)'
     },
     { label: 'Flood Defense Basin', failed: result.failureStates?.catastrophicInundation, metric: `${Math.round(scores.floodPreparedness)}% Prep`, threshold: '≥ 35%' },
     { label: 'Dry Zone Water Storage', failed: result.failureStates?.droughtShock, metric: `${Math.round(scores.droughtPreparedness)}% Storage`, threshold: '≥ 30%' },
@@ -130,7 +131,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
 
   return (
     <div className="w-full max-w-5xl py-4 sm:py-8 px-2 sm:px-4 font-sans text-slate-200">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
@@ -142,16 +143,28 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
 
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-slate-800/80">
-          <div>
-            <span className="text-[10px] sm:text-xs font-mono text-cyan-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] font-bold block mb-1">
-              Simulation Debrief // Mission Evaluation
-            </span>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight break-words">
-              {teamName}
-            </h1>
+          <div className="flex items-center gap-3.5 sm:gap-4 flex-wrap">
+            {/* Symposium Official Emblem & Banner */}
+            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 p-1.5 rounded-2xl shadow-xl shrink-0">
+              {/* <div className="relative h-10 w-10 sm:h-12 sm:w-12 overflow-hidden rounded-xl bg-white/95 p-1 border border-cyan-500/30 shrink-0 shadow flex items-center justify-center">
+                <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized priority />
+              </div> */}
+              <div className="hidden sm:flex relative h-10 sm:h-12 w-36 sm:w-48 overflow-hidden rounded-xl bg-white/95 px-2 items-center justify-center shadow">
+                <Image src="/assets/images/Banner.jpg" alt="Annual Research Symposium 2026" fill className="object-contain" unoptimized priority />
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[10px] sm:text-xs font-mono text-cyan-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] font-bold block mb-1">
+                Simulation Debrief // Mission Evaluation
+              </span>
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight break-words">
+                {teamName}
+              </h1>
+            </div>
           </div>
 
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-slate-900/80 hover:bg-red-950/60 text-slate-400 hover:text-red-300 border border-slate-700/80 hover:border-red-500/50 rounded-xl transition-all font-mono text-xs uppercase tracking-wider self-stretch sm:self-auto justify-center"
           >
@@ -161,7 +174,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
 
         {/* Core Scorecard Section */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 my-6 sm:my-8 items-stretch">
-          
+
           {/* Main CPS Banner */}
           <div className={`md:col-span-5 p-5 sm:p-8 rounded-2xl border ${badge.border} ${badge.bg} ${badge.glow} flex flex-col justify-between relative overflow-hidden backdrop-blur-xl`}>
             <div>
@@ -224,7 +237,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                     <span className="text-[10px] text-slate-500 font-mono">avg/rnd</span>
                   </div>
                   <span className="text-[9px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                    <Clock size={10} className="text-amber-400 shrink-0" /> 
+                    <Clock size={10} className="text-amber-400 shrink-0" />
                     {tpiData.timeoutsCount > 0 ? `${tpiData.timeoutsCount} Timeout(s)` : 'Zero Timeouts'}
                   </span>
                 </div>
@@ -345,22 +358,20 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                   <button
                     type="button"
                     onClick={() => setAuditTab('cps')}
-                    className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      auditTab === 'cps'
+                    className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${auditTab === 'cps'
                         ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
                         : 'bg-slate-950/50 text-slate-400 border border-slate-800 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <ShieldCheck size={14} /> CPS Defense Audit (5 Pillars)
                   </button>
                   <button
                     type="button"
                     onClick={() => setAuditTab('tpi')}
-                    className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      auditTab === 'tpi'
+                    className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${auditTab === 'tpi'
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                         : 'bg-slate-950/50 text-slate-400 border border-slate-800 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Zap size={14} /> Team Performance Index (TPI - 6 Pillars)
                   </button>
@@ -612,13 +623,12 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {failureItems.map((item, idx) => (
-              <div 
+              <div
                 key={idx}
-                className={`p-3.5 sm:p-4 rounded-xl border font-mono text-xs flex flex-col justify-between ${
-                  item.failed 
-                    ? 'bg-red-950/20 border-red-500/40 text-red-300' 
+                className={`p-3.5 sm:p-4 rounded-xl border font-mono text-xs flex flex-col justify-between ${item.failed
+                    ? 'bg-red-950/20 border-red-500/40 text-red-300'
                     : 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-bold">{item.label}</span>
@@ -681,11 +691,10 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                 return (
                   <div
                     key={idx}
-                    className={`p-3.5 sm:p-4 rounded-xl border backdrop-blur-xl transition-all ${
-                      isContingency
+                    className={`p-3.5 sm:p-4 rounded-xl border backdrop-blur-xl transition-all ${isContingency
                         ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
                         : 'bg-slate-950/60 border-slate-800 text-slate-200'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-white/5">
                       <div className="flex items-center gap-2 flex-wrap">

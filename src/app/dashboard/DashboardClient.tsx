@@ -10,24 +10,24 @@ import { ACTION_MATRIX } from '@/game/matrix';
 import { getRoundDuration } from '@/game/timer';
 import { SimulationMode } from '@/game/types';
 import WeatherOverlay, { AtmosphereMode } from '@/components/WeatherOverlay';
-import { 
+import {
   playUIBlip, playRadarPing, playWarningBeep, playTimeoutBuzzer, speakText, stopSpeaking,
   playScenarioAudio, pauseScenarioAudio, resumeScenarioAudio, stopScenarioAudio, seekScenarioAudio,
   SCENARIO_AUDIO_MAP
 } from '@/lib/audio';
-import { 
-  Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut, 
-  Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw, 
+import {
+  Droplets, Coins, RadioTower, Users, AlertTriangle, Send, Info, LogOut,
+  Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw,
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
   ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX,
   Waves, Sun, Scale
 } from 'lucide-react';
 import Image from 'next/image';
-import { 
-  notifyError, 
-  notifyWarning, 
-  notifySuccess, 
-  notifyInfo, 
+import {
+  notifyError,
+  notifyWarning,
+  notifySuccess,
+  notifyInfo,
   notifyConfirm,
   showFallbackInterventionReport,
   toastSuccess,
@@ -51,7 +51,7 @@ const WaterTank = ({ percent }: { percent: number }) => (
   <div className="relative w-32 sm:w-40 md:w-44 h-36 sm:h-44 md:h-48 border border-slate-700/50 rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-2xl bg-black/40 backdrop-blur-xl flex flex-col items-center justify-end p-1.5 sm:p-2">
     {/* Grid Background */}
     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
-    
+
     <div className="absolute top-2 sm:top-3 w-full text-center z-20 font-mono">
       <span className="text-[8px] sm:text-[10px] tracking-[0.2em] text-slate-400 font-bold uppercase">Reservoir Cap</span>
       <div className={`text-2xl sm:text-3xl md:text-4xl font-black mt-0.5 tracking-tighter drop-shadow-lg ${percent > 90 ? 'text-red-400' : percent < 30 ? 'text-amber-400' : 'text-cyan-400'}`}>
@@ -67,11 +67,10 @@ const WaterTank = ({ percent }: { percent: number }) => (
         initial={{ height: 0 }}
         animate={{ height: `${Math.min(100, percent)}%` }}
         transition={{ type: 'spring', bounce: 0.2, duration: 2 }}
-        className={`absolute bottom-0 w-full rounded-b-[16px] sm:rounded-b-[22px] overflow-hidden ${
-          percent > 90 ? 'bg-gradient-to-t from-red-600 to-red-400 shadow-[0_-10px_30px_rgba(239,68,68,0.5)]' 
-          : percent < 30 ? 'bg-gradient-to-t from-amber-600 to-amber-400 shadow-[0_-10px_30px_rgba(245,158,11,0.5)]'
-          : 'bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-[0_-10px_30px_rgba(6,182,212,0.5)]'
-        }`}
+        className={`absolute bottom-0 w-full rounded-b-[16px] sm:rounded-b-[22px] overflow-hidden ${percent > 90 ? 'bg-gradient-to-t from-red-600 to-red-400 shadow-[0_-10px_30px_rgba(239,68,68,0.5)]'
+            : percent < 30 ? 'bg-gradient-to-t from-amber-600 to-amber-400 shadow-[0_-10px_30px_rgba(245,158,11,0.5)]'
+              : 'bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-[0_-10px_30px_rgba(6,182,212,0.5)]'
+          }`}
       >
         <div className="absolute top-0 w-[200%] h-3 -ml-[50%] animate-wave bg-white/20 mix-blend-overlay"></div>
         <div className="absolute top-1 w-[200%] h-3 -ml-[25%] animate-wave bg-white/10 mix-blend-overlay" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
@@ -92,7 +91,7 @@ const CommsGrid = ({ health }: { health: number }) => {
           {Math.round(health)}%
         </div>
       </div>
-      
+
       <div className="relative w-14 h-14 sm:w-18 sm:h-18 md:w-20 md:h-20 flex items-center justify-center my-0.5">
         {/* Radar Sweep */}
         <motion.div
@@ -101,12 +100,12 @@ const CommsGrid = ({ health }: { health: number }) => {
           className={`absolute inset-0 rounded-full ${isFailing ? 'border-red-500/20' : 'border-emerald-500/20'} border`}
           style={{ background: isFailing ? 'conic-gradient(from 0deg, transparent 0deg, rgba(239,68,68,0.4) 360deg)' : 'conic-gradient(from 0deg, transparent 0deg, rgba(16,185,129,0.4) 360deg)' }}
         ></motion.div>
-        
+
         {/* Rings */}
         {[1, 2, 3].map((ring) => (
           <div key={ring} className={`absolute rounded-full border ${isFailing ? 'border-red-500/30' : 'border-emerald-500/30'}`} style={{ width: `${ring * 33}%`, height: `${ring * 33}%` }}></div>
         ))}
-        
+
         {/* Center Icon */}
         <div className={`z-20 p-1.5 sm:p-2 rounded-full backdrop-blur-md ${isFailing ? 'bg-red-900/80 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : 'bg-emerald-900/80 shadow-[0_0_20px_rgba(16,185,129,0.6)]'}`}>
           {isFailing ? <WifiOff size={15} className="text-red-300 animate-pulse sm:w-5 sm:h-5" /> : <RadioTower size={15} className="text-emerald-300 sm:w-5 sm:h-5" />}
@@ -134,7 +133,7 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
   const cardRef = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  
+
   const rotateX = useTransform(y, [-100, 100], [10, -10]);
   const rotateY = useTransform(x, [-100, 100], [-10, 10]);
 
@@ -175,9 +174,9 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
   } else {
     if (isSelected) {
       efficacyLabel = rankIndex === 0 ? 'Immediate (100%)' :
-                      rankIndex === 1 ? 'Fast (85%)' :
-                      rankIndex === 2 ? 'Standard (70%)' :
-                      rankIndex === 3 ? 'Delayed (40%)' : 'Backlog (20%)';
+        rankIndex === 1 ? 'Fast (85%)' :
+          rankIndex === 2 ? 'Standard (70%)' :
+            rankIndex === 3 ? 'Delayed (40%)' : 'Backlog (20%)';
     } else {
       efficacyLabel = 'Unassigned';
     }
@@ -194,26 +193,24 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
       whileTap={{ scale: 0.97 }}
       style={{ rotateX, rotateY }}
       onClick={onClick}
-      className={`relative w-full h-[142px] sm:h-[152px] md:h-[162px] rounded-xl sm:rounded-2xl border text-left p-2.5 sm:p-3 transition-colors duration-300 group overflow-hidden select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col justify-between ${
-        isSelected
+      className={`relative w-full h-[142px] sm:h-[152px] md:h-[162px] rounded-xl sm:rounded-2xl border text-left p-2.5 sm:p-3 transition-colors duration-300 group overflow-hidden select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col justify-between ${isSelected
           ? is3E
             ? 'border-red-500 bg-red-950/60 backdrop-blur-xl shadow-[0_0_30px_rgba(239,68,68,0.4)]'
             : 'border-emerald-400 bg-emerald-950/60 backdrop-blur-xl shadow-[0_0_30px_rgba(16,185,129,0.3)]'
           : is3E
-          ? 'border-red-900/50 bg-slate-900/60 backdrop-blur-md hover:border-red-500/60 hover:bg-red-950/20'
-          : 'border-slate-700 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800/80 hover:border-cyan-500/60 hover:shadow-[0_0_20px_rgba(6,182,212,0.2)]'
-      }`}
+            ? 'border-red-900/50 bg-slate-900/60 backdrop-blur-md hover:border-red-500/60 hover:bg-red-950/20'
+            : 'border-slate-700 bg-slate-900/60 backdrop-blur-md hover:bg-slate-800/80 hover:border-cyan-500/60 hover:shadow-[0_0_20px_rgba(6,182,212,0.2)]'
+        }`}
     >
       {/* Dynamic Animated Glow */}
       {isSelected && (
-        <motion.div 
+        <motion.div
           animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
           transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-          className={`absolute inset-0 rounded-xl sm:rounded-2xl blur-xl -z-10 bg-[length:200%_200%] ${
-            is3E
+          className={`absolute inset-0 rounded-xl sm:rounded-2xl blur-xl -z-10 bg-[length:200%_200%] ${is3E
               ? 'bg-gradient-to-tr from-red-500/20 via-transparent to-red-400/10'
               : 'bg-gradient-to-tr from-emerald-500/20 via-transparent to-emerald-400/10'
-          }`} 
+            }`}
         />
       )}
 
@@ -226,30 +223,28 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
         <div className="min-h-0 overflow-hidden">
           <div className="flex justify-between items-center mb-1.5">
             <div className="flex items-center gap-1.5">
-              <div className={`p-1 sm:p-1.5 rounded-lg backdrop-blur-md border ${
-                isSelected 
-                  ? is3E 
+              <div className={`p-1 sm:p-1.5 rounded-lg backdrop-blur-md border ${isSelected
+                  ? is3E
                     ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
+                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                   : is3E
-                  ? 'bg-red-950/40 border-red-800 text-red-400'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
-              }`}>
+                    ? 'bg-red-950/40 border-red-800 text-red-400'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/50'
+                }`}>
                 {is3E ? <AlertTriangle size={14} /> : <Terminal size={14} />}
               </div>
-              
+
               {/* Action ID Badge */}
-              <span className={`font-mono text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded border tracking-wider select-none ${
-                is3E
+              <span className={`font-mono text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded border tracking-wider select-none ${is3E
                   ? 'bg-red-950/80 border-red-500/50 text-red-300'
                   : isSelected
-                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
-                  : 'bg-slate-950/80 border-slate-700/80 text-cyan-400 group-hover:border-cyan-500/60'
-              }`}>
+                    ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                    : 'bg-slate-950/80 border-slate-700/80 text-cyan-400 group-hover:border-cyan-500/60'
+                }`}>
                 {canonicalAction.id || action.id}
               </span>
             </div>
-            
+
             {/* Selection Badge */}
             <AnimatePresence>
               {isSingleSelect ? (
@@ -258,9 +253,8 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
                     initial={{ scale: 0, rotate: 90 }}
                     animate={{ scale: 1, rotate: 0 }}
                     exit={{ scale: 0 }}
-                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black shadow-lg text-xs ${
-                      is3E ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.8)]'
-                    }`}
+                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black shadow-lg text-xs ${is3E ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.8)]'
+                      }`}
                   >
                     {is3E ? '✕' : <CheckCircle2 size={13} />}
                   </motion.div>
@@ -289,9 +283,8 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
           </div>
 
           {/* Action Title */}
-          <span className={`font-bold block leading-tight text-[11px] sm:text-xs md:text-[12px] tracking-tight transition-colors line-clamp-2 ${
-            isSelected ? 'text-white' : 'text-slate-100 group-hover:text-white'
-          }`}>
+          <span className={`font-bold block leading-tight text-[11px] sm:text-xs md:text-[12px] tracking-tight transition-colors line-clamp-2 ${isSelected ? 'text-white' : 'text-slate-100 group-hover:text-white'
+            }`}>
             {action.title}
           </span>
 
@@ -305,13 +298,12 @@ const ActionCard = ({ action, bucket, isSelected, rankIndex = -1, isSingleSelect
 
         {/* Priority / Status Efficacy (Cost Display Removed from Action) */}
         <div className="mt-1 sm:mt-1.5 flex items-center justify-between text-[10px] font-mono border-t border-slate-800/80 pt-1 shrink-0">
-          <span className={`font-bold px-2 py-0.5 rounded border text-[9px] sm:text-[10px] truncate max-w-full ${
-            is3E 
+          <span className={`font-bold px-2 py-0.5 rounded border text-[9px] sm:text-[10px] truncate max-w-full ${is3E
               ? 'text-red-300 bg-red-950/80 border-red-500/40'
-              : isSelected 
-              ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30' 
-              : 'text-slate-400 border-slate-800 bg-slate-900/60'
-          }`}>
+              : isSelected
+                ? 'text-cyan-300 bg-cyan-950/60 border-cyan-500/30'
+                : 'text-slate-400 border-slate-800 bg-slate-900/60'
+            }`}>
             {efficacyLabel}
           </span>
           {isSelected && (
@@ -336,10 +328,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   const [state, setState] = useState<GameState>(initialState);
   const [currentScenario, setCurrentScenario] = useState<any>(initialScenario);
   const [atmosphereMode, setAtmosphereMode] = useState<AtmosphereMode>('auto');
-  
+
   // Operational Ranking Rounds (Buckets 1, 2, 5, 6)
   const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
-  
+
   // Day 4 (Fiscal Allocation, Bucket 3) State
   const [day4Mode, setDay4Mode] = useState<'preset' | 'custom'>('preset');
   const [day4PresetPlan, setDay4PresetPlan] = useState<string | null>(null);
@@ -546,8 +538,8 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     let lastEventTime = 0;
 
     const sendTelemetry = (
-      actionType: string, 
-      metadata: Record<string, any> = {}, 
+      actionType: string,
+      metadata: Record<string, any> = {},
       severity?: 'info' | 'review_signal' | 'high_priority'
     ) => {
       const now = Date.now();
@@ -570,7 +562,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           },
           severity
         })
-      }).catch(() => {});
+      }).catch(() => { });
     };
 
     const handleVisibilityChange = () => {
@@ -988,12 +980,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   return (
     <div className="relative h-screen max-h-screen w-screen max-w-screen overflow-hidden text-slate-200 selection:bg-cyan-500/30 font-sans bg-black flex flex-col justify-between select-none">
-      
+
       {/* Animated Dynamic Background Layer with Disaster Environmental FX */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Real-time Environmental Disaster Overlay (Images + Earth Cracks + Floating Heavy Water) */}
-        <WeatherOverlay 
-          floodScore={state.scores.floodPreparedness} 
+        <WeatherOverlay
+          floodScore={state.scores.floodPreparedness}
           droughtScore={state.scores.droughtPreparedness}
           drinkingWater={state.resources?.drinkingWater}
           riverLevel={state.environment?.riverLevel}
@@ -1006,7 +998,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
         {/* Holographic Hex Grid */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDAgTDIwIDIwIE0yMCAyMCBMNDAgMTAgTTIwIDIwIEwwIDEwIiBzdHJva2U9InJnYmEoNiwgMTgyLCAyMTIsIDAuMDgpIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-15 pointer-events-none"></div>
-        
+
         {/* Floating Ambient Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none mix-blend-screen opacity-40">
           {[...Array(6)].map((_, i) => (
@@ -1038,17 +1030,17 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
         {/* Central Dashboard Visualizers - Perfectly positioned in upper-middle background */}
         <div className="fixed inset-0 flex items-center justify-center gap-6 sm:gap-14 md:gap-20 pointer-events-none pb-44 sm:pb-48 px-2 z-[4]">
-          <motion.div 
-            initial={{ scale: 0.85, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }} 
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', bounce: 0.4, duration: 1.5 }}
             className="hover:scale-105 transition-transform duration-500 shrink-0"
           >
             <WaterTank percent={waterPercent} />
           </motion.div>
-          <motion.div 
-            initial={{ scale: 0.85, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }} 
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', bounce: 0.4, duration: 1.5, delay: 0.2 }}
             className="hover:scale-105 transition-transform duration-500 shrink-0"
           >
@@ -1070,6 +1062,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         <div className="flex justify-between items-center w-full">
           {/* Left: Day & Audio & Briefing & Modes */}
           <div className="flex gap-2 sm:gap-2.5 pointer-events-auto items-center">
+            {/* Symposium Official Emblem & Banner */}
+            <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-xl rounded-xl p-1 sm:px-1.5 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+              {/* <div className="relative h-7 w-7 sm:h-8 sm:w-8 overflow-hidden rounded-lg bg-white/95 p-0.5 border border-cyan-500/30 shrink-0">
+                <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
+              </div> */}
+              <div className="hidden 2xl:flex relative h-7 w-28 overflow-hidden rounded-lg bg-white/95 px-1 shrink-0">
+                <Image src="/assets/images/Banner.jpg" alt="Symposium" fill className="object-contain" unoptimized />
+              </div>
+            </div>
+
             <div className="flex flex-col items-center bg-slate-900/80 backdrop-blur-xl rounded-xl p-1.5 px-2.5 sm:px-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <GlitchText text={`DAY ${state.day}`} className="text-lg sm:text-2xl font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400" />
@@ -1091,13 +1093,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 }
                 playUIBlip();
               }}
-              className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl border backdrop-blur-xl transition-all shadow-md text-xs sm:text-sm cursor-pointer ${
-                audioPlaying 
+              className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl border backdrop-blur-xl transition-all shadow-md text-xs sm:text-sm cursor-pointer ${audioPlaying
                   ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
-                  : voiceEnabled 
-                  ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
-                  : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'
-              }`}
+                  : voiceEnabled
+                    ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                    : 'bg-slate-900/60 border-slate-700 text-slate-500 hover:border-slate-500'
+                }`}
               title={audioPlaying ? 'Pause scenario recording' : voiceEnabled ? 'Play scenario recording' : 'Unmute voice recording'}
             >
               {audioPlaying ? '⏸️' : voiceEnabled ? '🔊' : '🔈'}
@@ -1106,11 +1107,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             {/* Scenario Briefing Toggle Button in HUD */}
             <button
               onClick={() => { setShowBrief(!showBrief); playUIBlip(); }}
-              className={`flex items-center gap-1.5 h-8 sm:h-9 px-2 sm:px-3 rounded-xl border backdrop-blur-xl font-mono text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer pointer-events-auto ${
-                showBrief 
-                  ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+              className={`flex items-center gap-1.5 h-8 sm:h-9 px-2 sm:px-3 rounded-xl border backdrop-blur-xl font-mono text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer pointer-events-auto ${showBrief
+                  ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
                   : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-white'
-              }`}
+                }`}
               title={showBrief ? 'Minimize briefing dialog' : 'Open scenario briefing dialog'}
             >
               <div className="relative w-4 h-4 rounded-full overflow-hidden border border-cyan-400 shrink-0">
@@ -1122,11 +1122,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             {/* Mobile HUD Toggle Button */}
             <button
               onClick={() => { setMobileMetricsOpen(!mobileMetricsOpen); playUIBlip(); }}
-              className={`lg:hidden flex items-center gap-1 h-8 sm:h-9 px-2 rounded-xl border backdrop-blur-xl font-mono text-[10px] sm:text-[11px] font-bold transition-all ${
-                mobileMetricsOpen 
-                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+              className={`lg:hidden flex items-center gap-1 h-8 sm:h-9 px-2 rounded-xl border backdrop-blur-xl font-mono text-[10px] sm:text-[11px] font-bold transition-all ${mobileMetricsOpen
+                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
                   : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-500/50'
-              }`}
+                }`}
               title="Toggle Metrics HUD"
             >
               <Activity size={13} className="text-cyan-400" />
@@ -1137,13 +1136,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
             <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-900/80 backdrop-blur-xl border border-slate-700/80 rounded-xl p-0.5 sm:p-1 shadow-lg pointer-events-auto">
               <div className="flex items-center gap-1 px-1.5 py-0.5 border-r border-slate-700/80">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    (atmosphereMode === 'flood' || (atmosphereMode === 'auto' && (state.scores.floodPreparedness < 38 || (state.environment?.riverLevel ?? 50) > 70)))
+                  className={`w-1.5 h-1.5 rounded-full ${(atmosphereMode === 'flood' || (atmosphereMode === 'auto' && (state.scores.floodPreparedness < 38 || (state.environment?.riverLevel ?? 50) > 70)))
                       ? 'bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse'
                       : (atmosphereMode === 'drought' || (atmosphereMode === 'auto' && (state.scores.droughtPreparedness < 35 || (state.resources?.drinkingWater ?? 50) < 35)))
-                      ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse'
-                      : 'bg-purple-400 shadow-[0_0_8px_#c084fc]'
-                  }`}
+                        ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse'
+                        : 'bg-purple-400 shadow-[0_0_8px_#c084fc]'
+                    }`}
                 />
                 <span className="text-[8px] font-mono font-bold tracking-wider text-slate-300 hidden xl:inline uppercase">
                   {atmosphereMode}
@@ -1152,22 +1150,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
               <button
                 onClick={() => { setAtmosphereMode('auto'); playUIBlip(); }}
-                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all ${
-                  atmosphereMode === 'auto'
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all ${atmosphereMode === 'auto'
                     ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_rgba(6,182,212,0.5)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
+                  }`}
                 title="Auto: Reacts dynamically in real-time to game hazard conditions"
               >
                 Auto
               </button>
               <button
                 onClick={() => { setAtmosphereMode('dual'); playUIBlip(); }}
-                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${
-                  atmosphereMode === 'dual'
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${atmosphereMode === 'dual'
                     ? 'bg-purple-500 text-white shadow-[0_0_8px_rgba(168,85,247,0.5)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
+                  }`}
                 title="Dual: RainAndDry.png compound hazard background"
               >
                 <Scale size={10} />
@@ -1175,11 +1171,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </button>
               <button
                 onClick={() => { setAtmosphereMode('flood'); playUIBlip(); }}
-                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${
-                  atmosphereMode === 'flood'
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${atmosphereMode === 'flood'
                     ? 'bg-blue-500 text-white shadow-[0_0_8px_rgba(59,130,246,0.6)]'
                     : 'text-slate-400 hover:text-cyan-300 hover:bg-slate-800'
-                }`}
+                  }`}
                 title="Flood: Flood.png background with heavy floating water and waves"
               >
                 <Waves size={10} />
@@ -1187,11 +1182,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </button>
               <button
                 onClick={() => { setAtmosphereMode('drought'); playUIBlip(); }}
-                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${
-                  atmosphereMode === 'drought'
+                className={`px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-0.5 ${atmosphereMode === 'drought'
                     ? 'bg-amber-500 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.6)]'
                     : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800'
-                }`}
+                  }`}
                 title="Drought: Drought.png background with glowing earth cracks"
               >
                 <Sun size={10} />
@@ -1203,30 +1197,27 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           {/* Right: Budget Display & Metrics */}
           <div className="flex gap-2.5 sm:gap-3.5 pointer-events-auto items-center">
             {/* Budget Display - Highly styled with deficit awareness */}
-            <div className={`flex items-center gap-2.5 bg-slate-900/80 backdrop-blur-xl rounded-xl p-2 sm:p-2.5 sm:px-3.5 border ${
-              state.resources.emergencyBudget < 0
+            <div className={`flex items-center gap-2.5 bg-slate-900/80 backdrop-blur-xl rounded-xl p-2 sm:p-2.5 sm:px-3.5 border ${state.resources.emergencyBudget < 0
                 ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.25)]'
                 : state.resources.emergencyBudget === 0
-                ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                : 'border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
-            } relative overflow-hidden`}>
+                  ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                  : 'border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]'
+              } relative overflow-hidden`}>
               <div className={`absolute top-0 right-0 w-14 h-14 ${state.resources.emergencyBudget <= 0 ? 'bg-red-500/20' : 'bg-emerald-500/20'} blur-xl rounded-full`}></div>
               <div className={`${state.resources.emergencyBudget <= 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'} p-1.5 sm:p-2 rounded-xl border shrink-0`}>
                 <Coins size={20} className="sm:w-[22px] sm:h-[22px]" />
               </div>
               <div className="flex flex-col items-end pr-0.5 sm:pr-1">
-                <span className={`text-[8px] sm:text-[10px] font-mono font-bold tracking-widest uppercase ${
-                  state.resources.emergencyBudget < 0 ? 'text-red-400' : state.resources.emergencyBudget === 0 ? 'text-amber-400' : 'text-emerald-500/80'
-                }`}>
+                <span className={`text-[8px] sm:text-[10px] font-mono font-bold tracking-widest uppercase ${state.resources.emergencyBudget < 0 ? 'text-red-400' : state.resources.emergencyBudget === 0 ? 'text-amber-400' : 'text-emerald-500/80'
+                  }`}>
                   {state.resources.emergencyBudget < 0 ? 'Credit Drawn' : 'Budget'}
                 </span>
-                <div className={`font-black font-mono text-base sm:text-xl md:text-2xl tracking-tight leading-none ${
-                  state.resources.emergencyBudget < 0 
-                    ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' 
+                <div className={`font-black font-mono text-base sm:text-xl md:text-2xl tracking-tight leading-none ${state.resources.emergencyBudget < 0
+                    ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
                     : state.resources.emergencyBudget === 0
-                    ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]'
-                    : 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]'
-                }`}>
+                      ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]'
+                      : 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                  }`}>
                   {state.resources.emergencyBudget < 0 ? `-LKR ${Math.abs(state.resources.emergencyBudget).toFixed(0)}M` : `LKR ${formatLKR(state.resources.emergencyBudget)}`}
                 </div>
                 {state.resources.emergencyBudget < 0 && (
@@ -1244,7 +1235,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   { label: 'FLOOD', val: state.scores.floodPreparedness, icon: Navigation, border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
                   { label: 'DROUGHT', val: state.scores.droughtPreparedness, icon: Droplets, border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' }
                 ].map((metric) => (
-                  <div 
+                  <div
                     key={metric.label}
                     className={`flex items-center justify-between w-32 xl:w-36 px-2.5 py-1 sm:py-1.5 rounded-xl backdrop-blur-xl border bg-slate-900/80 shadow-md ${metric.border} ${metric.text}`}
                   >
@@ -1261,7 +1252,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
                   { label: 'TRUST', val: state.community.communityTrust, icon: Users, border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' }
                 ].map((metric) => (
-                  <div 
+                  <div
                     key={metric.label}
                     className={`flex items-center justify-between w-32 xl:w-36 px-2.5 py-1 sm:py-1.5 rounded-xl backdrop-blur-xl border bg-slate-900/80 shadow-md ${metric.border} ${metric.text}`}
                   >
@@ -1342,8 +1333,8 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => setShowBrief(false)} 
+                <button
+                  onClick={() => setShowBrief(false)}
                   className="mb-0.5 text-xs font-mono font-bold text-cyan-300 hover:text-white bg-slate-900/95 border border-cyan-500/40 px-2.5 py-1 rounded-xl shadow-lg flex items-center gap-1 hover:bg-slate-800 transition-all cursor-pointer"
                   title="Minimize briefing to focus on allocation decisions"
                 >
@@ -1353,15 +1344,15 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </div>
 
               {/* Message Box */}
-              <div 
+              <div
                 className="relative bg-slate-950/95 backdrop-blur-2xl border border-slate-700/90 rounded-2xl p-3 sm:p-4 shadow-2xl overflow-hidden sm:ml-4 z-10 max-h-[calc(100vh-330px)] sm:max-h-[44vh] flex flex-col"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-3xl rounded-full pointer-events-none"></div>
-                
+
                 <div className="flex justify-between items-start mb-1.5 gap-2 shrink-0">
                   <h2 className="text-sm sm:text-base font-black text-white tracking-tight">{currentScenario.title}</h2>
                   <button onClick={() => setShowBrief(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800/80 p-1 rounded-full hover:bg-red-500/20 hover:text-red-400 shrink-0 cursor-pointer" title="Minimize briefing">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                   </button>
                 </div>
 
@@ -1372,11 +1363,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       <button
                         type="button"
                         onClick={() => handleToggleScenarioAudio()}
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer font-bold shrink-0 shadow-md ${
-                          audioPlaying 
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30' 
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer font-bold shrink-0 shadow-md ${audioPlaying
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30'
                             : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 hover:bg-cyan-500/30'
-                        }`}
+                          }`}
                         title={audioPlaying ? 'Pause scenario recording' : 'Play scenario recording'}
                       >
                         {audioPlaying ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
@@ -1496,7 +1486,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       {/* Submission Overlay HUD */}
       <AnimatePresence>
         {submitting && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1526,15 +1516,14 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         {state.activeDynamicEvents && state.activeDynamicEvents.length > 0 && (
           <div className="mb-1.5 max-h-12 overflow-y-auto flex flex-wrap gap-1.5 sm:gap-2 pr-1" style={{ scrollbarWidth: 'thin' }}>
             {state.activeDynamicEvents.map((evt: any, i: number) => (
-              <div 
-                key={i} 
-                className={`px-2 py-0.5 rounded-lg border font-mono text-[9px] sm:text-[10px] flex items-center gap-1.5 backdrop-blur-xl shadow-md ${
-                  evt.impactType === 'positive' 
-                    ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300' 
+              <div
+                key={i}
+                className={`px-2 py-0.5 rounded-lg border font-mono text-[9px] sm:text-[10px] flex items-center gap-1.5 backdrop-blur-xl shadow-md ${evt.impactType === 'positive'
+                    ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300'
                     : evt.impactType === 'warning'
-                    ? 'bg-amber-950/70 border-amber-500/50 text-amber-300'
-                    : 'bg-red-950/70 border-red-500/50 text-red-300'
-                }`}
+                      ? 'bg-amber-950/70 border-amber-500/50 text-amber-300'
+                      : 'bg-red-950/70 border-red-500/50 text-red-300'
+                  }`}
               >
                 <span className="font-bold uppercase tracking-wider">{evt.title}:</span>
                 <span className="text-slate-300 truncate max-w-[220px] sm:max-w-none">{evt.description}</span>
@@ -1572,11 +1561,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 <button
                   id="day4-mode-preset"
                   onClick={() => { setDay4Mode('preset'); playUIBlip(); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                    day4Mode === 'preset'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${day4Mode === 'preset'
                       ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
                       : 'text-slate-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Layers size={13} />
                   <span>Preset Plans</span>
@@ -1584,11 +1572,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 <button
                   id="day4-mode-custom"
                   onClick={() => { setDay4Mode('custom'); playUIBlip(); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                    day4Mode === 'custom'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${day4Mode === 'custom'
                       ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
                       : 'text-slate-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Sliders size={13} />
                   <span>Custom Allocation</span>
@@ -1603,24 +1590,22 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   {day4Mode === 'preset' ? 'Selected Preset Plan' : 'Allocated Total'}
                 </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${
-                    day4Mode === 'preset' && !day4PresetPlan 
-                      ? 'text-slate-500' 
-                      : day4IsOverCap 
-                      ? 'text-red-400' 
-                      : 'text-emerald-400'
-                  }`}>
-                    {day4Mode === 'preset' 
-                      ? (day4PresetPlan ? `Plan ${day4PresetPlan} (LKR ${day4AllocatedTotal}M)` : '—') 
+                  <span className={`text-base sm:text-lg font-black ${day4Mode === 'preset' && !day4PresetPlan
+                      ? 'text-slate-500'
+                      : day4IsOverCap
+                        ? 'text-red-400'
+                        : 'text-emerald-400'
+                    }`}>
+                    {day4Mode === 'preset'
+                      ? (day4PresetPlan ? `Plan ${day4PresetPlan} (LKR ${day4AllocatedTotal}M)` : '—')
                       : `LKR ${day4AllocatedTotal.toFixed(0)}M`}
                   </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    day4Mode === 'preset' && !day4PresetPlan
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day4Mode === 'preset' && !day4PresetPlan
                       ? 'bg-slate-900 text-slate-400'
-                      : day4IsOverCap 
-                      ? 'bg-red-950 text-red-300' 
-                      : 'bg-emerald-950 text-emerald-300'
-                  }`}>
+                      : day4IsOverCap
+                        ? 'bg-red-950 text-red-300'
+                        : 'bg-emerald-950 text-emerald-300'
+                    }`}>
                     {day4Mode === 'preset' && !day4PresetPlan ? 'Select Plan' : '/ 100M Cap'}
                   </span>
                 </div>
@@ -1631,13 +1616,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   {day4Mode === 'preset' ? 'Scenario Allocation Cap' : 'Remaining Capacity'}
                 </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${
-                    day4Mode === 'preset'
+                  <span className={`text-base sm:text-lg font-black ${day4Mode === 'preset'
                       ? 'text-cyan-400'
-                      : day4RemainingCapacity === 0 
-                      ? 'text-amber-300' 
-                      : 'text-cyan-400'
-                  }`}>
+                      : day4RemainingCapacity === 0
+                        ? 'text-amber-300'
+                        : 'text-cyan-400'
+                    }`}>
                     {day4Mode === 'preset'
                       ? (day4PresetPlan ? (day4PresetPlan === '3E' ? 'Breached (120M)' : 'LKR 0M Remaining') : 'LKR 100M Limit')
                       : `LKR ${day4RemainingCapacity.toFixed(0)}M`}
@@ -1654,22 +1638,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   <span className="text-slate-500 text-[8px] font-semibold">Actual: LKR {currentBudget}M</span>
                 </div>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${
-                    day4ProjectedTreasury < 0 ? 'text-red-400' : day4ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
-                  }`}>
+                  <span className={`text-base sm:text-lg font-black ${day4ProjectedTreasury < 0 ? 'text-red-400' : day4ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
+                    }`}>
                     {day4Mode === 'preset' && !day4PresetPlan
                       ? `LKR ${currentBudget}M`
-                      : day4ProjectedTreasury < 0 
-                      ? `-LKR ${Math.abs(day4ProjectedTreasury).toFixed(0)}M` 
-                      : `LKR ${day4ProjectedTreasury.toFixed(0)}M`}
+                      : day4ProjectedTreasury < 0
+                        ? `-LKR ${Math.abs(day4ProjectedTreasury).toFixed(0)}M`
+                        : `LKR ${day4ProjectedTreasury.toFixed(0)}M`}
                   </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    day4Mode === 'preset' && !day4PresetPlan
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day4Mode === 'preset' && !day4PresetPlan
                       ? 'bg-slate-900 text-slate-400'
-                      : day4ProjectedTreasury < 0 
-                      ? 'bg-red-950 text-red-300' 
-                      : 'bg-emerald-950 text-emerald-300'
-                  }`}>
+                      : day4ProjectedTreasury < 0
+                        ? 'bg-red-950 text-red-300'
+                        : 'bg-emerald-950 text-emerald-300'
+                    }`}>
                     {day4Mode === 'preset' && !day4PresetPlan ? 'Current' : day4ProjectedTreasury < 0 ? 'Deficit' : 'Projected'}
                   </span>
                 </div>
@@ -1948,11 +1930,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 <button
                   id="day6-mode-preset"
                   onClick={() => { setDay6Mode('preset'); playUIBlip(); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                    day6Mode === 'preset'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${day6Mode === 'preset'
                       ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
                       : 'text-slate-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Layers size={13} />
                   <span>Preset Fleet Plans</span>
@@ -1960,11 +1941,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 <button
                   id="day6-mode-custom"
                   onClick={() => { setDay6Mode('custom'); playUIBlip(); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                    day6Mode === 'custom'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${day6Mode === 'custom'
                       ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
                       : 'text-slate-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Sliders size={13} />
                   <span>Custom Fleet Allocation</span>
@@ -1986,18 +1966,18 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 ) : (
                   <div className="flex flex-col gap-0.5 mt-1 text-[10px] font-bold">
                     <span className="text-blue-300">
-                      Flood: {day6Mode === 'preset' 
-                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.flood ?? 0) 
+                      Flood: {day6Mode === 'preset'
+                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.flood ?? 0)
                         : (day6TrucksFlood + day6VehiclesFlood + day6BoatsFlood)} units
                     </span>
                     <span className="text-amber-300">
-                      Dry Zone: {day6Mode === 'preset' 
-                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.dryZone ?? 0) 
+                      Dry Zone: {day6Mode === 'preset'
+                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.dryZone ?? 0)
                         : (day6TrucksDry + day6VehiclesDry + day6BoatsDry)} units
                     </span>
                     <span className="text-slate-400">
-                      Reserve: {day6Mode === 'preset' 
-                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.reserve ?? 0) 
+                      Reserve: {day6Mode === 'preset'
+                        ? (PRESET_FLEET_DISTRIBUTIONS[day6PresetPlan!]?.reserve ?? 0)
                         : (day6TrucksReserve + day6VehiclesReserve + day6BoatsReserve)} units
                     </span>
                   </div>
@@ -2009,27 +1989,25 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   {day6Mode === 'preset' ? 'Mobilization Cost' : 'Draft Deployment Cost'}
                 </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${
-                    day6Mode === 'preset' && !day6PresetPlan 
-                      ? 'text-slate-500' 
-                      : day6Cost === 0 
-                      ? 'text-cyan-300' 
-                      : 'text-emerald-400'
-                  }`}>
+                  <span className={`text-base sm:text-lg font-black ${day6Mode === 'preset' && !day6PresetPlan
+                      ? 'text-slate-500'
+                      : day6Cost === 0
+                        ? 'text-cyan-300'
+                        : 'text-emerald-400'
+                    }`}>
                     {day6Mode === 'preset' && !day6PresetPlan ? '—' : `LKR ${day6Cost}M`}
                   </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    day6Mode === 'preset' && !day6PresetPlan
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day6Mode === 'preset' && !day6PresetPlan
                       ? 'bg-slate-900 text-slate-400'
-                      : day6Cost === 0 
-                      ? 'bg-cyan-950 text-cyan-300' 
-                      : 'bg-emerald-950 text-emerald-300'
-                  }`}>
-                    {day6Mode === 'preset' && !day6PresetPlan 
-                      ? 'Select Plan' 
-                      : day6Cost === 0 
-                      ? '0M Reserve' 
-                      : '60M Fee'}
+                      : day6Cost === 0
+                        ? 'bg-cyan-950 text-cyan-300'
+                        : 'bg-emerald-950 text-emerald-300'
+                    }`}>
+                    {day6Mode === 'preset' && !day6PresetPlan
+                      ? 'Select Plan'
+                      : day6Cost === 0
+                        ? '0M Reserve'
+                        : '60M Fee'}
                   </span>
                 </div>
               </div>
@@ -2040,22 +2018,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   <span className="text-slate-500 text-[8px] font-semibold">Actual: LKR {currentBudget}M</span>
                 </div>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className={`text-base sm:text-lg font-black ${
-                    day6ProjectedTreasury < 0 ? 'text-red-400' : day6ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
-                  }`}>
+                  <span className={`text-base sm:text-lg font-black ${day6ProjectedTreasury < 0 ? 'text-red-400' : day6ProjectedTreasury === 0 ? 'text-amber-400' : 'text-emerald-400'
+                    }`}>
                     {day6Mode === 'preset' && !day6PresetPlan
                       ? `LKR ${currentBudget}M`
-                      : day6ProjectedTreasury < 0 
-                      ? `-LKR ${Math.abs(day6ProjectedTreasury).toFixed(0)}M` 
-                      : `LKR ${day6ProjectedTreasury.toFixed(0)}M`}
+                      : day6ProjectedTreasury < 0
+                        ? `-LKR ${Math.abs(day6ProjectedTreasury).toFixed(0)}M`
+                        : `LKR ${day6ProjectedTreasury.toFixed(0)}M`}
                   </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    day6Mode === 'preset' && !day6PresetPlan
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${day6Mode === 'preset' && !day6PresetPlan
                       ? 'bg-slate-900 text-slate-400'
-                      : day6ProjectedTreasury < 0 
-                      ? 'bg-red-950 text-red-300' 
-                      : 'bg-emerald-950 text-emerald-300'
-                  }`}>
+                      : day6ProjectedTreasury < 0
+                        ? 'bg-red-950 text-red-300'
+                        : 'bg-emerald-950 text-emerald-300'
+                    }`}>
                     {day6Mode === 'preset' && !day6PresetPlan ? 'Current' : day6ProjectedTreasury < 0 ? 'Deficit' : 'Projected'}
                   </span>
                 </div>
@@ -2314,7 +2290,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
         {/* OPERATIONAL RANKING ROUNDS (BUCKETS 1, 2, 5, 6) SUMMARY TRAY              */}
         {/* ========================================================================= */}
         {state.bucket !== 3 && state.bucket !== 4 && selectedOrder.length > 0 && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-1.5 sm:mb-2 bg-slate-900/95 border border-slate-700/80 rounded-xl p-2 sm:p-2.5 backdrop-blur-xl shadow-2xl"
@@ -2359,27 +2335,24 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                 const actionId = selectedOrder[slotIdx];
                 const action = actionId ? (findAction(actionId, state.bucket) || currentScenario?.actions?.find((a: any) => a.id === actionId)) : null;
                 const isExecuting = slotIdx < 3;
-                
+
                 return (
                   <div
                     key={slotIdx}
-                    className={`relative p-1.5 sm:p-2 rounded-lg border flex flex-col justify-between transition-all ${
-                      action 
+                    className={`relative p-1.5 sm:p-2 rounded-lg border flex flex-col justify-between transition-all ${action
                         ? isExecuting
                           ? 'bg-emerald-950/40 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                           : 'bg-slate-950/50 border-slate-700/60 opacity-60'
                         : 'bg-black/30 border-dashed border-slate-800 text-slate-600'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className={`text-[8px] sm:text-[9px] font-mono font-black uppercase px-1 py-0.2 rounded ${
-                        isExecuting ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-400'
-                      }`}>
+                      <span className={`text-[8px] sm:text-[9px] font-mono font-black uppercase px-1 py-0.2 rounded ${isExecuting ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-400'
+                        }`}>
                         Rank {slotIdx + 1}
                       </span>
-                      <span className={`text-[8px] font-mono uppercase font-bold tracking-wider ${
-                        isExecuting ? 'text-emerald-400' : 'text-slate-500'
-                      }`}>
+                      <span className={`text-[8px] font-mono uppercase font-bold tracking-wider ${isExecuting ? 'text-emerald-400' : 'text-slate-500'
+                        }`}>
                         {isExecuting ? 'Executes' : 'Standby'}
                       </span>
                     </div>
@@ -2422,7 +2395,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               <ShieldAlert size={18} className="text-red-400 shrink-0 animate-pulse" />
               <span>{interventionAlert}</span>
             </div>
-            <button 
+            <button
               onClick={() => setInterventionAlert(null)}
               className="px-2.5 py-1 bg-red-900/80 hover:bg-red-800 text-white rounded text-[10px] font-bold uppercase shrink-0 transition-colors"
             >
@@ -2433,11 +2406,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
         {/* Deliberation Warning Banners (Calm indicators at 60s and 15s) */}
         {secondsLeft <= 60 && secondsLeft > 0 && (
-          <div className={`mb-3 p-2.5 sm:p-3 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-mono font-medium transition-all ${
-            secondsLeft <= 15
+          <div className={`mb-3 p-2.5 sm:p-3 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-mono font-medium transition-all ${secondsLeft <= 15
               ? 'border-amber-500/60 bg-amber-950/40 text-amber-200'
               : 'border-slate-700 bg-slate-900/60 text-slate-300'
-          }`}>
+            }`}>
             <div className="flex items-center gap-2">
               <AlertTriangle size={14} className={secondsLeft <= 15 ? 'text-amber-400 shrink-0' : 'text-slate-400 shrink-0'} />
               <span className="truncate">
@@ -2446,11 +2418,10 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   : `Deliberation notice: ${secondsLeft}s remaining in round allowance.`}
               </span>
             </div>
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
-              secondsLeft <= 15
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${secondsLeft <= 15
                 ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
                 : 'border-slate-700 bg-slate-800 text-slate-400'
-            }`}>
+              }`}>
               {secondsLeft <= 15 ? '15s Reminder' : '60s Window'}
             </span>
           </div>
@@ -2463,11 +2434,11 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-start">
             <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-[0.15em] text-slate-300 flex items-center gap-2 truncate">
               <span className="truncate">
-                {state.bucket === 3 
+                {state.bucket === 3
                   ? day4Mode === 'preset' ? 'Select One Preset Plan' : 'Custom Sector Inputs'
-                  : state.bucket === 4 
-                  ? day6Mode === 'preset' ? 'Select One Fleet Plan' : 'Custom Fleet Logistics'
-                  : 'Priority Directives'}
+                  : state.bucket === 4
+                    ? day6Mode === 'preset' ? 'Select One Fleet Plan' : 'Custom Fleet Logistics'
+                    : 'Priority Directives'}
               </span>
               {state.bucket !== 3 && state.bucket !== 4 && (
                 <span className="text-white bg-slate-800 px-1.5 sm:px-2 py-0.5 rounded border border-slate-700 shadow-inner text-[10px] sm:text-xs font-mono shrink-0">
@@ -2486,22 +2457,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           {/* Right Action Bar: Emergency Countdown Timer + Authorize Action Button */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Authoritative Tournament Decision Clock */}
-            <div 
+            <div
               id="emergency-decision-clock"
-              className={`flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-lg border backdrop-blur-xl transition-all font-mono select-none ${
-                state.pendingFallbackAcknowledgement || secondsLeft <= 15
+              className={`flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-lg border backdrop-blur-xl transition-all font-mono select-none ${state.pendingFallbackAcknowledgement || secondsLeft <= 15
                   ? 'border-amber-500/50 bg-amber-950/30 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
                   : 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.1)]'
-              }`}
+                }`}
             >
               <Clock size={13} className={state.pendingFallbackAcknowledgement || secondsLeft <= 15 ? 'text-amber-400' : 'text-cyan-400'} />
               <div className="flex flex-col leading-none">
                 <span className="text-[7px] uppercase font-bold tracking-wider text-amber-400">
                   {state.pendingFallbackAcknowledgement ? 'PAUSED' : 'REMAINING'}
                 </span>
-                <span className={`text-xs sm:text-sm font-black font-mono tracking-wider ${
-                  state.pendingFallbackAcknowledgement ? 'text-amber-300' : (secondsLeft <= 15 ? 'text-amber-300' : 'text-white')
-                }`}>
+                <span className={`text-xs sm:text-sm font-black font-mono tracking-wider ${state.pendingFallbackAcknowledgement ? 'text-amber-300' : (secondsLeft <= 15 ? 'text-amber-300' : 'text-white')
+                  }`}>
                   {state.pendingFallbackAcknowledgement ? 'PAUSED' : formatTime(secondsLeft)}
                 </span>
               </div>
@@ -2522,28 +2491,27 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached)
                   )}
                   onClick={() => handleSubmitDecision(false)}
-                  className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg overflow-hidden relative group cursor-pointer ${
-                    (day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
+                  className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg overflow-hidden relative group cursor-pointer ${(day4Mode === 'preset' ? (!day4PresetPlan || day4PresetPlan === '3E') : (day4AllocatedTotal <= 0 || day4AllocatedTotal > 100 || day4HasNegative || day4IsCreditBreached))
                       ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
                       : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                  }`}
+                    }`}
                 >
                   <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] sm:text-xs tracking-wider font-black">
-                      {submitting 
-                        ? 'EXECUTING...' 
+                      {submitting
+                        ? 'EXECUTING...'
                         : day4Mode === 'preset'
-                        ? day4PresetPlan === '3E'
-                          ? 'PLAN 3E REJECTED (OVER CAP)'
-                          : day4PresetPlan
-                          ? `AUTHORIZE PLAN [${day4PresetPlan}]`
-                          : 'SELECT A PLAN'
-                        : day4AllocatedTotal > 100
-                        ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
-                        : day4AllocatedTotal === 0
-                        ? 'ALLOCATE FUNDS'
-                        : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
+                          ? day4PresetPlan === '3E'
+                            ? 'PLAN 3E REJECTED (OVER CAP)'
+                            : day4PresetPlan
+                              ? `AUTHORIZE PLAN [${day4PresetPlan}]`
+                              : 'SELECT A PLAN'
+                          : day4AllocatedTotal > 100
+                            ? `EXCEEDS CAP (+${(day4AllocatedTotal - 100).toFixed(0)}M)`
+                            : day4AllocatedTotal === 0
+                              ? 'ALLOCATE FUNDS'
+                              : `AUTHORIZE ALLOCATION (LKR ${day4AllocatedTotal.toFixed(0)}M)`}
                     </span>
                     <span className="text-[8px] sm:text-[9px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
                       {day4Mode === 'preset'
@@ -2566,28 +2534,27 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                       : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached)
                   )}
                   onClick={() => handleSubmitDecision(false)}
-                  className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg overflow-hidden relative group cursor-pointer ${
-                    (day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
+                  className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg overflow-hidden relative group cursor-pointer ${(day6Mode === 'preset' ? !day6PresetPlan : (day6HasLimitViolation || day6HasNegative || day6IsCreditBreached))
                       ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
                       : 'bg-emerald-500 text-[#020617] hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                  }`}
+                    }`}
                 >
                   <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] sm:text-xs tracking-wider font-black">
-                      {submitting 
-                        ? 'EXECUTING...' 
+                      {submitting
+                        ? 'EXECUTING...'
                         : day6Mode === 'preset'
-                        ? day6PresetPlan === '4E'
-                          ? 'HOLD FLEET IN RESERVE'
-                          : day6PresetPlan
-                          ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
-                          : 'SELECT A FLEET PLAN'
-                        : day6HasLimitViolation
-                        ? 'RESOLVE FLEET LIMIT VIOLATIONS'
-                        : day6TotalDeployed > 0
-                        ? 'DEPLOY FLEET'
-                        : 'HOLD IN RESERVE'}
+                          ? day6PresetPlan === '4E'
+                            ? 'HOLD FLEET IN RESERVE'
+                            : day6PresetPlan
+                              ? `AUTHORIZE FLEET PLAN [${day6PresetPlan}]`
+                              : 'SELECT A FLEET PLAN'
+                          : day6HasLimitViolation
+                            ? 'RESOLVE FLEET LIMIT VIOLATIONS'
+                            : day6TotalDeployed > 0
+                              ? 'DEPLOY FLEET'
+                              : 'HOLD IN RESERVE'}
                     </span>
                     <span className="text-[8px] sm:text-[9px] font-mono lowercase tracking-normal text-slate-800 font-bold truncate">
                       {day6Mode === 'preset'
@@ -2631,16 +2598,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               if (state.bucket === 3 && day4Mode === 'preset') {
                 const isSelected = day4PresetPlan === action.id;
                 return (
-                  <ActionCard 
-                    key={action.id} 
-                    action={action} 
+                  <ActionCard
+                    key={action.id}
+                    action={action}
                     bucket={state.bucket}
-                    isSelected={isSelected} 
+                    isSelected={isSelected}
                     isSingleSelect={true}
                     onClick={() => {
                       playUIBlip();
                       setDay4PresetPlan(prev => prev === action.id ? null : action.id);
-                    }} 
+                    }}
                   />
                 );
               }
@@ -2648,16 +2615,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               if (state.bucket === 4 && day6Mode === 'preset') {
                 const isSelected = day6PresetPlan === action.id;
                 return (
-                  <ActionCard 
-                    key={action.id} 
-                    action={action} 
+                  <ActionCard
+                    key={action.id}
+                    action={action}
                     bucket={state.bucket}
-                    isSelected={isSelected} 
+                    isSelected={isSelected}
                     isSingleSelect={true}
                     onClick={() => {
                       playUIBlip();
                       setDay6PresetPlan(prev => prev === action.id ? null : action.id);
-                    }} 
+                    }}
                   />
                 );
               }
@@ -2666,14 +2633,14 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               const rankIndex = selectedOrder.indexOf(action.id);
               const isSelected = rankIndex !== -1;
               return (
-                <ActionCard 
-                  key={action.id} 
-                  action={action} 
+                <ActionCard
+                  key={action.id}
+                  action={action}
                   bucket={state.bucket}
-                  isSelected={isSelected} 
-                  rankIndex={rankIndex} 
+                  isSelected={isSelected}
+                  rankIndex={rankIndex}
                   isSingleSelect={false}
-                  onClick={() => toggleSelection(action.id)} 
+                  onClick={() => toggleSelection(action.id)}
                 />
               );
             })}

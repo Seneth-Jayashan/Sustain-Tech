@@ -4,18 +4,18 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { 
-  ShieldAlert, 
-  Sparkles, 
-  ArrowRight, 
-  Users, 
-  Laptop, 
-  Activity, 
-  Trophy, 
-  Layers, 
-  CheckCircle2, 
-  Clock, 
-  Database, 
+import {
+  ShieldAlert,
+  Sparkles,
+  ArrowRight,
+  Users,
+  Laptop,
+  Activity,
+  Trophy,
+  Layers,
+  CheckCircle2,
+  Clock,
+  Database,
   Cpu
 } from 'lucide-react';
 
@@ -34,30 +34,44 @@ export default function HomePage() {
       {/* Top Header Section */}
       <header className="relative z-10 w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
         {/* Symposium Logo Banner */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex items-center gap-3.5 bg-slate-900/80 border border-slate-800/90 hover:border-teal-500/40 p-2 sm:px-3 sm:py-2 rounded-2xl backdrop-blur-xl shadow-xl transition-all"
+          className="flex items-center gap-2.5 sm:gap-3.5 bg-slate-900/80 border border-slate-800/90 hover:border-teal-500/40 p-2 sm:px-3 sm:py-2 rounded-2xl backdrop-blur-xl shadow-xl transition-all"
         >
-          <div className="relative h-9 sm:h-11 w-36 sm:w-48 overflow-hidden rounded-lg bg-white/95 px-2 flex items-center justify-center">
-            <Image 
-              src="/assets/annual_symposium_2026.png" 
-              alt="Annual Research Symposium 2026" 
+          {/* Official Emblem Logo */}
+          {/* <div className="relative h-9 w-9 sm:h-11 sm:w-11 overflow-hidden rounded-xl bg-white/95 p-1 border border-teal-500/30 shrink-0 shadow flex items-center justify-center">
+            <Image
+              src="/assets/images/Logo.jpg"
+              alt="Symposium Logo"
+              fill
+              className="object-contain"
+              priority
+              unoptimized
+            />
+          </div> */}
+
+          {/* Official Horizontal Banner */}
+          <div className="relative h-9 sm:h-11 w-40 sm:w-56 overflow-hidden rounded-xl bg-white/95 px-2 flex items-center justify-center shadow">
+            <Image
+              src="/assets/images/Banner.jpg"
+              alt="Annual Research Symposium 2026"
               fill
               className="object-contain"
               priority
               unoptimized
             />
           </div>
-          <div className="hidden sm:flex flex-col">
+
+          <div className="hidden lg:flex flex-col">
             <span className="text-[10px] font-mono uppercase tracking-widest text-teal-400 font-bold">Research Symposium</span>
             <span className="text-xs font-mono text-slate-300 font-bold">Sustain-Tech Platform</span>
           </div>
         </motion.div>
 
         {/* System Online Badge */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -75,19 +89,21 @@ export default function HomePage() {
 
       {/* Hero Center Body */}
       <main className="relative z-10 w-full max-w-6xl mx-auto my-auto py-6 sm:py-10 flex flex-col items-center text-center">
-        {/* Tactical Category Chip */}
-        <motion.div 
+        {/* Tactical Category Chip with Emblem */}
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-950/60 border border-teal-500/30 text-teal-300 text-xs font-mono font-bold uppercase tracking-wider mb-4 shadow-lg"
+          className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-teal-950/60 border border-teal-500/30 text-teal-300 text-xs font-mono font-bold uppercase tracking-wider mb-4 shadow-lg backdrop-blur-md"
         >
-          <Cpu size={14} className="text-teal-400 animate-pulse" />
+          <div className="relative w-4 h-4 rounded overflow-hidden bg-white/90 shrink-0">
+            <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
+          </div>
           <span>Disaster Command & Strategic Resilience Simulator</span>
         </motion.div>
 
         {/* Hero Headline */}
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -97,7 +113,7 @@ export default function HomePage() {
         </motion.h1>
 
         {/* Mission Subtitle */}
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -109,7 +125,7 @@ export default function HomePage() {
         {/* Mode Selection Cards (Focal Point) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl text-left">
           {/* Card 1: Practice Gaming Challenge */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -170,7 +186,7 @@ export default function HomePage() {
           </motion.div>
 
           {/* Card 2: Tournament Simulation (Real Game) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
@@ -193,7 +209,7 @@ export default function HomePage() {
 
               {/* Title & Tagline */}
               <h2 className="text-2xl font-black text-white group-hover:text-teal-300 transition-colors tracking-tight mb-2">
-                Real Game (Official)
+                Real Challenge (Official)
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
                 The authoritative 10-day compound crisis simulation. Features live server-enforced round timers, cascade hazards, credit lines, and the official championship leaderboard.
