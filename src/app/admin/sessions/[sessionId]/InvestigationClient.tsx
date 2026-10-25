@@ -784,66 +784,166 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
         )}
 
         {/* Tab 3: Financial Ledger Audit */}
-        {activeTab === 'financial' && (
-          <div className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
-              <span className="font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Coins size={14} className="text-amber-400" /> Authoritative Fiscal Audit Ledger (LKR Millions)
-              </span>
-              <span className="text-slate-400">Initial Balance: LKR 500.0M • Max Credit: LKR 200.0M</span>
-            </div>
+        {activeTab === 'financial' && (() => {
+          const lastLedgerRow = financialLedger[financialLedger.length - 1];
+          const finalTreasury = lastLedgerRow?.endingBalance ?? 500;
+          const totalExpenditures = financialLedger.reduce((sum: number, r: any) => sum + (r.expenditure || 0), 0);
+          const totalGrants = financialLedger.reduce((sum: number, r: any) => sum + (r.grant || 0), 0);
+          const totalNetDelta = totalGrants - totalExpenditures;
+          const maxCreditDrawn = financialLedger.reduce((max: number, r: any) => Math.max(max, r.creditDrawn || 0), 0);
+          const isFinalDeficit = finalTreasury < 0;
 
-            <div className="overflow-x-auto">
-              <table className="w-full font-mono text-xs text-left">
-                <thead className="bg-slate-950/60 text-[10px] uppercase text-slate-400 border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">Round</th>
-                    <th className="p-3">Scenario Event</th>
-                    <th className="p-3 text-right">Expenditure</th>
-                    <th className="p-3 text-right">Grants/Inflow</th>
-                    <th className="p-3 text-right">Net Change</th>
-                    <th className="p-3 text-right">Ending Balance</th>
-                    <th className="p-3 text-right">Credit Drawn</th>
-                    <th className="p-3 text-right">Available Facility</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/80">
-                  {financialLedger.map((row: any, i: number) => {
-                    const isDeficit = row.endingBalance < 0;
-                    return (
-                      <tr key={i} className={`hover:bg-slate-800/20 transition-colors ${i === 0 ? 'bg-cyan-950/10' : ''}`}>
-                        <td className="p-3 font-bold text-cyan-300">
-                          {row.round === 0 ? 'Init' : `Day ${row.day}`}
+          return (
+            <div className="space-y-4">
+              {/* Fiscal KPI Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-slate-400 text-[10px] uppercase block mb-1">Initial Allocation</span>
+                  <span className="text-white font-black text-base">LKR 500M</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">National Emergency Fund</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-slate-400 text-[10px] uppercase block mb-1">Total Commitments</span>
+                  <span className="text-red-400 font-black text-base">-LKR {Math.round(totalExpenditures)}M</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Disaster operations spent</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-slate-400 text-[10px] uppercase block mb-1">Final Balance</span>
+                  <span className={`font-black text-base ${isFinalDeficit ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {isFinalDeficit ? `-LKR ${Math.abs(Math.round(finalTreasury))}M` : `LKR ${Math.round(finalTreasury)}M`}
+                  </span>
+                  <span className={`text-[10px] block mt-0.5 ${isFinalDeficit ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
+                    {isFinalDeficit ? 'Overdraft breached' : 'Liquid reserves intact'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-slate-400 text-[10px] uppercase block mb-1">Emergency Credit Line</span>
+                  <span className={`font-black text-base ${maxCreditDrawn > 0 ? 'text-amber-400' : 'text-cyan-400'}`}>
+                    {maxCreditDrawn > 0 ? `LKR ${Math.round(maxCreditDrawn)}M Drawn` : '0M Drawn'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">LKR 200M sovereign cap</span>
+                </div>
+              </div>
+
+              {/* Main Ledger Table */}
+              <div className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
+                  <span className="font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Coins size={15} className="text-amber-400" /> Authoritative Fiscal Audit Ledger (LKR Millions)
+                  </span>
+                  <span className="text-slate-400 text-[11px]">
+                    Standard Rule: Initial LKR 500M • Max Credit Facility LKR 200M
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full font-mono text-xs text-left">
+                    <thead className="bg-slate-950/80 text-[10px] uppercase text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="p-3">Round</th>
+                        <th className="p-3">Scenario Event &amp; Directives</th>
+                        <th className="p-3 text-right">Expenditure</th>
+                        <th className="p-3 text-right">Grants/Inflow</th>
+                        <th className="p-3 text-right">Net Change</th>
+                        <th className="p-3 text-right">Ending Balance</th>
+                        <th className="p-3 text-right">Credit Drawn</th>
+                        <th className="p-3 text-right">Available Facility</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {financialLedger.map((row: any, i: number) => {
+                        const isDeficit = row.endingBalance < 0;
+                        return (
+                          <tr key={i} className={`hover:bg-slate-800/20 transition-colors ${i === 0 ? 'bg-cyan-950/15' : ''}`}>
+                            <td className="p-3">
+                              {row.round === 0 ? (
+                                <span className="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 font-bold text-[11px]">
+                                  Init
+                                </span>
+                              ) : (
+                                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                  <span className="font-bold text-white">Round {row.round}</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-normal">
+                                    Day {row.day}
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-3 text-white font-medium">
+                              <span className="block leading-snug">
+                                {row.round === 0 ? 'Initial Treasury Allocation (Baseline Fictional Emergency Fund)' : row.event}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-bold">
+                              {row.expenditure > 0 ? (
+                                <span className="text-red-400">-LKR {Math.round(row.expenditure)}M</span>
+                              ) : (
+                                <span className="text-slate-600 font-normal">--</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right font-bold">
+                              {row.grant > 0 ? (
+                                <span className="text-emerald-400">+LKR {Math.round(row.grant)}M</span>
+                              ) : (
+                                <span className="text-slate-600 font-normal">--</span>
+                              )}
+                            </td>
+                            <td className={`p-3 text-right font-bold ${row.netDelta < 0 ? 'text-red-400' : row.netDelta > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                              {row.netDelta < 0 
+                                ? `-LKR ${Math.abs(Math.round(row.netDelta))}M` 
+                                : row.netDelta > 0 
+                                ? `+LKR ${Math.round(row.netDelta)}M` 
+                                : 'LKR 0M'}
+                            </td>
+                            <td className={`p-3 text-right font-black text-sm ${isDeficit ? 'text-red-400' : 'text-emerald-300'}`}>
+                              {isDeficit 
+                                ? `-LKR ${Math.abs(Math.round(row.endingBalance))}M` 
+                                : `LKR ${Math.round(row.endingBalance)}M`}
+                            </td>
+                            <td className="p-3 text-right text-amber-300 font-bold">
+                              {row.creditDrawn > 0 ? `LKR ${Math.round(row.creditDrawn)}M` : <span className="text-slate-600 font-normal">0M</span>}
+                            </td>
+                            <td className="p-3 text-right text-slate-300 font-medium">
+                              LKR {Math.round(row.availableCredit)}M <span className="text-[10px] text-slate-500">/ 200M</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="bg-slate-950/90 border-t-2 border-slate-700 font-bold text-white text-xs">
+                      <tr>
+                        <td colSpan={2} className="p-3 uppercase text-slate-400 font-mono tracking-wider">
+                          Net Campaign Totals &amp; Closing Solvency
                         </td>
-                        <td className="p-3 text-white font-bold max-w-xs truncate">
-                          {row.event}
+                        <td className="p-3 text-right text-red-400 font-black">
+                          {totalExpenditures > 0 ? `-LKR ${Math.round(totalExpenditures)}M` : '--'}
                         </td>
-                        <td className="p-3 text-right text-red-400">
-                          {row.expenditure > 0 ? `-LKR ${row.expenditure}M` : '--'}
+                        <td className="p-3 text-right text-emerald-400 font-black">
+                          {totalGrants > 0 ? `+LKR ${Math.round(totalGrants)}M` : '--'}
                         </td>
-                        <td className="p-3 text-right text-emerald-400">
-                          {row.grant > 0 ? `+LKR ${row.grant}M` : '--'}
+                        <td className={`p-3 text-right font-black ${totalNetDelta < 0 ? 'text-red-400' : totalNetDelta > 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                          {totalNetDelta < 0 ? `-LKR ${Math.abs(Math.round(totalNetDelta))}M` : totalNetDelta > 0 ? `+LKR ${Math.round(totalNetDelta)}M` : '0M'}
                         </td>
-                        <td className={`p-3 text-right font-bold ${row.netDelta < 0 ? 'text-red-400' : row.netDelta > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
-                          {row.netDelta < 0 ? `-LKR ${Math.abs(row.netDelta)}M` : row.netDelta > 0 ? `+LKR ${row.netDelta}M` : 'LKR 0M'}
+                        <td className={`p-3 text-right font-black text-sm ${isFinalDeficit ? 'text-red-400' : 'text-emerald-300'}`}>
+                          {isFinalDeficit ? `-LKR ${Math.abs(Math.round(finalTreasury))}M` : `LKR ${Math.round(finalTreasury)}M`}
                         </td>
-                        <td className={`p-3 text-right font-bold text-sm ${isDeficit ? 'text-red-400' : 'text-emerald-300'}`}>
-                          LKR {row.endingBalance}M
+                        <td className="p-3 text-right text-amber-300 font-black">
+                          {maxCreditDrawn > 0 ? `LKR ${Math.round(maxCreditDrawn)}M Peak` : '0M'}
                         </td>
-                        <td className="p-3 text-right text-amber-300">
-                          {row.creditDrawn > 0 ? `LKR ${row.creditDrawn}M` : 'LKR 0M'}
-                        </td>
-                        <td className="p-3 text-right text-slate-300">
-                          LKR {row.availableCredit}M
+                        <td className="p-3 text-right text-cyan-300 font-black">
+                          LKR {Math.round(lastLedgerRow?.availableCredit ?? 200)}M
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Tab 4: Score Calculation Reconciliations & Forensic Audit */}
         {activeTab === 'scoring' && (() => {

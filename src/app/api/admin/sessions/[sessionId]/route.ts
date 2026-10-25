@@ -121,40 +121,114 @@ export async function GET(
       let roundGrant = 0;
 
       if (record) {
-        if (record.actionIds && Array.isArray(record.actionIds)) {
-          executedActionDetails = record.actionIds.map((id: string) => {
-            const action = findAction(id, bucket);
-            const cost = action?.impacts?.emergencyBudget || 0;
-            if (cost < 0) roundExpenditure += Math.abs(cost);
-            if (cost > 0) roundGrant += cost;
-            return {
-              id,
-              title: action?.title || id,
-              cost: action?.impacts?.emergencyBudget || 0,
-              impacts: action?.impacts || {},
-            };
-          });
+        // Detect executed action IDs (executedActionIds or top rankings)
+        const actionIds: string[] = Array.isArray(record.executedActionIds) && record.executedActionIds.length > 0
+          ? record.executedActionIds
+          : (Array.isArray(record.actionIds) && record.actionIds.length > 0
+              ? record.actionIds
+              : (Array.isArray(record.rankings) && bucket !== 3 && bucket !== 4
+                  ? record.rankings.slice(0, 3)
+                  : []));
+
+        // Evaluate standard ranking action details
+        if (actionIds.length > 0 && bucket !== 3 && bucket !== 4) {
+          executedActionDetails = actionIds
+            .map((id: string) => {
+              const action = findAction(id, bucket);
+              if (!action) return null;
+              const cost = action?.impacts?.emergencyBudget || 0;
+              if (cost < 0) roundExpenditure += Math.abs(cost);
+              if (cost > 0) roundGrant += cost;
+              return {
+                id,
+                title: action?.title || id,
+                cost,
+                impacts: action?.impacts || {},
+              };
+            })
+            .filter(Boolean);
         }
 
         // Handle custom allocation rounds
-        if (bucket === 3 && record.allocations) {
-          const alloc = record.allocations;
-          const totalSpent = (alloc.evacuation || 0) + (alloc.drinkingWater || 0) + (alloc.medicalSupplies || 0);
-          roundExpenditure = totalSpent;
-        } else if (bucket === 4 && record.allocations) {
-          // Preset or custom fleet logistics
-          roundExpenditure = 60;
+        if (bucket === 3) {
+          if (record.allocations) {
+            const alloc = record.allocations;
+            const evac = Number(alloc.evacuation ?? alloc.evac ?? alloc['3A'] ?? 0);
+            const water = Number(alloc.drinkingWater ?? alloc.water ?? alloc['3B'] ?? 0);
+            const med = Number(alloc.medicalSupplies ?? alloc.medical ?? alloc['3C'] ?? 0);
+            const totalSpent = evac + water + med;
+            roundExpenditure = Math.min(100, totalSpent);
+            executedActionDetails = [
+              { id: '3A', title: `Evacuation Support - LKR ${evac}M`, cost: -evac, impacts: { floodPreparedness: Math.round((evac / 40) * 16) } },
+              { id: '3B', title: `Drinking Water Delivery - LKR ${water}M`, cost: -water, impacts: { droughtPreparedness: Math.round((water / 50) * 18) } },
+              { id: '3C', title: `Emergency Medical Supplies - LKR ${med}M`, cost: -med, impacts: { communityTrust: Math.round((med / 30) * 8) } },
+            ].filter(a => Math.abs(a.cost) > 0);
+          } else if (record.rankings && record.rankings.length > 0) {
+            const topPkgId = record.rankings[0];
+            const act = findAction(topPkgId, 3);
+            const cost = act?.impacts?.emergencyBudget ?? -100;
+            if (cost < 0) roundExpenditure = Math.abs(cost);
+            if (cost > 0) roundGrant = cost;
+            executedActionDetails = [{
+              id: topPkgId,
+              title: act?.title || `Package ${topPkgId}`,
+              cost,
+              impacts: act?.impacts || {},
+            }];
+          }
+        } else if (bucket === 4) {
+          if (record.allocations) {
+            roundExpenditure = 60;
+            executedActionDetails = [
+              { id: '4-LOGISTICS', title: 'National Emergency Fleet Mobilization Fee', cost: -60, impacts: { operations: 'Fleet Distributed' } }
+            ];
+          } else if (record.rankings && record.rankings.length > 0) {
+            const topPlanId = record.rankings[0];
+            const act = findAction(topPlanId, 4);
+            const cost = act?.impacts?.emergencyBudget ?? -60;
+            if (cost < 0) roundExpenditure = Math.abs(cost);
+            if (cost > 0) roundGrant = cost;
+            executedActionDetails = [{
+              id: topPlanId,
+              title: act?.title || `Preset Fleet Plan ${topPlanId}`,
+              cost,
+              impacts: act?.impacts || {},
+            }];
+          }
         }
 
-        const netChange = roundGrant - roundExpenditure;
-        runningBudget += netChange;
+        // Authoritative reconciliation with game engine's stored financialEffects
+        let netChange = roundGrant - roundExpenditure;
+        if (record.financialEffects?.budgetDelta !== undefined) {
+          netChange = record.financialEffects.budgetDelta;
+          if (roundExpenditure === 0 && roundGrant === 0) {
+            if (netChange < 0) roundExpenditure = Math.abs(netChange);
+            if (netChange > 0) roundGrant = netChange;
+          } else {
+            const diff = netChange - (roundGrant - roundExpenditure);
+            if (diff > 0) roundGrant += diff;
+            if (diff < 0) roundExpenditure += Math.abs(diff);
+          }
+        }
+
+        if (record.financialEffects?.treasuryRemaining !== undefined) {
+          runningBudget = record.financialEffects.treasuryRemaining;
+        } else {
+          runningBudget += netChange;
+        }
+
         const creditDrawn = runningBudget < 0 ? Math.min(200, Math.abs(runningBudget)) : 0;
         const availableCredit = Math.max(0, 200 - creditDrawn);
+
+        const rawTitle = scenario?.title || `Round ${bucket}`;
+        const cleanTitle = rawTitle.startsWith(`Day ${scenario?.day}: `)
+          ? rawTitle
+          : rawTitle.replace(/^Day \d+[:\- ]*/, `Day ${scenario?.day}: `);
 
         financialLedger.push({
           round: bucket,
           day: scenario?.day ?? (bucket - 1) * 2,
-          event: `Day ${scenario?.day} - ${scenario?.title || 'Decision Directives'}`,
+          event: cleanTitle,
           expenditure: roundExpenditure,
           grant: roundGrant,
           netDelta: netChange,
