@@ -206,6 +206,7 @@ export async function GET(
     const calculatedOutcome = calculateFinalOutcome(state as any);
     const finalResult = gameSession.finalResult || (gameSession.status === 'COMPLETED' ? calculatedOutcome : null);
     const tpiData = finalResult?.tpiDetails || calculatedOutcome.tpiDetails || { averageDecisionTimeSeconds: 0 };
+    const calculationDetails = finalResult?.calculationDetails || calculatedOutcome.calculationDetails || null;
 
     const humanDecisionsCount = decisionHistory.filter((d: any) => !d.fallbackApplied).length;
     const timeoutsCount = decisionHistory.filter((d: any) => d.timedOut || d.fallbackApplied).length;
@@ -265,6 +266,7 @@ export async function GET(
           totalCampaignSeconds,
           plannedAllowanceSeconds: 1200, // 20:00 tournament cap
           scoreBreakdown: finalResult?.scoreBreakdown || null,
+          calculationDetails,
           tpiDetails: tpiData,
         },
         roundsAudit,
@@ -276,6 +278,7 @@ export async function GET(
           scores: state.scores,
           operations: state.operations,
           information: state.information,
+          community: state.community,
           shuffledCardOrders: state.shuffledCardOrders,
         }
       }
