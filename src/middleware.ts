@@ -7,6 +7,9 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicRoute = 
+    pathname === '/' ||
+    pathname === '/practice' ||
+    pathname.startsWith('/practice') ||
     pathname === '/login' || 
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/scenario') ||
@@ -32,8 +35,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Route directing based on authentication and role
-  if (session && (pathname === '/login' || pathname === '/')) {
+  // Route directing based on authentication and role (for login page when already authenticated)
+  if (session && pathname === '/login') {
     if (role === 'admin') {
       return NextResponse.redirect(new URL('/admin', request.url));
     } else {
