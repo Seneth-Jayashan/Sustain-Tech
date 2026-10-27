@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Waves, Sun, Scale } from 'lucide-react';
+import { playThunderSound } from '@/lib/audio';
 
 export type AtmosphereMode = 'auto' | 'dual' | 'flood' | 'drought';
 
@@ -16,7 +17,32 @@ interface Props {
   bucket?: number;
   activeAtmosphere?: AtmosphereMode;
   onAtmosphereChange?: (mode: AtmosphereMode) => void;
+  soundEnabled?: boolean;
 }
+
+// Procedural realistic branching lightning bolt SVG paths
+const LIGHTNING_BOLTS = [
+  // Bolt 1: Central vertical jagged lightning with 3 branches
+  `M 160,0 L 175,70 L 145,120 L 185,190 L 150,250 L 195,330 L 165,400 L 180,490 
+   M 175,70 L 215,105 L 245,135 
+   M 185,190 L 225,225 L 240,270 
+   M 150,250 L 115,290 L 95,340 
+   M 195,330 L 235,360`,
+
+  // Bolt 2: Angled storm strike with intense fork branching
+  `M 210,0 L 185,85 L 225,140 L 180,215 L 215,280 L 165,360 L 195,440 L 175,500 
+   M 185,85 L 145,125 L 120,165 
+   M 225,140 L 265,180 L 290,230 
+   M 180,215 L 135,255 L 110,310 
+   M 215,280 L 255,320 L 275,380`,
+
+  // Bolt 3: Powerful deep jagged strike
+  `M 140,0 L 165,65 L 130,125 L 175,200 L 140,270 L 170,350 L 145,430 L 165,490 
+   M 165,65 L 205,100 L 230,145 
+   M 130,125 L 95,165 L 75,215 
+   M 175,200 L 215,240 L 235,290 
+   M 140,270 L 110,310 L 95,365`
+];
 
 export default function WeatherOverlay({
   floodScore,
@@ -27,7 +53,8 @@ export default function WeatherOverlay({
   day = 0,
   bucket = 1,
   activeAtmosphere,
-  onAtmosphereChange
+  onAtmosphereChange,
+  soundEnabled = true
 }: Props) {
   // Internal state if parent doesn't manage mode
   const [internalMode, setInternalMode] = useState<AtmosphereMode>('auto');
@@ -59,6 +86,86 @@ export default function WeatherOverlay({
   }, [floodScore, droughtScore, drinkingWater, riverLevel, rainfall, day, bucket]);
 
   const effectiveSituation = mode === 'auto' ? autoSituation : mode;
+  const isRaining = effectiveSituation === 'flood' || effectiveSituation === 'dual';
+
+  // Real-time Thunder & Lightning Visual and Sound FX
+  const [lightning, setLightning] = useState<{
+    active: boolean;
+    intensity: number;
+    boltIndex: number;
+    boltLeft: number;
+  }>({
+    active: false,
+    intensity: 0,
+    boltIndex: 0,
+    boltLeft: 25
+  });
+
+  useEffect(() => {
+    if (!isRaining) {
+      setLightning(prev => prev.active ? { ...prev, active: false, intensity: 0 } : prev);
+      return;
+    }
+
+    const timeoutIds: NodeJS.Timeout[] = [];
+    let isCancelled = false;
+
+    const triggerStrike = () => {
+      if (isCancelled) return;
+
+      const boltIndex = Math.floor(Math.random() * LIGHTNING_BOLTS.length);
+      // In dual mode, rain is restricted to the left half (0% to 50%)
+      const boltLeft = effectiveSituation === 'dual'
+        ? 6 + Math.random() * 32
+        : 10 + Math.random() * 65;
+
+      // 1. Initial pre-flash
+      setLightning({ active: true, intensity: 0.75, boltIndex, boltLeft });
+
+      // 2. Micro dip
+      timeoutIds.push(setTimeout(() => {
+        if (!isCancelled) setLightning(prev => ({ ...prev, intensity: 0.3 }));
+      }, 50));
+
+      // 3. Main high-voltage peak strike + play thunder audio
+      timeoutIds.push(setTimeout(() => {
+        if (!isCancelled) {
+          setLightning(prev => ({ ...prev, intensity: 1.0 }));
+          if (soundEnabled) {
+            playThunderSound(0.6);
+          }
+        }
+      }, 100));
+
+      // 4. Afterglow decay
+      timeoutIds.push(setTimeout(() => {
+        if (!isCancelled) setLightning(prev => ({ ...prev, intensity: 0.45 }));
+      }, 240));
+
+      // 5. Fade to dark
+      timeoutIds.push(setTimeout(() => {
+        if (!isCancelled) setLightning(prev => ({ ...prev, intensity: 0 }));
+      }, 380));
+
+      // 6. Complete strike
+      timeoutIds.push(setTimeout(() => {
+        if (!isCancelled) setLightning(prev => ({ ...prev, active: false }));
+      }, 550));
+
+      // Schedule next organic storm strike between 14 and 25 seconds
+      const nextDelay = 14000 + Math.random() * 11000;
+      timeoutIds.push(setTimeout(triggerStrike, nextDelay));
+    };
+
+    // Trigger initial strike 3.5 seconds after entering rain
+    const initialDelay = 3500;
+    timeoutIds.push(setTimeout(triggerStrike, initialDelay));
+
+    return () => {
+      isCancelled = true;
+      timeoutIds.forEach(id => clearTimeout(id));
+    };
+  }, [isRaining, effectiveSituation, soundEnabled]);
 
   // Static deterministic particles (avoids SSR/CSR hydration mismatch and re-render loops)
   const dustParticles = useMemo(
@@ -664,6 +771,74 @@ export default function WeatherOverlay({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* 4. REAL-TIME THUNDERSTORM LIGHTNING FLASH & PROCEDURAL BOLT FX            */}
+      {/* ========================================================================= */}
+      {isRaining && lightning.active && (
+        <div className="fixed inset-0 pointer-events-none z-[12] overflow-hidden select-none">
+          {/* Full-Screen Electric Atmosphere Lightning Flash */}
+          <div
+            className="absolute inset-0 transition-opacity"
+            style={{
+              opacity: lightning.intensity * 0.75,
+              background: effectiveSituation === 'dual'
+                ? 'linear-gradient(90deg, rgba(224, 242, 254, 0.65) 0%, rgba(186, 230, 253, 0.4) 45%, rgba(6, 182, 212, 0.1) 60%, transparent 100%)'
+                : 'radial-gradient(ellipse at 50% 15%, rgba(240, 249, 255, 0.7) 0%, rgba(186, 230, 253, 0.45) 50%, rgba(6, 182, 212, 0.15) 100%)',
+              mixBlendMode: 'screen',
+              transition: lightning.intensity === 0 ? 'opacity 0.4s ease-out' : 'opacity 0.04s ease-in'
+            }}
+          />
+
+          {/* Branching High-Voltage Lightning Bolt SVG */}
+          {lightning.intensity > 0.1 && (
+            <div
+              className="absolute pointer-events-none overflow-visible filter drop-shadow-[0_0_20px_rgba(56,189,248,0.95)]"
+              style={{
+                left: `${lightning.boltLeft}%`,
+                top: '0%',
+                width: '320px',
+                height: '500px',
+                opacity: lightning.intensity,
+                transform: 'translateY(-10px)'
+              }}
+            >
+              <svg viewBox="0 0 320 500" fill="none" className="w-full h-full">
+                <defs>
+                  <filter id="lightningBoltGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur1" />
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur2" />
+                    <feMerge>
+                      <feMergeNode in="blur2" />
+                      <feMergeNode in="blur1" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                {/* Electric Cyan Corona / Outer Glow */}
+                <path
+                  d={LIGHTNING_BOLTS[lightning.boltIndex]}
+                  stroke="#38bdf8"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#lightningBoltGlow)"
+                  opacity="0.85"
+                />
+                {/* Hyper-Intense White Core Filament */}
+                <path
+                  d={LIGHTNING_BOLTS[lightning.boltIndex]}
+                  stroke="#ffffff"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="1"
+                />
+              </svg>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Fallback Floating Environment Pill only when parent doesn't provide controls */}
       {!onAtmosphereChange && (

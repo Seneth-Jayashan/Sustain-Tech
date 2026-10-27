@@ -1125,6 +1125,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
           bucket={state.bucket}
           activeAtmosphere={atmosphereMode}
           onAtmosphereChange={setAtmosphereMode}
+          soundEnabled={voiceEnabled}
         />
 
         {/* Holographic Hex Grid */}

@@ -357,3 +357,33 @@ export function getScenarioAudioState(): { isPlaying: boolean; day: number | nul
   };
 }
 
+let thunderAudio: HTMLAudioElement | null = null;
+
+/**
+ * Plays atmospheric thunder sound effect (/assets/sounds/thunder.mp3)
+ * synchronized with weather lightning flashes
+ */
+export function playThunderSound(volume = 0.55): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  try {
+    if (!thunderAudio) {
+      thunderAudio = new Audio('/assets/sounds/thunder.mp3');
+      thunderAudio.preload = 'auto';
+    }
+    thunderAudio.volume = Math.max(0, Math.min(1, volume));
+    thunderAudio.currentTime = 0;
+    return thunderAudio.play().catch(() => {});
+  } catch {
+    return Promise.resolve();
+  }
+}
+
+export function stopThunderSound(): void {
+  if (thunderAudio) {
+    try {
+      thunderAudio.pause();
+      thunderAudio.currentTime = 0;
+    } catch {}
+  }
+}
+
