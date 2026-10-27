@@ -241,11 +241,16 @@ export default function HomePage() {
 
       {/* Footer HUD Bar */}
       <footer className="relative z-10 w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-400 border-t border-slate-900/90 pt-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ShieldAlert size={14} className="text-teal-400" />
           <span>Annual Research Symposium 2026</span>
           <span className="text-slate-700">•</span>
-          <span>Sustain-Tech Resilience Initiative</span>
+          <span>
+            Developed by{' '}
+            <span className="text-teal-300 font-bold tracking-wide drop-shadow-[0_0_8px_rgba(45,212,191,0.4)]">
+              OneX Universe (Pvt) Ltd
+            </span>
+          </span>
         </div>
 
         <div className="flex items-center gap-4 text-slate-400">

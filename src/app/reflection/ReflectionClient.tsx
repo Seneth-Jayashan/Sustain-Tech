@@ -269,9 +269,14 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
               </div>
             </div>
 
-            <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-slate-500">
-              <span>National Disaster Management Framework</span>
-              <span>v1.0 Production</span>
+            <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] font-mono text-slate-500">
+              <span>National Framework v1.0 Production</span>
+              <span>
+                Engineered by{' '}
+                <span className="text-cyan-300 font-bold tracking-wide drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]">
+                  OneX Universe (Pvt) Ltd
+                </span>
+              </span>
             </div>
           </div>
         </div>

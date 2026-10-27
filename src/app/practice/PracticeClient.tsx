@@ -1060,7 +1060,16 @@ export default function PracticeClient() {
 
             {/* Footer Navigation */}
             <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-400">
-              <span>All evaluations computed locally in browser storage.</span>
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span>Evaluated locally in browser storage</span>
+                <span className="text-slate-700">•</span>
+                <span>
+                  Engineered by{' '}
+                  <span className="text-cyan-300 font-bold tracking-wide drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]">
+                    OneX Universe (Pvt) Ltd
+                  </span>
+                </span>
+              </span>
               <div className="flex gap-3">
                 <button
                   onClick={() => { setCurrentScenario(1); setShowBrief(true); }}

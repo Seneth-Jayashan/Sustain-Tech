@@ -1,5 +1,8 @@
 # SustainTech Simulation - Project Status & Handoff
 
+**Lead System Engineering & Development:** **OneX Universe (Pvt) Ltd**  
+**Initiative:** Annual Research Symposium 2026
+
 This document serves as a comprehensive record of the development progress for the SustainTech Simulation project. It outlines all the major features that have been successfully implemented and secured, as well as the immediate next steps required for future development.
 
 ## ✅ Completed Features & Milestones

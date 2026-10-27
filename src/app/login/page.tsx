@@ -377,11 +377,14 @@ export default function LoginPage() {
 
               {/* Security Protocol Footer */}
               <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span className="flex items-center gap-1 text-slate-400">
-                  <Shield size={11} className="text-teal-400" />
-                  Concurrency Guard
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <Cpu size={12} className="text-teal-400" />
+                  Engineered by{' '}
+                  <span className="text-teal-300 font-bold tracking-wide drop-shadow-[0_0_6px_rgba(45,212,191,0.35)]">
+                    OneX Universe (Pvt) Ltd
+                  </span>
                 </span>
-                <span>Session Engine v1.0 Secured</span>
+                <span>Session Engine v1.0</span>
               </div>
             </motion.div>
           </div>
@@ -393,11 +396,16 @@ export default function LoginPage() {
       {/* FOOTER HUD BAR: Branding & Quick Links                                    */}
       {/* ========================================================================= */}
       <footer className="relative z-10 w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-400 border-t border-slate-900/90 pt-4 mt-6">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ShieldAlert size={14} className="text-teal-400" />
           <span>Annual Research Symposium 2026</span>
           <span className="text-slate-700">•</span>
-          <span>Sustain-Tech System Architecture</span>
+          <span>
+            Developed by{' '}
+            <span className="text-teal-300 font-bold tracking-wide drop-shadow-[0_0_8px_rgba(45,212,191,0.4)]">
+              OneX Universe (Pvt) Ltd
+            </span>
+          </span>
         </div>
 
         <div className="flex items-center gap-4 text-slate-400">
