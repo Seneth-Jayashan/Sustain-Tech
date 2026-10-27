@@ -24,18 +24,45 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { rankings, allocations, timeout } = body;
+    const { rankings, allocations, timeout, bucket } = body;
 
     const gameSession = await GameSession.findOne({ teamId: session.teamId, status: 'ACTIVE' });
     
     if (!gameSession) {
+      const completedSession = await GameSession.findOne({ teamId: session.teamId, status: 'COMPLETED' });
+      if (completedSession) {
+        return NextResponse.json({ 
+          error: 'Game already completed', 
+          alreadySubmitted: true,
+          isCompleted: true,
+          gameSession: completedSession 
+        }, { status: 409 });
+      }
       return NextResponse.json({ error: 'No active game session found' }, { status: 404 });
     }
 
     const currentBucket = gameSession.state.bucket || 1;
     
     if (currentBucket > 6) {
-      return NextResponse.json({ error: 'Game already completed' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Game already completed', 
+        alreadySubmitted: true,
+        isCompleted: true,
+        gameSession 
+      }, { status: 409 });
+    }
+
+    // Directives concurrency guard:
+    // If the client submitted for a specific bucket/day, verify that the server hasn't already advanced past it.
+    if (bucket !== undefined && Number(bucket) !== currentBucket) {
+      const latestScenario = await determineNextScenario(gameSession.state);
+      return NextResponse.json({ 
+        error: 'Directives for this day have already been authorized by another team member.',
+        alreadySubmitted: true,
+        currentBucket,
+        gameSession,
+        nextScenario: latestScenario
+      }, { status: 409 });
     }
 
     // Require player to acknowledge pending fallback report before authorizing next round directives
@@ -285,9 +312,18 @@ export async function POST(request: Request) {
           serverTimestamp: new Date()
         }).catch(() => {});
 
+        const latestSession = await GameSession.findOne({ teamId: session.teamId });
+        let latestScenario = null;
+        if (latestSession && latestSession.status === 'ACTIVE' && latestSession.state) {
+          latestScenario = await determineNextScenario(latestSession.state);
+        }
+
         return NextResponse.json({ 
-          error: 'Decision for this round has already been submitted or processed.',
-          alreadySubmitted: true
+          error: 'Directives for this round have already been authorized by another team member.',
+          alreadySubmitted: true,
+          currentBucket: latestSession?.state?.bucket,
+          gameSession: latestSession,
+          nextScenario: latestScenario
         }, { status: 409 });
       }
 
@@ -347,9 +383,18 @@ export async function POST(request: Request) {
             serverTimestamp: new Date()
           }).catch(() => {});
 
+          const latestSession = await GameSession.findOne({ teamId: session.teamId });
+          let latestScenario = null;
+          if (latestSession && latestSession.status === 'ACTIVE' && latestSession.state) {
+            latestScenario = await determineNextScenario(latestSession.state);
+          }
+
           return NextResponse.json({ 
-            error: 'Decision for this round has already been submitted or processed.',
-            alreadySubmitted: true
+            error: 'Directives for this round have already been authorized by another team member.',
+            alreadySubmitted: true,
+            currentBucket: latestSession?.state?.bucket,
+            gameSession: latestSession,
+            nextScenario: latestScenario
           }, { status: 409 });
         }
 

@@ -6,6 +6,8 @@ import { getSession } from '@/lib/session';
 import { getInitialGameState } from '@/game/state';
 import { resolveExpiredRoundIfNecessary } from '@/lib/serverGameSession';
 
+import { determineNextScenario } from '@/game/engines/scenarioEngine';
+
 export async function GET() {
   try {
     await dbConnect();
@@ -19,6 +21,16 @@ export async function GET() {
     let gameSession = await GameSession.findOne({ teamId: session.teamId, status: 'ACTIVE' });
     
     if (!gameSession) {
+      // Check if they have a completed session
+      const completedSession = await GameSession.findOne({ teamId: session.teamId, status: 'COMPLETED' });
+      if (completedSession) {
+        return NextResponse.json({
+          success: true,
+          isCompleted: true,
+          gameSession: completedSession
+        });
+      }
+
       // Create new game session if none is active
       const initialState = getInitialGameState(session.teamId, crypto.randomUUID());
       gameSession = await GameSession.create({
@@ -29,6 +41,13 @@ export async function GET() {
     } else {
       // Resolve any round deadline that elapsed while disconnected or logged out
       gameSession = await resolveExpiredRoundIfNecessary(gameSession, session.userId);
+      if (gameSession.status === 'COMPLETED') {
+        return NextResponse.json({
+          success: true,
+          isCompleted: true,
+          gameSession
+        });
+      }
 
       // Ensure timer and shuffle state exist on existing active sessions
       let needsSave = false;
@@ -59,7 +78,16 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ success: true, gameSession });
+    let scenario = null;
+    if (gameSession.status === 'ACTIVE' && gameSession.state) {
+      scenario = await determineNextScenario(gameSession.state);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      gameSession,
+      scenario 
+    });
   } catch (error: any) {
     console.error('Error fetching game state:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

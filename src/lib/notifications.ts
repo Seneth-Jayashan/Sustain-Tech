@@ -300,6 +300,15 @@ export async function showFallbackInterventionReport(
   return Swal.fire(config);
 }
 
+/**
+ * Close any currently active modal/dialog (e.g. when teammate advances the round)
+ */
+export function closeNotificationModals(): void {
+  if (typeof window !== 'undefined') {
+    Swal.close();
+  }
+}
+
 const notifications = {
   error: notifyError,
   warning: notifyWarning,
@@ -307,6 +316,7 @@ const notifications = {
   info: notifyInfo,
   confirm: notifyConfirm,
   showFallbackInterventionReport,
+  closeModals: closeNotificationModals,
   toastSuccess,
   toastInfo,
   toastWarning,

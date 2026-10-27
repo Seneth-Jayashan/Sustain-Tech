@@ -30,6 +30,7 @@ import {
   notifyInfo,
   notifyConfirm,
   showFallbackInterventionReport,
+  closeNotificationModals,
   toastSuccess,
   toastWarning,
   toastInfo
@@ -683,6 +684,90 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     return () => clearInterval(timer);
   }, [state.roundDeadline, state.bucket, state.pendingFallbackAcknowledgement, roundAllowance]);
 
+  // Real-Time Team Synchronization Polling:
+  // Keeps all players in the same team synchronized so everyone is on the exact same round.
+  // When one player authorizes directives, all teammates automatically advance without
+  // displaying the already-submitted day or double-submitting answers.
+  useEffect(() => {
+    let isCancelled = false;
+
+    const pollTeamState = async () => {
+      // Don't poll while this client is actively submitting or acknowledging fallback
+      if (submittingRef.current || acknowledgingRef.current) return;
+
+      try {
+        const res = await fetch('/api/game/state', {
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (!res.ok) return;
+
+        const data = await res.json().catch(() => null);
+        if (isCancelled || !data?.success || !data?.gameSession) return;
+
+        const serverSession = data.gameSession;
+
+        if (serverSession.status === 'COMPLETED') {
+          router.push('/reflection');
+          return;
+        }
+
+        const serverState = serverSession.state;
+        if (!serverState) return;
+
+        // If the server has advanced past this client's current bucket
+        if (serverState.bucket > state.bucket) {
+          closeNotificationModals();
+          stopSpeaking();
+          setState(serverState);
+          if (data.scenario) {
+            setCurrentScenario(data.scenario);
+          }
+          setSelectedOrder([]);
+          setDay4PresetPlan(null);
+          setDay6PresetPlan(null);
+          setDay4Mode('preset');
+          setDay6Mode('preset');
+          setSubmitting(false);
+
+          toastSuccess(
+            'Directives Synchronized',
+            `Day ${(state.bucket - 1) * 2} directives were authorized by your team. Advancing to Day ${(serverState.bucket - 1) * 2}.`
+          );
+        } else if (
+          serverState.bucket === state.bucket &&
+          serverState.pendingFallbackAcknowledgement &&
+          !state.pendingFallbackAcknowledgement
+        ) {
+          // Teammate triggered contingency / fallback report
+          stopSpeaking();
+          setState(serverState);
+          if (data.scenario) {
+            setCurrentScenario(data.scenario);
+          }
+        } else if (
+          serverState.bucket === state.bucket &&
+          !serverState.pendingFallbackAcknowledgement &&
+          state.pendingFallbackAcknowledgement
+        ) {
+          // Teammate acknowledged the fallback report
+          closeNotificationModals();
+          setState(serverState);
+          if (data.scenario) {
+            setCurrentScenario(data.scenario);
+          }
+        }
+      } catch (err) {
+        // Silently ignore transient network poll errors
+      }
+    };
+
+    const intervalId = setInterval(pollTeamState, 2500);
+    return () => {
+      isCancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [state.bucket, state.pendingFallbackAcknowledgement, router]);
+
   const formatLKR = (amount: number) => `${(amount).toFixed(0)}M`;
 
   // Toggle selection for operational 5-rank rounds
@@ -894,6 +979,12 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       }
     }
 
+    const finalPayload = {
+      ...payload,
+      bucket: state.bucket,
+      day: state.day
+    };
+
     setSubmitting(true);
     stopSpeaking();
 
@@ -901,21 +992,57 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       const res = await fetch('/api/game/decision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(finalPayload)
       });
 
       if (res.status === 409) {
         // Concurrency / Duplicate submission guard: Refresh session to show latest state
-        await notifyInfo('Decision Already Authorized', 'A decision for this round has already been authorized.');
-        const stateRes = await fetch('/api/game/state');
-        const stateData = await stateRes.json();
-        if (stateData.success && stateData.gameSession) {
-          if (stateData.gameSession.status === 'COMPLETED') {
-            router.push('/reflection');
-          } else {
-            setState(stateData.gameSession.state);
+        closeNotificationModals();
+        const conflictData = await res.json().catch(() => ({}));
+
+        let latestGameSession = conflictData.gameSession;
+        let latestScenario = conflictData.nextScenario;
+
+        if (!latestGameSession) {
+          const stateRes = await fetch('/api/game/state', {
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+          const stateData = await stateRes.json().catch(() => ({}));
+          if (stateData.success && stateData.gameSession) {
+            latestGameSession = stateData.gameSession;
+            latestScenario = stateData.scenario;
           }
         }
+
+        if (latestGameSession) {
+          if (latestGameSession.status === 'COMPLETED') {
+            await notifyInfo(
+              'Operations Concluded',
+              'The emergency simulation has concluded. Directing to operational debrief...'
+            );
+            router.push('/reflection');
+            return;
+          }
+
+          stopSpeaking();
+          setState(latestGameSession.state);
+          if (latestScenario) {
+            setCurrentScenario(latestScenario);
+          }
+          setSelectedOrder([]);
+          setDay4PresetPlan(null);
+          setDay6PresetPlan(null);
+          setDay4Mode('preset');
+          setDay6Mode('preset');
+
+          await notifyInfo(
+            'Directives Already Authorized',
+            `Directives for Day ${(state.bucket - 1) * 2} were already authorized by a team member. You have been advanced to Day ${(latestGameSession.state.bucket - 1) * 2}.`
+          );
+        } else {
+          await notifyInfo('Notice', conflictData.error || 'A decision for this round has already been authorized.');
+        }
+
         setSubmitting(false);
         return;
       }
