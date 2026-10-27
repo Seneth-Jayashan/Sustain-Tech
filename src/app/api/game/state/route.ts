@@ -8,8 +8,12 @@ import { resolveExpiredRoundIfNecessary } from '@/lib/serverGameSession';
 
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const clientBucketStr = searchParams.get('clientBucket');
+    const clientBucket = clientBucketStr ? parseInt(clientBucketStr, 10) : null;
+
     await dbConnect();
     const session = await getSession();
     
@@ -76,6 +80,21 @@ export async function GET() {
         gameSession.markModified('state');
         await gameSession.save();
       }
+    }
+
+    // High-concurrency optimization: if client is already on current bucket and no fallback is pending,
+    // return lightweight response to reduce payload from ~15KB to ~50B and eliminate scenario processing
+    if (
+      clientBucket !== null &&
+      gameSession.status === 'ACTIVE' &&
+      gameSession.state?.bucket === clientBucket &&
+      !gameSession.state?.pendingFallbackAcknowledgement
+    ) {
+      return NextResponse.json({
+        success: true,
+        unchanged: true,
+        bucket: gameSession.state.bucket
+      });
     }
 
     let scenario = null;

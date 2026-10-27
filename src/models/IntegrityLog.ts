@@ -70,6 +70,9 @@ const IntegrityLogSchema: Schema = new Schema({
   serverTimestamp: { type: Date, default: Date.now },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+IntegrityLogSchema.index({ gameSessionId: 1, createdAt: -1 });
+IntegrityLogSchema.index({ teamId: 1, round: 1 });
+
 // Always refresh schema definition in dev environments if enum expanded
 if (mongoose.models.IntegrityLog) {
   const modelEnumValues = (mongoose.models.IntegrityLog.schema?.path('actionType') as any)?.enumValues || [];

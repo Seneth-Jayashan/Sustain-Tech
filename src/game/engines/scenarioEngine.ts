@@ -6,6 +6,9 @@ import { getDefaultBucketShuffledOrder, getShuffledActionIds } from '../timer';
 import Scenario, { IScenario } from '@/models/Scenario';
 import Action from '@/models/Action';
 
+// In-memory cache for immutable scenario and action definitions
+const scenarioCache = new Map<number, { scen: any; rawActions: any[] }>();
+
 export async function determineNextScenario(state: GameState): Promise<any> {
   const currentBucket = state.bucket || 1;
   const staticScenario = SCENARIOS[currentBucket] || SCENARIOS[1];
@@ -29,6 +32,15 @@ export async function determineNextScenario(state: GameState): Promise<any> {
       return idxA - idxB;
     });
   };
+
+  // Check in-memory cache first to avoid repetitive DB lookups under high concurrent loads
+  if (scenarioCache.has(currentBucket)) {
+    const cached = scenarioCache.get(currentBucket)!;
+    return {
+      ...cached.scen,
+      actions: sortActionsByOrder(cached.rawActions)
+    };
+  }
 
   try {
     // Attempt to find configured scenario in MongoDB
@@ -56,8 +68,11 @@ export async function determineNextScenario(state: GameState): Promise<any> {
               cost: canonical ? Math.abs(canonical.impacts.emergencyBudget) : 0,
             };
           });
-          scen.actions = sortActionsByOrder(rawActions);
-          return scen;
+          scenarioCache.set(currentBucket, { scen, rawActions });
+          return {
+            ...scen,
+            actions: sortActionsByOrder(rawActions)
+          };
         }
       }
     }

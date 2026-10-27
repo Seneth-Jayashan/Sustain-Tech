@@ -19,4 +19,7 @@ const GameSessionSchema: Schema = new Schema({
   finalResult: { type: Schema.Types.Mixed },
 }, { timestamps: true });
 
+GameSessionSchema.index({ teamId: 1, status: 1 });
+GameSessionSchema.index({ updatedAt: -1 });
+
 export default mongoose.models.GameSession || mongoose.model<IGameSession>('GameSession', GameSessionSchema);

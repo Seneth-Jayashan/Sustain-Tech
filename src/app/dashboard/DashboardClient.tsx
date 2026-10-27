@@ -696,14 +696,18 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       if (submittingRef.current || acknowledgingRef.current) return;
 
       try {
-        const res = await fetch('/api/game/state', {
+        const res = await fetch(`/api/game/state?clientBucket=${state.bucket}`, {
           headers: { 'Cache-Control': 'no-cache' }
         });
         if (!res.ok) return;
 
         const data = await res.json().catch(() => null);
-        if (isCancelled || !data?.success || !data?.gameSession) return;
+        if (isCancelled || !data?.success) return;
 
+        // If server confirms round is unchanged, no action needed (lightweight ~50B payload)
+        if (data.unchanged) return;
+
+        if (!data.gameSession) return;
         const serverSession = data.gameSession;
 
         if (serverSession.status === 'COMPLETED') {
@@ -761,7 +765,7 @@ export default function DashboardClient({ initialState, teamName, initialScenari
       }
     };
 
-    const intervalId = setInterval(pollTeamState, 2500);
+    const intervalId = setInterval(pollTeamState, 3500);
     return () => {
       isCancelled = true;
       clearInterval(intervalId);
