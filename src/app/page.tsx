@@ -98,7 +98,7 @@ export default function HomePage() {
           <div className="relative w-4 h-4 rounded overflow-hidden bg-white/95 shrink-0">
             <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
           </div>
-          <span>Tactical Crisis Command Simulator</span>
+          <span>Strategic Decision Simulation System</span>
           <span className="px-1.5 py-0.5 text-[10px] bg-teal-500/20 text-teal-200 rounded border border-teal-400/30">
             v2.6
           </span>
@@ -126,7 +126,7 @@ export default function HomePage() {
           transition={{ duration: 0.5, delay: 0.25 }}
           className="text-slate-300 text-sm sm:text-base md:text-lg max-w-2xl leading-relaxed mb-8 font-medium"
         >
-          Lead the crisis, outsmart challenges, and manage limited resources. Make every decision count and emerge victorious.
+          Collaborate in real time, evaluate multi-variable trade-offs under constraints, and optimize critical system performance.
         </motion.p>
 
         {/* PRIMARY REAL GAME LAUNCH PORTAL (Button Only — No Spoilers/Details) */}
@@ -199,7 +199,7 @@ export default function HomePage() {
                   Practice Gaming Challenge
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5 max-w-2xl">
-                  Test your strategic decision instincts across 3 transit planning scenarios with trade-off analysis and instant debriefing before deploying into the live tournament.
+                  Test your strategic decision instincts across 3 interactive practice modules with trade-off analysis and instant debriefing before deploying into the live tournament.
                 </p>
 
                 {/* 2x2 Tactical Spec Grid */}

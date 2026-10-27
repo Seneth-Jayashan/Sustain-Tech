@@ -15,15 +15,15 @@ import {
   Radio,
   Trophy,
   Gamepad2,
-  CheckCircle2,
-  ShieldAlert,
-  Sparkles,
-  Zap,
-  Waves,
-  Sun,
   Users,
   AlertCircle,
-  Loader2
+  Loader2,
+  ShieldAlert,
+  Layers,
+  Sliders,
+  Activity,
+  CheckCircle2,
+  Cpu
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -117,26 +117,26 @@ export default function LoginPage() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
-          <span className="text-slate-200 font-bold tracking-wider text-[11px] sm:text-xs">SERVER LIVE</span>
+          <span className="text-slate-200 font-bold tracking-wider text-[11px] sm:text-xs">SYSTEM ONLINE</span>
           <span className="text-slate-700 hidden sm:inline">|</span>
           <span className="text-teal-400 font-bold hidden sm:flex items-center gap-1 text-[11px] sm:text-xs">
             <Radio size={12} className="animate-pulse" />
-            2026 TOURNAMENT
+            2026 TOURNAMENT ENGINE
           </span>
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* MAIN TWO-COLUMN CONTENT: Home-Style Lore/Pillars (Left) & Login Form (Right)*/}
+      {/* MAIN TWO-COLUMN CONTENT: Game System Overview (Left) & Access Portal (Right) */}
       {/* ========================================================================= */}
       <main className="relative z-10 w-full max-w-7xl mx-auto my-auto py-2 sm:py-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           
           {/* --------------------------------------------------------------------- */}
-          {/* LEFT COLUMN: Tournament Briefing, Pillars & Practice Callout          */}
+          {/* LEFT COLUMN: System Architecture & Decision Engine Overview           */}
           {/* --------------------------------------------------------------------- */}
           <div className="lg:col-span-7 flex flex-col items-start text-left">
-            {/* Game Classification Pill */}
+            {/* System Classification Badge */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -146,7 +146,7 @@ export default function LoginPage() {
               <div className="relative w-4 h-4 rounded overflow-hidden bg-white/95 shrink-0">
                 <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
               </div>
-              <span>Official Tournament Portal</span>
+              <span>Decision Simulator System</span>
               <span className="px-1.5 py-0.5 text-[10px] bg-teal-500/20 text-teal-200 rounded border border-teal-400/30">
                 v2.6
               </span>
@@ -165,17 +165,17 @@ export default function LoginPage() {
               </span>
             </motion.h1>
 
-            {/* Tagline */}
+            {/* Tagline: Focus on Game System and Strategy Mechanics */}
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.15 }}
               className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 max-w-xl font-medium"
             >
-              Lead the crisis, outsmart challenges, and manage limited resources across 10 simulation days. Make every decision count and emerge victorious.
+              Multi-agent tactical decision-making platform. Coordinate team consensus in real time, analyze strategic trade-offs under constraints, and optimize critical system performance.
             </motion.p>
 
-            {/* 4 Tactical Core Feature Badges (2x2 Grid) */}
+            {/* 4 Game System Core Architecture Badges (2x2 Grid) */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -184,21 +184,21 @@ export default function LoginPage() {
             >
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950/75 border border-slate-800/80 backdrop-blur-md">
                 <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-400 shrink-0 mt-0.5">
-                  <Waves size={15} />
+                  <Layers size={15} />
                 </div>
                 <div>
-                  <span className="font-bold text-slate-100 block">10-Day Climate Crisis</span>
-                  <span className="text-[11px] text-slate-400">Floods, droughts & compounding shocks</span>
+                  <span className="font-bold text-slate-100 block">10 Decision Rounds</span>
+                  <span className="text-[11px] text-slate-400">Sequential turn-based execution & cascading impacts</span>
                 </div>
               </div>
 
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950/75 border border-slate-800/80 backdrop-blur-md">
                 <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 shrink-0 mt-0.5">
-                  <Sun size={15} />
+                  <Sliders size={15} />
                 </div>
                 <div>
-                  <span className="font-bold text-slate-100 block">Resource Equilibrium</span>
-                  <span className="text-[11px] text-slate-400">Water supplies, energy & community safety</span>
+                  <span className="font-bold text-slate-100 block">Resource Matrix Engine</span>
+                  <span className="text-[11px] text-slate-400">Multi-variable trade-offs & constraint optimization</span>
                 </div>
               </div>
 
@@ -208,7 +208,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <span className="font-bold text-slate-100 block">Synchronized Teamwork</span>
-                  <span className="text-[11px] text-slate-400">Live multi-player decision consensus</span>
+                  <span className="text-[11px] text-slate-400">Real-time team consensus & concurrency protection</span>
                 </div>
               </div>
 
@@ -217,8 +217,8 @@ export default function LoginPage() {
                   <Trophy size={15} />
                 </div>
                 <div>
-                  <span className="font-bold text-slate-100 block">Official Leaderboard</span>
-                  <span className="text-[11px] text-slate-400">Real-time ranking & integrity auditing</span>
+                  <span className="font-bold text-slate-100 block">Analytical Evaluation</span>
+                  <span className="text-[11px] text-slate-400">Multi-pillar scoring & live tournament leaderboard</span>
                 </div>
               </div>
             </motion.div>
@@ -237,21 +237,21 @@ export default function LoginPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
-                      Practice Challenge Available
+                      Interactive Practice Sandbox
                     </span>
                     <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.2 rounded-full">
                       No Login Required
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 mt-0.5">
-                    Test your strategy across 3 interactive urban transit stages before the live game.
+                    Test your tactical decision heuristics across 3 offline training stages before the live game.
                   </p>
                 </div>
               </div>
 
               <Link
                 href="/practice"
-                className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-500/20"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-500/20 cursor-pointer"
               >
                 <span>Try Practice</span>
                 <ArrowRight size={13} />
@@ -294,7 +294,7 @@ export default function LoginPage() {
                   Team Command Access
                 </h2>
                 <p className="text-teal-400/80 text-[11px] font-mono tracking-widest uppercase">
-                  10 Days to Decide • Tournament Auth
+                  Simulation Engine Auth
                 </p>
               </div>
 
@@ -368,7 +368,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       <Key size={16} className="text-slate-950 stroke-[2.5]" />
-                      <span>Initialize Simulation</span>
+                      <span>Initialize Session</span>
                       <ArrowRight size={15} className="text-slate-950 stroke-[2.5]" />
                     </>
                   )}
@@ -379,9 +379,9 @@ export default function LoginPage() {
               <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
                 <span className="flex items-center gap-1 text-slate-400">
                   <Shield size={11} className="text-teal-400" />
-                  Concurrence Guard
+                  Concurrency Guard
                 </span>
-                <span>Session v2.6 Secured</span>
+                <span>Session Engine v2.6 Secured</span>
               </div>
             </motion.div>
           </div>
@@ -397,7 +397,7 @@ export default function LoginPage() {
           <ShieldAlert size={14} className="text-teal-400" />
           <span>Annual Research Symposium 2026</span>
           <span className="text-slate-700">•</span>
-          <span>Sustain-Tech Resilience Initiative</span>
+          <span>Sustain-Tech System Architecture</span>
         </div>
 
         <div className="flex items-center gap-4 text-slate-400">
