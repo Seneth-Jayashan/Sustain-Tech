@@ -340,6 +340,48 @@ export async function POST(request: Request) {
         } catch (_) {}
       }
 
+      // Detect concurrent transaction write conflict (code 112 / TransientTransactionError)
+      const isWriteConflict = 
+        txError?.code === 112 || 
+        txError?.codeName === 'WriteConflict' || 
+        txError?.errorResponse?.code === 112 ||
+        txError?.message?.includes('Write conflict') ||
+        Boolean(txError?.errorLabelSet?.has?.('TransientTransactionError')) ||
+        (typeof txError?.hasErrorLabel === 'function' && txError.hasErrorLabel('TransientTransactionError'));
+
+      if (isWriteConflict) {
+        await IntegrityLog.create({
+          gameSessionId: gameSession._id,
+          userId: session.userId,
+          userName: session.userName || 'Anonymous Competitor',
+          teamId: session.teamId,
+          round: currentBucket,
+          day: gameSession.state.day,
+          actionType: 'REPEATED_REQUEST',
+          severity: 'review_signal',
+          metadata: {
+            reason: 'Concurrent transaction conflict: another teammate authorized this round directives first',
+            attemptedBucket: currentBucket,
+            currentBucket: gameSession.state.bucket
+          },
+          serverTimestamp: new Date()
+        }).catch(() => {});
+
+        const latestSession = await GameSession.findOne({ teamId: session.teamId });
+        let latestScenario = null;
+        if (latestSession && latestSession.status === 'ACTIVE' && latestSession.state) {
+          latestScenario = await determineNextScenario(latestSession.state);
+        }
+
+        return NextResponse.json({ 
+          error: 'Directives for this round have already been authorized by another team member.',
+          alreadySubmitted: true,
+          currentBucket: latestSession?.state?.bucket,
+          gameSession: latestSession,
+          nextScenario: latestScenario
+        }, { status: 409 });
+      }
+
       const isTxNotSupported = 
         txError?.message?.includes('replica set') || 
         txError?.message?.includes('Transaction numbers are only allowed') ||
