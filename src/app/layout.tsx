@@ -17,7 +17,11 @@ export const metadata: Metadata = {
   title: "SustainTech: 10 Days to Decide | Annual Research Symposium 2026",
   description: "Disaster Command & Strategic Resilience Simulator — Annual Research Symposium 2026",
   icons: {
-    icon: "/assets/images/Logo.jpg",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/assets/images/Logo.jpg" },
+    ],
+    shortcut: "/favicon.ico",
     apple: "/assets/images/Logo.jpg",
   },
 };
