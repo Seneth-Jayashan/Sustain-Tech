@@ -100,7 +100,7 @@ export default function HomePage() {
           </div>
           <span>Strategic Decision Simulation System</span>
           <span className="px-1.5 py-0.5 text-[10px] bg-teal-500/20 text-teal-200 rounded border border-teal-400/30">
-            v2.6
+            v1.0
           </span>
         </motion.div>
 

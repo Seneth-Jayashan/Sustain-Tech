@@ -397,7 +397,7 @@ export default function IntroPage() {
     if (phase !== 'idle') return;
     const texts = [
       'SYSTEM READY',
-      'SCENARIO ENGINE v2.6',
+      'SCENARIO ENGINE v1.0',
       'DISASTER SIM LOADED',
       'AWAITING COMMANDER...',
     ];

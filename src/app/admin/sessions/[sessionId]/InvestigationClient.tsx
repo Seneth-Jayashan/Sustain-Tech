@@ -3,9 +3,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ShieldAlert, ShieldCheck, Clock, Zap, Trophy, Timer, AlertTriangle, 
-  ArrowLeft, Download, FileText, Activity, Users, Coins, Droplets, 
+import {
+  ShieldAlert, ShieldCheck, Clock, Zap, Trophy, Timer, AlertTriangle,
+  ArrowLeft, Download, FileText, Activity, Users, Coins, Droplets,
   Layers, CheckCircle2, XCircle, Search, ExternalLink, RefreshCw,
   Eye, Terminal, AlertCircle, Info, ChevronRight, ChevronDown, ChevronUp,
   Calculator, Award
@@ -219,11 +219,10 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/60 border border-cyan-500/40 px-2 py-0.5 rounded">
                   Admin Forensic Audit
                 </span>
-                <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${
-                  sessionIdentity.status === 'COMPLETED'
+                <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${sessionIdentity.status === 'COMPLETED'
                     ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300'
                     : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
-                }`}>
+                  }`}>
                   {sessionIdentity.status}
                 </span>
               </div>
@@ -319,9 +318,8 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
             <div className="my-1">
               <span className="text-[10px] font-mono text-slate-400 block uppercase">Critical Threshold Breaches</span>
               <div className="flex items-baseline gap-2">
-                <span className={`text-2xl sm:text-3xl font-black font-mono ${
-                  tournamentScore.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'
-                }`}>
+                <span className={`text-2xl sm:text-3xl font-black font-mono ${tournamentScore.breachedFailuresCount > 0 ? 'text-red-400' : 'text-emerald-400'
+                  }`}>
                   {tournamentScore.breachedFailuresCount} / 4
                 </span>
                 <span className="text-xs font-mono text-slate-500">
@@ -336,13 +334,12 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
           </div>
 
           {/* Card 4: Integrity Signals & Review Flags */}
-          <div className={`p-4 rounded-2xl bg-slate-900/70 border relative overflow-hidden shadow-lg backdrop-blur-md ${
-            integritySummary.highPriorityCount > 0 
-              ? 'border-red-500/50 bg-red-950/10' 
-              : integritySummary.reviewSignalCount > 0 
-              ? 'border-amber-500/40 bg-amber-950/10' 
-              : 'border-slate-800'
-          }`}>
+          <div className={`p-4 rounded-2xl bg-slate-900/70 border relative overflow-hidden shadow-lg backdrop-blur-md ${integritySummary.highPriorityCount > 0
+              ? 'border-red-500/50 bg-red-950/10'
+              : integritySummary.reviewSignalCount > 0
+                ? 'border-amber-500/40 bg-amber-950/10'
+                : 'border-slate-800'
+            }`}>
             <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
               <span className="uppercase tracking-wider">Integrity Audit</span>
               <ShieldAlert size={14} className={integritySummary.highPriorityCount > 0 ? 'text-red-400 animate-pulse' : 'text-cyan-400'} />
@@ -385,11 +382,10 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
+                className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${isActive
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
                     : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700'
-                }`}
+                  }`}
               >
                 <Icon size={14} className={isActive ? 'text-cyan-400' : 'text-slate-500'} />
                 <span>{tab.label}</span>
@@ -411,11 +407,10 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                   <button
                     key={r.round}
                     onClick={() => setSelectedRound(r.round)}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer font-mono ${
-                      isSelected
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer font-mono ${isSelected
                         ? 'bg-cyan-950/40 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.25)]'
                         : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
                       <span>Round {r.round}</span>
@@ -576,11 +571,10 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                     <div className="flex flex-wrap gap-2 font-mono text-xs">
                       {activeRoundData.submittedRankings.length > 0 ? (
                         activeRoundData.submittedRankings.map((cardId: string, idx: number) => (
-                          <span key={cardId} className={`px-2.5 py-1 rounded border ${
-                            idx < 3 
-                              ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 font-bold' 
+                          <span key={cardId} className={`px-2.5 py-1 rounded border ${idx < 3
+                              ? 'bg-amber-950/40 border-amber-500/50 text-amber-300 font-bold'
                               : 'bg-slate-900 border-slate-800 text-slate-500'
-                          }`}>
+                            }`}>
                             P{idx + 1}: {cardId}
                           </span>
                         ))
@@ -678,11 +672,10 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                   <button
                     key={f.id}
                     onClick={() => setSeverityFilter(f.id as any)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                      severityFilter === f.id
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${severityFilter === f.id
                         ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50'
                         : 'bg-slate-800 text-slate-400 hover:text-white border border-transparent'
-                    }`}
+                      }`}
                   >
                     {f.label}
                   </button>
@@ -716,19 +709,18 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                     const isSignal = log.severity === 'review_signal';
                     return (
                       <div key={log._id} className="p-3.5 sm:p-4 hover:bg-slate-800/30 transition-colors">
-                        <div 
+                        <div
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer select-none"
                           onClick={() => setExpandedLogId(isExpanded ? null : log._id)}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             {/* Severity Badge */}
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 border ${
-                              isHigh 
-                                ? 'bg-red-950/80 border-red-500/60 text-red-300' 
-                                : isSignal 
-                                ? 'bg-amber-950/80 border-amber-500/50 text-amber-300' 
-                                : 'bg-slate-800 border-slate-700 text-slate-300'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 border ${isHigh
+                                ? 'bg-red-950/80 border-red-500/60 text-red-300'
+                                : isSignal
+                                  ? 'bg-amber-950/80 border-amber-500/50 text-amber-300'
+                                  : 'bg-slate-800 border-slate-700 text-slate-300'
+                              }`}>
                               {log.severity || 'info'}
                             </span>
 
@@ -892,15 +884,15 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                               )}
                             </td>
                             <td className={`p-3 text-right font-bold ${row.netDelta < 0 ? 'text-red-400' : row.netDelta > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
-                              {row.netDelta < 0 
-                                ? `-LKR ${Math.abs(Math.round(row.netDelta))}M` 
-                                : row.netDelta > 0 
-                                ? `+LKR ${Math.round(row.netDelta)}M` 
-                                : 'LKR 0M'}
+                              {row.netDelta < 0
+                                ? `-LKR ${Math.abs(Math.round(row.netDelta))}M`
+                                : row.netDelta > 0
+                                  ? `+LKR ${Math.round(row.netDelta)}M`
+                                  : 'LKR 0M'}
                             </td>
                             <td className={`p-3 text-right font-black text-sm ${isDeficit ? 'text-red-400' : 'text-emerald-300'}`}>
-                              {isDeficit 
-                                ? `-LKR ${Math.abs(Math.round(row.endingBalance))}M` 
+                              {isDeficit
+                                ? `-LKR ${Math.abs(Math.round(row.endingBalance))}M`
                                 : `LKR ${Math.round(row.endingBalance)}M`}
                             </td>
                             <td className="p-3 text-right text-amber-300 font-bold">
@@ -1035,22 +1027,20 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                   <button
                     type="button"
                     onClick={() => setScoringSubTab('cps')}
-                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      scoringSubTab === 'cps'
+                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${scoringSubTab === 'cps'
                         ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
                         : 'text-slate-400 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <ShieldCheck size={14} /> CPS Defense Audit (5 Pillars)
                   </button>
                   <button
                     type="button"
                     onClick={() => setScoringSubTab('tpi')}
-                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      scoringSubTab === 'tpi'
+                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${scoringSubTab === 'tpi'
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                         : 'text-slate-400 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Zap size={14} /> TPI Command Audit (6 Pillars)
                   </button>
@@ -1188,7 +1178,7 @@ export default function InvestigationClient({ sessionId }: InvestigationClientPr
                         clamp({calc.baselineWeightedSum.toFixed(1)} - {calc.failurePenaltyPoints.toFixed(1)} - {((calc.timeoutDeduction ?? (calc.fallbackCount ?? 0) * 2)).toFixed(1)}, 0, 100) × ({calc.humanDecisionsCount ?? 6}/6) = {Number(tournamentScore.cps ?? 0).toFixed(1)}
                       </div>
                       <div className="text-[11px] text-slate-500 pt-1">
-                        Audited by National Disaster Management Framework v3.2 Engine. No hidden multipliers or subjective adjustments.
+                        Audited by National Disaster Management Framework v1.0 Engine. No hidden multipliers or subjective adjustments.
                       </div>
                     </div>
 

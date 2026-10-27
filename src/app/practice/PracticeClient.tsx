@@ -39,7 +39,7 @@ import {
   PracticeEvaluationResult
 } from './practiceData';
 
-const LOCAL_STORAGE_KEY = 'sustain_tech_practice_session_v3';
+const LOCAL_STORAGE_KEY = 'sustain_tech_practice_session_v1';
 
 interface SavedPracticeSession {
   currentScenario: 1 | 2 | 3 | 4; // 4 = Completed / Results
@@ -332,10 +332,10 @@ export default function PracticeClient() {
           <button
             onClick={() => { setCurrentScenario(1); setShowBrief(true); }}
             className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${currentScenario === 1
-                ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
-                : scenario1Rankings.length >= 3
-                  ? 'text-cyan-400 hover:text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
+              : scenario1Rankings.length >= 3
+                ? 'text-cyan-400 hover:text-white'
+                : 'text-slate-400 hover:text-slate-200'
               }`}
           >
             <span>Scenario 1</span>
@@ -348,10 +348,10 @@ export default function PracticeClient() {
             }}
             disabled={scenario1Rankings.length < 3}
             className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${currentScenario === 2
-                ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
-                : scenario2Total > 0 && scenario2Total <= 100
-                  ? 'text-cyan-400 hover:text-white cursor-pointer'
-                  : 'text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed'
+              ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
+              : scenario2Total > 0 && scenario2Total <= 100
+                ? 'text-cyan-400 hover:text-white cursor-pointer'
+                : 'text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
           >
             <span>Scenario 2</span>
@@ -369,10 +369,10 @@ export default function PracticeClient() {
             }}
             disabled={scenario1Rankings.length < 3 || scenario2Total <= 0 || scenario2Total > 100}
             className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${currentScenario === 3
-                ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
-                : scenario3Rankings.length >= 3
-                  ? 'text-cyan-400 hover:text-white cursor-pointer'
-                  : 'text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed'
+              ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
+              : scenario3Rankings.length >= 3
+                ? 'text-cyan-400 hover:text-white cursor-pointer'
+                : 'text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
           >
             <span>Scenario 3</span>
@@ -385,10 +385,10 @@ export default function PracticeClient() {
             }}
             disabled={!results}
             className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${currentScenario === 4
-                ? 'bg-emerald-500 text-black font-bold shadow-md shadow-emerald-500/20'
-                : results
-                  ? 'text-emerald-400 hover:text-white cursor-pointer'
-                  : 'text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed'
+              ? 'bg-emerald-500 text-black font-bold shadow-md shadow-emerald-500/20'
+              : results
+                ? 'text-emerald-400 hover:text-white cursor-pointer'
+                : 'text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
           >
             <Trophy size={13} />
@@ -402,8 +402,8 @@ export default function PracticeClient() {
           <button
             onClick={() => setShowBrief(!showBrief)}
             className={`flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-xl border backdrop-blur-xl font-mono text-xs font-bold transition-all cursor-pointer ${showBrief
-                ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-white'
+              ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+              : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-white'
               }`}
             title={showBrief ? 'Minimize briefing dialog' : 'Open scenario briefing dialog'}
           >
@@ -528,8 +528,8 @@ export default function PracticeClient() {
                 onClick={currentScenario === 1 ? submitScenario1 : submitScenario3}
                 disabled={(currentScenario === 1 ? scenario1Rankings.length : scenario3Rankings.length) < 3}
                 className={`px-4 py-2 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-1.5 transition-all shadow-lg cursor-pointer ${(currentScenario === 1 ? scenario1Rankings.length : scenario3Rankings.length) >= 3
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
-                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
+                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
                   }`}
               >
                 <span>
@@ -562,10 +562,10 @@ export default function PracticeClient() {
                     else handleToggleScenario3Ranking(option.id);
                   }}
                   className={`w-64 sm:w-72 lg:w-80 shrink-0 rounded-2xl p-3 sm:p-3.5 cursor-pointer transition-all border flex flex-col justify-between select-none ${isTop3
-                      ? 'bg-slate-900/95 border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80'
-                      : isRanked
-                        ? 'bg-slate-900/90 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                        : 'bg-slate-950/85 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70'
+                    ? 'bg-slate-900/95 border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80'
+                    : isRanked
+                      ? 'bg-slate-900/90 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                      : 'bg-slate-950/85 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70'
                     }`}
                 >
                   <div>
@@ -573,10 +573,10 @@ export default function PracticeClient() {
                     <div className="flex items-center justify-between gap-1 mb-2">
                       <div className="flex items-center gap-1.5">
                         <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black font-mono text-xs ${isTop3
-                            ? 'bg-emerald-500 text-black shadow-md'
-                            : isRanked
-                              ? 'bg-amber-500 text-black font-bold'
-                              : 'bg-slate-800 text-cyan-300 border border-slate-700'
+                          ? 'bg-emerald-500 text-black shadow-md'
+                          : isRanked
+                            ? 'bg-amber-500 text-black font-bold'
+                            : 'bg-slate-800 text-cyan-300 border border-slate-700'
                           }`}>
                           {option.letter}
                         </span>
@@ -587,8 +587,8 @@ export default function PracticeClient() {
 
                       {isRanked ? (
                         <span className={`font-black text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 ${isTop3
-                            ? 'bg-emerald-500 text-black'
-                            : 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
+                          ? 'bg-emerald-500 text-black'
+                          : 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
                           }`}>
                           <span>RANK #{rankIndex + 1}</span>
                           <span className="text-[9px] opacity-90">{isTop3 ? '• EXECUTED' : '• RESERVE'}</span>
@@ -646,8 +646,8 @@ export default function PracticeClient() {
                 <button
                   onClick={() => setScenario2Mode('preset')}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-bold transition-all cursor-pointer ${scenario2Mode === 'preset'
-                      ? 'bg-cyan-500 text-black shadow-md'
-                      : 'text-slate-400 hover:text-white'
+                    ? 'bg-cyan-500 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
                     }`}
                 >
                   <Layers size={12} />
@@ -656,8 +656,8 @@ export default function PracticeClient() {
                 <button
                   onClick={() => setScenario2Mode('custom')}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-bold transition-all cursor-pointer ${scenario2Mode === 'custom'
-                      ? 'bg-cyan-500 text-black shadow-md'
-                      : 'text-slate-400 hover:text-white'
+                    ? 'bg-cyan-500 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
                     }`}
                 >
                   <Sliders size={12} />
@@ -675,8 +675,8 @@ export default function PracticeClient() {
                     : (scenario2Total <= 0 || scenario2Total > 100)
                 }
                 className={`px-4 py-2 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-1.5 transition-all shadow-lg cursor-pointer ${(scenario2Mode === 'preset' ? (scenario2PresetPlan && scenario2PresetPlan !== '2E') : (scenario2Total > 0 && scenario2Total <= 100))
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
-                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
+                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
                   }`}
               >
                 <span>
@@ -711,12 +711,12 @@ export default function PracticeClient() {
                     whileTap={{ scale: 0.985 }}
                     onClick={() => handleSelectScenario2PresetPlan(plan)}
                     className={`w-64 sm:w-72 lg:w-80 shrink-0 rounded-2xl p-3 sm:p-3.5 cursor-pointer transition-all border flex flex-col justify-between select-none ${isOver
-                        ? isSelected
-                          ? 'bg-rose-950/80 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
-                          : 'bg-slate-950/80 border-rose-900/60 hover:border-rose-700'
-                        : isSelected
-                          ? 'bg-slate-900/95 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
-                          : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70'
+                      ? isSelected
+                        ? 'bg-rose-950/80 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
+                        : 'bg-slate-950/80 border-rose-900/60 hover:border-rose-700'
+                      : isSelected
+                        ? 'bg-slate-900/95 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
+                        : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70'
                       }`}
                   >
                     <div>

@@ -271,7 +271,7 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
 
             <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-slate-500">
               <span>National Disaster Management Framework</span>
-              <span>v3.2 Production</span>
+              <span>v1.0 Production</span>
             </div>
           </div>
         </div>
@@ -288,8 +288,8 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
               <div
                 key={idx}
                 className={`p-3.5 sm:p-4 rounded-xl border font-mono text-xs flex flex-col justify-between ${item.failed
-                    ? 'bg-red-950/20 border-red-500/40 text-red-300'
-                    : 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
+                  ? 'bg-red-950/20 border-red-500/40 text-red-300'
+                  : 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
                   }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -354,8 +354,8 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
                   <div
                     key={idx}
                     className={`p-3.5 sm:p-4 rounded-xl border backdrop-blur-xl transition-all ${isContingency
-                        ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-200'
+                      ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-200'
                       }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-white/5">

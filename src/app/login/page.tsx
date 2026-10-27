@@ -131,7 +131,7 @@ export default function LoginPage() {
       {/* ========================================================================= */}
       <main className="relative z-10 w-full max-w-7xl mx-auto my-auto py-2 sm:py-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-          
+
           {/* --------------------------------------------------------------------- */}
           {/* LEFT COLUMN: System Architecture & Decision Engine Overview           */}
           {/* --------------------------------------------------------------------- */}
@@ -148,7 +148,7 @@ export default function LoginPage() {
               </div>
               <span>Decision Simulator System</span>
               <span className="px-1.5 py-0.5 text-[10px] bg-teal-500/20 text-teal-200 rounded border border-teal-400/30">
-                v2.6
+                v1.0
               </span>
             </motion.div>
 
@@ -381,7 +381,7 @@ export default function LoginPage() {
                   <Shield size={11} className="text-teal-400" />
                   Concurrency Guard
                 </span>
-                <span>Session Engine v2.6 Secured</span>
+                <span>Session Engine v1.0 Secured</span>
               </div>
             </motion.div>
           </div>
