@@ -98,7 +98,7 @@ export default function HomePage() {
           <div className="relative w-4 h-4 rounded overflow-hidden bg-white/95 shrink-0">
             <Image src="/assets/images/Logo.jpg" alt="Logo" fill className="object-contain" unoptimized />
           </div>
-          <span>Tactical Disaster Command Simulator</span>
+          <span>Tactical Crisis Command Simulator</span>
           <span className="px-1.5 py-0.5 text-[10px] bg-teal-500/20 text-teal-200 rounded border border-teal-400/30">
             v2.6
           </span>
@@ -126,7 +126,7 @@ export default function HomePage() {
           transition={{ duration: 0.5, delay: 0.25 }}
           className="text-slate-300 text-sm sm:text-base md:text-lg max-w-2xl leading-relaxed mb-8 font-medium"
         >
-          Take command of a multi-sector crisis under compounding weather hazards and strict budget caps. Outthink the cascade. Outlast the storm.
+          Lead the crisis, outsmart challenges, and manage limited resources. Make every decision count and emerge victorious.
         </motion.p>
 
         {/* PRIMARY REAL GAME LAUNCH PORTAL (Button Only — No Spoilers/Details) */}
