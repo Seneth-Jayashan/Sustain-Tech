@@ -1,55 +1,37 @@
-export interface PracticeAction {
-  id: string;
+export interface PracticeOption {
+  id: string; // 'A' | 'B' | 'C' | 'D' | 'E'
+  letter: 'A' | 'B' | 'C' | 'D' | 'E';
   title: string;
-  category: 'Infrastructure' | 'Public Safety' | 'Power & Energy' | 'Environment' | 'Economic';
-  cost: number; // in LKR Millions
+  category: string;
   tagline: string;
   description: string;
   pros: string;
   cons: string;
-  iconName: 'Shield' | 'Users' | 'Zap' | 'Radio' | 'AlertTriangle' | 'DollarSign' | 'Anchor' | 'Compass' | 'Layers';
+  isSuggested?: boolean;
 }
 
-export interface PracticeDay1Data {
-  dayNumber: 1;
-  title: "Day 1: Acute Storm Landfall & Priority Tactical Containment";
-  scenarioSubtitle: "Supercyclone Triton Landfall • 3.8m Storm Surge • Port Perimeter Breach";
-  situation: `At 03:00 hours, Category-4 Supercyclone 'Triton' made landfall along the Aurelia Megacity coastal corridor. Tidal surges of 3.8 meters have breached the outer coastal reef and harbor defense levees. Seawater is flooding deep-water container terminals and encroaching on the municipal petrochemical refinery. 
-
-Civilian coastal wards are within the direct flood zone, and the regional high-voltage transmission substation is at imminent risk of water inundation. You must select and prioritize EXACTLY THREE tactical containment directives to mitigate immediate casualties and infrastructure collapse.`;
-  actions: PracticeAction[];
-}
-
-export interface PracticeDay2Data {
-  dayNumber: 2;
-  title: "Day 2: Critical Multi-Sector Disaster Resource Allocation";
-  scenarioSubtitle: "Systemic Flood Contamination • Acute Utility Failure • LKR 100M Emergency Budget";
-  situation: `Storm surge floodwaters have contaminated inland potable aquifers, severed power cables, and inundated district roads. Over 60,000 residents across Aurelia Metro face contaminated drinking water, electricity blackouts, and escalating medical emergencies.
-
-The Disaster Management Cabinet has allocated an Emergency Relief Grant of exactly LKR 100 Million. You must allocate this 100M fund across three critical operational sectors. Overspending beyond 100M is prohibited by treasury rules. Under-allocating critical sectors will cause operational deficits.`;
-  totalBudgetCap: 100; // 100M
-  presetPlans: PracticePresetPlan[];
-  sectors: {
-    key: 'gridRestoration' | 'cleanWater' | 'emergencyTrauma';
-    label: string;
-    maxLimit: number;
-    recommendedMin: number;
-    description?: string;
-    unit: string;
-    impactSummary: string;
-    riskIfUnderfunded: string;
-  }[];
+export interface PracticeRankScenario {
+  type: 'rank';
+  id: 1 | 3;
+  scenarioNumber: 1 | 3;
+  title: string;
+  scenarioSubtitle: string;
+  situation: string;
+  options: PracticeOption[];
+  suggestedAnswerId: string;
+  suggestedAnswerSummary: string;
+  suggestedAnswerExplanation: string;
 }
 
 export interface PracticePresetPlan {
-  id: string;
+  id: string; // '2A', '2B', etc.
   title: string;
   tagline: string;
   description: string;
   allocations: {
-    gridRestoration: number;
-    cleanWater: number;
-    emergencyTrauma: number;
+    relocationStalls: number;
+    phasedConstruction: number;
+    livelihoodSupport: number;
   };
   totalCost: number;
   isOverLimit?: boolean;
@@ -57,410 +39,487 @@ export interface PracticePresetPlan {
   cons: string;
 }
 
-export interface PracticeDay3Data {
-  dayNumber: 3;
-  title: "Day 3: Cascading Resilience & Economic Reconstruction";
-  scenarioSubtitle: "Post-Storm Siltation • Displaced Community Recovery • Economic Reboot";
-  situation: `Floodwaters have begun to recede, leaving hazardous harbor siltation, damaged distribution logistics, and 45,000 displaced citizens in community shelters. The emergency phase is transitioning into recovery.
-
-You must choose and rank EXACTLY THREE recovery strategies to revive maritime trade, rehabilitate affected families, and fortify natural coastal defenses against recurring storm surges.`;
-  actions: PracticeAction[];
+export interface PracticeAllocationSector {
+  key: 'relocationStalls' | 'phasedConstruction' | 'livelihoodSupport';
+  label: string;
+  maxLimit: number;
+  recommendedMin: number;
+  unit: string;
+  impactSummary: string;
+  riskIfUnderfunded: string;
 }
 
-export const PRACTICE_DAY_1: PracticeDay1Data = {
-  dayNumber: 1,
-  title: "Day 1: Acute Storm Landfall & Priority Tactical Containment",
-  scenarioSubtitle: "Supercyclone Triton Landfall • 3.8m Storm Surge • Port Perimeter Breach",
-  situation: `At 03:00 hours, Category-4 Supercyclone 'Triton' made landfall along the Aurelia Megacity coastal corridor. Tidal surges of 3.8 meters have breached the outer coastal reef and harbor defense levees. Seawater is flooding deep-water container terminals and encroaching on the municipal petrochemical refinery. 
+export interface PracticeAllocationScenario {
+  type: 'allocate';
+  id: 2;
+  scenarioNumber: 2;
+  title: string;
+  scenarioSubtitle: string;
+  situation: string;
+  totalBudgetCap: number; // 100M
+  presetPlans: PracticePresetPlan[];
+  sectors: PracticeAllocationSector[];
+  suggestedPlanId: string;
+  suggestedAnswerSummary: string;
+  suggestedAnswerExplanation: string;
+}
 
-Civilian coastal wards are within the direct flood zone, and the regional high-voltage transmission substation is at imminent risk of water inundation. You must select and prioritize EXACTLY THREE tactical containment directives to mitigate immediate casualties and infrastructure collapse.`,
-  actions: [
+export type AnyPracticeScenario = PracticeRankScenario | PracticeAllocationScenario;
+
+// =============================================================================
+// SCENARIO 1: Bus Network Redesign (5 Options, Prioritize 1 - 5, Top 3 Taken)
+// =============================================================================
+export const PRACTICE_SCENARIO_1: PracticeRankScenario = {
+  type: 'rank',
+  id: 1,
+  scenarioNumber: 1,
+  title: "Scenario 1: Bus Network Redesign",
+  scenarioSubtitle: "Ridership Decline • Fleet Bunching • Reliability vs Fleet Expansion",
+  situation: `You head the planning unit of a regional transport authority. Ridership on your busiest route has dropped 18% in two years because buses are unreliable: they bunch together, and wait times swing between 5 and 40 minutes. Your budget allows only one major intervention this year.
+
+Prioritize all 5 options in order of strategic value (Rank 1 to 5). Due to resource constraints, ONLY THE FIRST 3 ACTIONS will be executed.`,
+  suggestedAnswerId: 'B',
+  suggestedAnswerSummary: "Introduce GPS tracking and real-time arrival info, plus timetable-based dispatching to space out buses.",
+  suggestedAnswerExplanation: "The root problem is reliability, not comfort or price. Spacing buses properly and giving passengers real-time information fixes the bunching and the unpredictable waits at a fraction of the cost of new vehicles. New buses (A) would still bunch, a fare cut (C) reduces revenue without fixing the service, and new routes (D) spread an unreliable system thinner.",
+  options: [
     {
-      id: "P1-A",
-      title: "Deploy Harbor Pneumatic Inflatable Sea-Barriers",
-      category: "Infrastructure",
-      cost: 18,
-      tagline: "Protects deepwater container docks & crane berths",
-      description: "Deploys high-strength pneumatic surge gates across Port Channel Alpha to seal maritime logistics terminals from saltwater inundation.",
-      pros: "Shields primary multi-million cargo cranes and heavy trade infrastructure.",
-      cons: "High deployment cost and requires continuous air-compressor power.",
-      iconName: "Shield"
+      id: 'A',
+      letter: 'A',
+      title: "Buy 20 New Air-Conditioned Buses",
+      category: "Fleet Procurement",
+      tagline: "Modernize rolling stock to enhance commuter comfort",
+      description: "Procure and commission 20 new air-conditioned buses to make the public transit service noticeably more attractive to commuters.",
+      pros: "Improves passenger comfort, climate control, and visual fleet appeal.",
+      cons: "High capital expense; new buses still bunch together without dispatching, leaving erratic wait times unresolved.",
+      isSuggested: false
     },
     {
-      id: "P1-B",
-      title: "Evacuate Low-Lying Coastal Shanties & Fisherfolk Wards",
-      category: "Public Safety",
-      cost: 15,
-      tagline: "Relocates 28,000 vulnerable coastal residents",
-      description: "Mobilizes municipal electric transit bus convoys and emergency tractor shuttles to extract families living in sea-level informal settlements.",
-      pros: "Decisively slashes potential civilian drowning casualties and hypothermia.",
-      cons: "Heavy convoy traffic blocks main coastal thoroughfares for 4 hours.",
-      iconName: "Users"
+      id: 'B',
+      letter: 'B',
+      title: "Introduce GPS Tracking, Real-Time Arrival Info & Timetable Dispatching",
+      category: "Operational Intelligence",
+      tagline: "Eliminate bunching through dynamic telemetry and spaced dispatch",
+      description: "Introduce GPS vehicle tracking, live arrival displays at stops and mobile apps, combined with timetable-based dispatching to evenly space out buses.",
+      pros: "Targets the root problem of reliability and 5–40 min unpredictable waits at a fraction of the cost of new vehicles.",
+      cons: "Requires driver compliance and operational dispatch monitoring.",
+      isSuggested: true
     },
     {
-      id: "P1-C",
-      title: "Harden Regional Metro West 220kV Substation",
-      category: "Power & Energy",
-      cost: 12,
-      tagline: "Elevated pumps & diesel generators for municipal grid",
-      description: "Dispatches elevated perimeter sandbag barriers and mobile high-capacity dewatering pumps to shield the main electrical sub-station.",
-      pros: "Prevents regional blackout of primary hospitals, radar, and emergency telecoms.",
-      cons: "Focuses resources exclusively on utility assets rather than direct rescue.",
-      iconName: "Zap"
+      id: 'C',
+      letter: 'C',
+      title: "Cut Transit Fares by 25%",
+      category: "Tariff & Pricing",
+      tagline: "Discount ticket prices across the corridor to stimulate ridership",
+      description: "Implement an across-the-board 25% fare reduction to win passengers back to the public bus network.",
+      pros: "Lowers commuter expense and creates immediate promotional interest.",
+      cons: "Severely reduces operating revenues without fixing the service; riders left due to unreliability, not price.",
+      isSuggested: false
     },
     {
-      id: "P1-D",
-      title: "Multi-Channel Acoustic Sirens & Automated Cell Broadcast",
-      category: "Public Safety",
-      cost: 6,
-      tagline: "Mandatory stay-at-home siren alert across all mobile networks",
-      description: "Triggers loud acoustic sirens across high-risk wards and pushes high-priority emergency alerts to 350,000 registered cell phones.",
-      pros: "Rapid, wide-area alert penetration at minimal expenditure.",
-      cons: "Passive warning; depends entirely on civilian adherence without transport assistance.",
-      iconName: "Radio"
+      id: 'D',
+      letter: 'D',
+      title: "Add Three New Routes to Cover More Areas",
+      category: "Network Expansion",
+      tagline: "Extend geographical coverage into underserved outer neighborhoods",
+      description: "Add three new feeder and branch routes to expand the transit network into newly developed suburban areas.",
+      pros: "Expands geographic footprint to communities currently lacking bus access.",
+      cons: "Spreads an already unreliable fleet and driver pool thinner, compounding delays across the entire network.",
+      isSuggested: false
     },
     {
-      id: "P1-E",
-      title: "Petrochemical Tank Farm Nitrogen Blanketing & Siphonage",
-      category: "Environment",
-      cost: 16,
-      tagline: "Prevents flammable vapor explosion and toxic crude spill",
-      description: "Injects stabilizing nitrogen vapor into crude storage silos at the port refinery and engages emergency cutoff valves.",
-      pros: "Prevents severe ecocide, toxic atmospheric fumes, and petrochemical bay pollution.",
-      cons: "Specialized hazmat operation with no direct impact on floodwater height.",
-      iconName: "AlertTriangle"
+      id: 'E',
+      letter: 'E',
+      title: "Dedicated Peak-Hour Bus Lanes & Transit Signal Priority",
+      category: "Corridor Infrastructure",
+      tagline: "Bypass traffic congestion at critical intersection bottlenecks",
+      description: "Designate curbside peak-hour bus-only lanes and configure traffic signal priority at the corridor's 8 busiest bottleneck intersections.",
+      pros: "Shields transit from general traffic congestion and stabilizes travel times alongside spaced dispatching.",
+      cons: "Requires municipal traffic police coordination and minor road re-striping.",
+      isSuggested: true
     }
   ]
 };
 
-export const PRACTICE_DAY_2: PracticeDay2Data = {
-  dayNumber: 2,
-  title: "Day 2: Critical Multi-Sector Disaster Resource Allocation",
-  scenarioSubtitle: "Systemic Flood Contamination • Acute Utility Failure • LKR 100M Emergency Budget",
-  situation: `Storm surge floodwaters have contaminated inland potable aquifers, severed power cables, and inundated district roads. Over 60,000 residents across Aurelia Metro face contaminated drinking water, electricity blackouts, and escalating medical emergencies.
+// =============================================================================
+// SCENARIO 2: Light Rail Project & Community Opposition (Multi-Sector Allocation)
+// =============================================================================
+export const PRACTICE_SCENARIO_2: PracticeAllocationScenario = {
+  type: 'allocate',
+  id: 2,
+  scenarioNumber: 2,
+  title: "Scenario 2: Light Rail Project & Community Opposition",
+  scenarioSubtitle: "Transit Alignment • 300 Market Traders • LKR 100M Emergency Budget Allocation",
+  situation: `A new light rail line is approved, but the best alignment runs through a busy market district. About 300 small traders would lose their stalls during the 18-month construction period. They oppose the project, and a protest is planned next week. An alternative route avoids the market but adds 4 km, costs 22% more, and serves fewer commuters.
 
-The Disaster Management Cabinet has allocated an Emergency Relief Grant of exactly LKR 100 Million. You must allocate this 100M fund across three critical operational sectors. Overspending beyond 100M is prohibited by treasury rules. Under-allocating critical sectors will cause operational deficits.`,
+To keep the optimal alignment while addressing the traders' real concern (loss of livelihood during construction), the City Cabinet has allocated an Emergency Mitigation Fund of exactly LKR 100 Million. Total identified sectoral needs equal LKR 120 Million:
+• Sector A: Temporary Relocation Sites & Serviced Stalls (Needs LKR 40M)
+• Sector B: Phased Sectional Construction & Accelerated Track Laying (Needs LKR 50M)
+• Sector C: Direct Transition Support & Livelihood Protection Grants (Needs LKR 30M)
+
+You must allocate the LKR 100M fund across these three sectors. Choose a Prebuilt Plan or use Custom Allocation. Overspending beyond 100M is prohibited by Treasury rules.`,
   totalBudgetCap: 100,
+  suggestedPlanId: '2A',
+  suggestedAnswerSummary: "Keep original route with trader consultation, phased construction in sections, temporary relocation sites, and guaranteed return rights.",
+  suggestedAnswerExplanation: "It keeps the route that serves the most commuters while addressing the traders' real concern, which is loss of livelihood during construction. Phasing and temporary relocation reduce the harm, and early consultation builds trust. Cash alone (A) rarely replaces a lost customer base, the alternative route (B) is costlier and less effective, and open-ended delay (D) gives traders a veto and stalls the project.",
   presetPlans: [
     {
       id: "2A",
-      title: "Plan 2A: Balanced Tri-Sector Shield",
-      tagline: "Grid 35M / Clean Water 35M / Trauma Care 30M",
-      description: "Equitably distributes the 100M grant across all three crisis fronts, fully funding municipal dewatering pumps while safeguarding clean water and emergency triage.",
-      allocations: { gridRestoration: 35, cleanWater: 35, emergencyTrauma: 30 },
+      title: "Plan 2A: Balanced Alignment & Trader Shield",
+      tagline: "Stalls 40M / Phased Works 35M / Livelihood 25M",
+      description: "Equitably distributes the 100M grant: fully funds serviced interim stalls nearby (40M), sustains phased sectional civil works (35M), and provides transition grants (25M).",
+      allocations: { relocationStalls: 40, phasedConstruction: 35, livelihoodSupport: 25 },
       totalCost: 100,
       isOverLimit: false,
-      pros: "All three lifelines operate above danger thresholds without starvation.",
-      cons: "Balanced split without aggressive acceleration in any single sector."
+      pros: "Protects traders' livelihoods, keeps the best transit alignment, and builds genuine community trust.",
+      cons: "Requires active multi-agency project management across civil and merchant liaison teams."
     },
     {
       id: "2B",
-      title: "Plan 2B: Heavy Dewatering & Grid Defense",
-      tagline: "Grid 50M / Clean Water 25M / Trauma Care 25M",
-      description: "Directs maximum allowable funding (50M) to high-voltage substation repairs and drainage pumps, with 25M to water and 25M to trauma.",
-      allocations: { gridRestoration: 50, cleanWater: 25, emergencyTrauma: 25 },
+      title: "Plan 2B: Rapid Construction Acceleration",
+      tagline: "Stalls 20M / Phased Works 50M / Livelihood 30M",
+      description: "Directs maximum funding (50M) to round-the-clock rail construction to compress the 18-month timeline to 11 months, with 20M for basic stalls and 30M for transition stipends.",
+      allocations: { relocationStalls: 20, phasedConstruction: 50, livelihoodSupport: 30 },
       totalCost: 100,
       isOverLimit: false,
-      pros: "Drains stagnant saltwater rapidly and re-energizes municipal communications.",
-      cons: "Leaves water and medical sectors operating at narrow baseline margins."
+      pros: "Dramatically shortens disruption duration and brings light rail into revenue service earlier.",
+      cons: "Interim relocation stalls operate at basic capacity with limited customer amenities."
     },
     {
       id: "2C",
-      title: "Plan 2C: Potable Water & Anti-Epidemic Surge",
-      tagline: "Grid 20M / Clean Water 50M / Trauma Care 30M",
-      description: "Prioritizes mobile reverse-osmosis purification convoys (50M) to eliminate waterborne contamination, allocating 20M to grid and 30M to trauma.",
-      allocations: { gridRestoration: 20, cleanWater: 50, emergencyTrauma: 30 },
+      title: "Plan 2C: Comprehensive Stall Infrastructure",
+      tagline: "Stalls 50M / Phased Works 25M / Livelihood 25M",
+      description: "Allocates maximum allowable funds (50M) to construct premium weather-protected market plazas with customer parking, allocating 25M to civil phasing and 25M to stipends.",
+      allocations: { relocationStalls: 50, phasedConstruction: 25, livelihoodSupport: 25 },
       totalCost: 100,
       isOverLimit: false,
-      pros: "Completely inoculates 60,000 displaced citizens against cholera and toxic runoff.",
-      cons: "Pumping operations run at minimum speed; floodwaters take longer to recede."
+      pros: "Guarantees zero commercial drop-off for market traders; fully embraces community partnership.",
+      cons: "Construction phasing operates with tighter margins, risking schedule slippage."
     },
     {
       id: "2D",
-      title: "Plan 2D: Mobile Trauma & ICU Surge",
-      tagline: "Grid 25M / Clean Water 25M / Trauma Care 50M",
-      description: "Focuses maximum funding (50M) on negative-pressure mobile surgery units, blood supplies, and hypothermia stabilization.",
-      allocations: { gridRestoration: 25, cleanWater: 25, emergencyTrauma: 50 },
+      title: "Plan 2D: Direct Cash Compensation Focus",
+      tagline: "Stalls 20M / Phased Works 30M / Livelihood 50M",
+      description: "Provides maximum direct cash payouts (50M) to stallholders, allocating 20M for basic relocation lots and 30M for construction phasing.",
+      allocations: { relocationStalls: 20, phasedConstruction: 30, livelihoodSupport: 50 },
       totalCost: 100,
       isOverLimit: false,
-      pros: "Cuts clinical mortality among severe crush and storm injury casualties.",
-      cons: "Heavily hospital-centric; does not accelerate municipal grid or water recovery."
+      pros: "Immediate cash liquidity in merchants' pockets, defusing protest tension next week.",
+      cons: "Cash alone rarely replaces a displaced customer base long-term; weaker temporary infrastructure."
     },
     {
       id: "2E",
       title: "Plan 2E: Statutory Overdraft Plan (Over Cap)",
-      tagline: "Grid 50M / Clean Water 40M / Trauma Care 30M = 120M (INVALID)",
-      description: "Attempts to allocate LKR 120M across all three sectors, breaching the statutory LKR 100M round limit set by the Disaster Management Cabinet.",
-      allocations: { gridRestoration: 50, cleanWater: 40, emergencyTrauma: 30 },
+      tagline: "Stalls 50M / Phased Works 40M / Livelihood 30M = 120M (INVALID)",
+      description: "Attempts to fund all identified requirements in full (120M), breaching the statutory LKR 100M round limit set by the City Cabinet.",
+      allocations: { relocationStalls: 50, phasedConstruction: 40, livelihoodSupport: 30 },
       totalCost: 120,
       isOverLimit: true,
-      pros: "Maximum theoretical funding across all three sectors.",
-      cons: "Strictly rejected by treasury audit controllers; causes governance penalties."
+      pros: "Fully funds every demand on paper.",
+      cons: "Strictly rejected by Treasury audit controllers; incurs severe governance penalties."
     }
   ],
   sectors: [
     {
-      key: 'gridRestoration',
-      label: 'Sector A: Power Grid & Stormwater Pumping',
+      key: 'relocationStalls',
+      label: 'Sector A: Temporary Relocation Sites & Serviced Stalls',
+      maxLimit: 50,
+      recommendedMin: 35,
+      unit: 'M LKR',
+      impactSummary: 'Leases adjacent land, sets up weather-proof retail stalls with electricity, water, and customer walkway signage for 300 merchants.',
+      riskIfUnderfunded: 'Underfunding below 35M LKR leaves merchants in squalid temporary lots, causing customer boycott and renewed street demonstrations.'
+    },
+    {
+      key: 'phasedConstruction',
+      label: 'Sector B: Phased Sectional Construction & Civil Works',
+      maxLimit: 50,
+      recommendedMin: 30,
+      unit: 'M LKR',
+      impactSummary: 'Deploys localized acoustic barriers, micro-trenching, and sectional block closures to keep pedestrian access open to market aisles.',
+      riskIfUnderfunded: 'Underfunding below 30M LKR halts sectional phasing, forcing a complete 18-month corridor shutdown and legal contractor delays.'
+    },
+    {
+      key: 'livelihoodSupport',
+      label: 'Sector C: Trader Transition Grants & Livelihood Protection',
       maxLimit: 50,
       recommendedMin: 20,
       unit: 'M LKR',
-      impactSummary: 'Powers heavy submersible stormwater pumps, high-voltage transformer repair teams, and critical telecommunication towers.',
-      riskIfUnderfunded: 'Underfunding below 20M LKR leaves city pumps offline, leading to stagnant seawater retention and prolonged regional blackouts.'
-    },
-    {
-      key: 'cleanWater',
-      label: 'Sector B: Clean Water & Desalination Convoys',
-      maxLimit: 50,
-      recommendedMin: 25,
-      unit: 'M LKR',
-      impactSummary: 'Deploys mobile reverse-osmosis purification trucks, bottled water bladders, and emergency hydration stations to relief shelters.',
-      riskIfUnderfunded: 'Underfunding below 25M LKR causes contaminated aquifer consumption, sparking virulent cholera and dysentery outbreaks.'
-    },
-    {
-      key: 'emergencyTrauma',
-      label: 'Sector C: Mobile Trauma Units & Field Hospitals',
-      maxLimit: 50,
-      recommendedMin: 20,
-      unit: 'M LKR',
-      impactSummary: 'Equips pop-up negative pressure surgical tents, hazmat decontamination showers, and emergency hypothermia treatment supplies.',
-      riskIfUnderfunded: 'Underfunding below 20M LKR overwhelms central hospital trauma bays, spiking preventable storm surge mortality.'
+      impactSummary: 'Provides bridge stipends, transport vouchers, and guaranteed tenancy agreements ensuring all 300 vendors return to new light rail concourses.',
+      riskIfUnderfunded: 'Underfunding below 20M LKR triggers acute household hardship among vulnerable stallholders, provoking unified merchant strikes.'
     }
   ]
 };
 
-export const PRACTICE_DAY_3: PracticeDay3Data = {
-  dayNumber: 3,
-  title: "Day 3: Cascading Resilience & Economic Reconstruction",
-  scenarioSubtitle: "Post-Storm Siltation • Displaced Community Recovery • Economic Reboot",
-  situation: `Floodwaters have begun to recede, leaving hazardous harbor siltation, damaged distribution logistics, and 45,000 displaced citizens in community shelters. The emergency phase is transitioning into recovery.
+// =============================================================================
+// SCENARIO 3: Electronic Ticketing Rollout (5 Options, Prioritize 1 - 5, Top 3 Taken)
+// =============================================================================
+export const PRACTICE_SCENARIO_3: PracticeRankScenario = {
+  type: 'rank',
+  id: 3,
+  scenarioNumber: 3,
+  title: "Scenario 3: Pilot or Full Rollout of Electronic Ticketing",
+  scenarioSubtitle: "Smart Card Cutover • 400 Buses & 3 Rail Lines • Digital Equity & Scalability",
+  situation: `Your city wants to replace cash fares with a tap-and-go smart card across 400 buses and 3 train lines. A vendor offers a quick, citywide launch within 3 months. Your technical team warns that many older passengers and daily-wage commuters have no bank accounts or smartphones, and that the system has never been tested at your scale.
 
-You must choose and rank EXACTLY THREE recovery strategies to revive maritime trade, rehabilitate affected families, and fortify natural coastal defenses against recurring storm surges.`,
-  actions: [
+Prioritize all 5 options in order of strategic value (Rank 1 to 5). Due to resource constraints, ONLY THE FIRST 3 ACTIONS will be executed.`,
+  suggestedAnswerId: 'C',
+  suggestedAnswerSummary: "Pilot on two routes for 3 months with cash option, collect data on failures and passenger feedback, then expand in stages.",
+  suggestedAnswerExplanation: "A pilot exposes technical faults and usability problems while the cost of failure is small, and keeping cash protects passengers who can't switch yet. Staged expansion lets you fix issues before they affect the whole network. Forcing adoption (A) excludes vulnerable groups, B risks a large-scale failure with an untested system, and D abandons a useful improvement instead of managing its risks.",
+  options: [
     {
-      id: "P3-A",
-      title: "Direct Digital Micro-Grants for Displaced Households",
-      category: "Public Safety",
-      cost: 25,
-      tagline: "LKR 50,000 cash grant to verified flooded families",
-      description: "Direct bank and mobile-wallet relief transfers to 5,000 low-income flood victims for urgent dry goods, building materials, and clothing.",
-      pros: "Immediate dignity and purchasing power to local families; jumpstarts grocery commerce.",
-      cons: "High cash drain on relief treasury; requires strict identity verification.",
-      iconName: "DollarSign"
+      id: 'A',
+      letter: 'A',
+      title: "Launch Citywide in 3 Months & Remove Cash Entirely",
+      category: "Mandatory Cutover",
+      tagline: "Enforce universal digital ticketing immediately to force adoption",
+      description: "Execute a rapid full-system rollout in 3 months and ban cash transactions on day one, forcing all passengers onto smart cards.",
+      pros: "Rapid project realization and instantaneous elimination of cash-handling leakage.",
+      cons: "Excludes vulnerable unbanked commuters and seniors; severe risk of widespread network failure and fare evasion.",
+      isSuggested: false
     },
     {
-      id: "P3-B",
-      title: "Sonar Dredging & Port Channel Silt Clearance",
-      category: "Economic",
-      cost: 20,
-      tagline: "Restores deepwater shipping navigation and container exports",
-      description: "Deploys specialized suction dredging vessels to clear 120,000 cubic meters of storm silt and submerged shipping containers from main berths.",
-      pros: "Reopens multi-million dollar container vessel traffic, preventing manufacturing supply chain collapse.",
-      cons: "Benefits industrial trade directly before residential neighborhood cleanup.",
-      iconName: "Anchor"
+      id: 'B',
+      letter: 'B',
+      title: "Launch Citywide Immediately but Keep Cash for 6 Months",
+      category: "Full Deployment with Fallback",
+      tagline: "Deploy across 400 buses and 3 train lines with temporary cash grace period",
+      description: "Equip all 400 buses and 3 train lines with smart card readers simultaneously within 3 months, keeping cash as a fallback for 6 months before reassessing.",
+      pros: "Buffers non-digital riders while providing full hardware availability everywhere.",
+      cons: "High risk of large-scale systemic failure with an untested system across 400 buses and 3 rail corridors.",
+      isSuggested: false
     },
     {
-      id: "P3-C",
-      title: "Thermal Drone Survey & Autonomous Grid Line Splice",
-      category: "Infrastructure",
-      cost: 12,
-      tagline: "AI drone diagnostics to accelerate power pole reconstruction",
-      description: "Deploys aerial lidar drones to detect micro-fractures in transmission towers and direct high-priority repair crews.",
-      pros: "Cuts grid restoration time by 60% with highly accurate telemetry.",
-      cons: "High-tech tool that requires specialized ground operators.",
-      iconName: "Compass"
+      id: 'C',
+      letter: 'C',
+      title: "Pilot on Two Routes for 3 Months with Cash Option, Then Expand in Stages",
+      category: "Staged Pilot Validation",
+      tagline: "Expose technical faults when cost of failure is small, protecting cash users",
+      description: "Pilot on two busy routes for 3 months, keep cash as an option, collect data on technical failures and passenger feedback, then expand across the network in stages.",
+      pros: "Exposes bugs and usability problems at low failure cost; staged expansion allows fixing issues before they affect the whole network.",
+      cons: "Takes longer to achieve full citywide electronic fare modernization.",
+      isSuggested: true
     },
     {
-      id: "P3-D",
-      title: "Demurrage Waiver & Commercial Supply Freight Subsidy",
-      category: "Economic",
-      cost: 10,
-      tagline: "Waives port storage fees for merchant vessels carrying food & fuel",
-      description: "Suspends government docking and demurrage penalties for 14 days to incentivize global shipping carriers to unload emergency cargo.",
-      pros: "Suppresses price gouging and stabilizes food staples in the municipal market.",
-      cons: "Temporarily foregoes government port revenue.",
-      iconName: "Layers"
+      id: 'D',
+      letter: 'D',
+      title: "Cancel the Project Because Some Passengers Can't Use It",
+      category: "Project Abandonment",
+      tagline: "Shelve smart ticketing to avoid equity and technical complications",
+      description: "Abort the electronic smart card project entirely to maintain status-quo cash fare collection and avoid digital exclusion.",
+      pros: "Avoids procurement expenses and zero disruption to daily-wage cash commuters.",
+      cons: "Abandons a useful network modernization instead of managing and mitigating its risks.",
+      isSuggested: false
     },
     {
-      id: "P3-E",
-      title: "Mangrove Bio-Shield & Living Dune Restoration",
-      category: "Environment",
-      cost: 15,
-      tagline: "Replants 40 hectares of native coastal mangroves and geotextile dunes",
-      description: "Engages community eco-corps to plant deep-root coastal mangroves and rebuild sand berms to blunt future cyclone storm waves.",
-      pros: "Creates long-term natural flood attenuation barrier and restores estuarine fish nurseries.",
-      cons: "Takes months to mature; provides negligible immediate relief in week one.",
-      iconName: "Shield"
+      id: 'E',
+      letter: 'E',
+      title: "Cash-to-Card Kiosks & Assisted Mobile Top-Up at Terminals",
+      category: "Digital Inclusivity",
+      tagline: "Equip major transit interchanges with assisted cash deposit terminals",
+      description: "Install simple cash-accepting smart card dispensing kiosks at all primary bus stations and deploy trained youth navigators to assist unbanked and senior passengers.",
+      pros: "Bridges the digital divide, allowing unbanked commuters to convert physical coins/notes into smart cards without a bank account.",
+      cons: "Adds modest equipment and staffing overhead at primary transit terminals.",
+      isSuggested: true
     }
   ]
 };
+
+export const PRACTICE_SCENARIOS = [
+  PRACTICE_SCENARIO_1,
+  PRACTICE_SCENARIO_2,
+  PRACTICE_SCENARIO_3
+];
+
+// =============================================================================
+// EVALUATION LOGIC
+// =============================================================================
+export interface ScenarioAudit {
+  scenarioNumber: 1 | 2 | 3;
+  scenarioTitle: string;
+  userSummary: string;
+  suggestedAnswerId: string;
+  suggestedAnswerSummary: string;
+  suggestedAnswerExplanation: string;
+  isOptimal: boolean;
+  score: number; // out of 33 or 34
+  maxScore: number;
+  feedback: string;
+}
 
 export interface PracticeEvaluationResult {
   score: number; // 0 - 100
-  tier: 'Tier 1: Exemplary Command' | 'Tier 2: Competent Crisis Manager' | 'Tier 3: Vulnerable Operations' | 'Tier 4: Critical Breakdown';
+  tier: 'Tier 1: Master Urban Planner' | 'Tier 2: Strategic Transit Analyst' | 'Tier 3: Developing Policy Maker' | 'Tier 4: Tactical Misalignment';
   tierColor: string;
   summary: string;
+  correctCount: number;
   pillars: {
     name: string;
     score: number; // 0 - 100
     description: string;
   }[];
-  day1Breakdown: {
-    selectedIds: string[];
-    score: number; // out of 30
-    feedback: string;
-  };
-  day2Breakdown: {
-    allocations: {
-      gridRestoration: number;
-      cleanWater: number;
-      emergencyTrauma: number;
-    };
-    total: number;
-    score: number; // out of 40
-    feedback: string;
-  };
-  day3Breakdown: {
-    selectedIds: string[];
-    score: number; // out of 30
-    feedback: string;
+  scenarioAudits: {
+    scenario1: ScenarioAudit;
+    scenario2: ScenarioAudit;
+    scenario3: ScenarioAudit;
   };
   keyTakeaways: string[];
 }
 
 export function evaluatePracticeGame(
-  day1Rankings: string[],
-  day2Allocations: { gridRestoration: number; cleanWater: number; emergencyTrauma: number },
-  day3Rankings: string[]
+  scenario1Rankings: string[],
+  scenario2Data: {
+    mode: 'preset' | 'custom';
+    presetPlan: string | null;
+    allocations: { relocationStalls: number; phasedConstruction: number; livelihoodSupport: number };
+  },
+  scenario3Rankings: string[]
 ): PracticeEvaluationResult {
-  // Day 1 Evaluation (Max 30)
-  let d1Score = 0;
-  const d1Selected = day1Rankings.slice(0, 3);
-  
-  // Life safety synergy: P1-B (Evacuation) + P1-C (Substation Power) + P1-E (Refinery Hazmat) or P1-A (Barriers)
-  if (d1Selected.includes('P1-B')) d1Score += 11; // Evacuating vulnerable citizens is top life saver
-  if (d1Selected.includes('P1-C')) d1Score += 10; // Preserving regional electrical grid
-  if (d1Selected.includes('P1-E')) d1Score += 9;  // Hazmat containment prevents toxic spill
-  if (d1Selected.includes('P1-A') && !d1Selected.includes('P1-E')) d1Score += 8;
-  if (d1Selected.includes('P1-D') && !d1Selected.includes('P1-B')) d1Score += 5;
-  d1Score = Math.min(30, Math.max(12, d1Score));
+  // ---------------------------------------------------------------------------
+  // Scenario 1 Evaluation: First 3 actions get executed
+  // ---------------------------------------------------------------------------
+  const s1Selected = scenario1Rankings.slice(0, 3);
+  let s1Score = 0;
+  let s1Feedback = '';
 
-  let d1Feedback = '';
-  if (d1Selected.includes('P1-B') && d1Selected.includes('P1-C')) {
-    d1Feedback = 'Outstanding tactical balance: Prioritizing civilian evacuation alongside substation grid power safeguarded human life while preserving critical telecom and hospital systems.';
-  } else if (d1Selected.includes('P1-B')) {
-    d1Feedback = 'Strong humanitarian prioritization: Evacuating the coastal settlements eliminated immediate drowning risks, though secondary utility challenges remained.';
+  const s1HasB = s1Selected.includes('B');
+  const s1HasE = s1Selected.includes('E');
+  const s1Rank1IsB = scenario1Rankings[0] === 'B';
+
+  if (s1HasB) s1Score += 18;
+  if (s1HasE) s1Score += 10;
+  if (s1Rank1IsB) s1Score += 5; // Top priority placement bonus
+  if (s1Selected.includes('A') && !s1HasE) s1Score += 5;
+  if (s1Selected.includes('C') && !s1HasB) s1Score += 4;
+  if (s1Selected.includes('D')) s1Score += 2;
+
+  s1Score = Math.min(33, Math.max(8, s1Score));
+
+  if (s1HasB && s1HasE) {
+    s1Feedback = "Exemplary Strategic Synergy: Prioritizing GPS telemetry & headway dispatching (B) combined with dedicated bus lanes (E) directly eliminates bus bunching and speeds up corridors without fleet overspending.";
+  } else if (s1HasB) {
+    s1Feedback = "Strong Root-Cause Focus: GPS tracking and headway dispatching (B) fixes the bunching and the unpredictable wait times at a fraction of the cost of buying new vehicles.";
+  } else if (s1Selected.includes('A')) {
+    s1Feedback = "Capital-Heavy Comfort Focus: Buying new air-conditioned buses (A) improves passenger comfort, but without timetable-based dispatching, the new buses still bunch together, leaving erratic 5–40 minute waits.";
   } else {
-    d1Feedback = 'Infrastructure-heavy focus: Industrial and alert mechanisms were activated, but delayed evacuation of coastal informal settlements left vulnerable families exposed.';
+    s1Feedback = "Misaligned Interventions: Fare cuts (C) bleed operating revenue without fixing delays, while adding new routes (D) spreads an already unreliable fleet even thinner.";
   }
 
-  // Day 2 Evaluation (Max 40)
-  // Day 4-style resource allocation
-  const { gridRestoration, cleanWater, emergencyTrauma } = day2Allocations;
-  const total = gridRestoration + cleanWater + emergencyTrauma;
-  let d2Score = 0;
+  // ---------------------------------------------------------------------------
+  // Scenario 2 Evaluation: Resource Allocation (100M Cap against 120M needs)
+  // ---------------------------------------------------------------------------
+  const { relocationStalls, phasedConstruction, livelihoodSupport } = scenario2Data.allocations;
+  const s2Total = relocationStalls + phasedConstruction + livelihoodSupport;
+  let s2Score = 0;
+  let s2Feedback = '';
 
-  if (total > 100) {
-    d2Score = 10; // Severe deficit for overspending
-  } else if (total < 60) {
-    d2Score = 18; // Under-spending during active emergency
+  if (s2Total > 100 || scenario2Data.presetPlan === '2E') {
+    s2Score = 8;
+    s2Feedback = `Budget Breach Deficit: Allocated LKR ${s2Total}M, exceeding the statutory 100M grant limit. The plan was rejected by treasury audit controllers for fiscal overdraft.`;
+  } else if (s2Total < 65) {
+    s2Score = 14;
+    s2Feedback = `Under-Investment: Allocated only LKR ${s2Total}M of the 100M grant during an active crisis, leaving critical market relocation and civil engineering underfunded.`;
   } else {
-    // Reward balanced allocation that satisfies recommended minimums
-    let base = 25;
-    // Check if sectors meet threshold
-    if (gridRestoration >= 20) base += 5;
-    else if (gridRestoration >= 10) base += 2;
+    let base = 20;
+    if (relocationStalls >= 35) base += 5;
+    else if (relocationStalls >= 20) base += 2;
 
-    if (cleanWater >= 25) base += 5;
-    else if (cleanWater >= 15) base += 2;
+    if (phasedConstruction >= 30) base += 4;
+    else if (phasedConstruction >= 20) base += 2;
 
-    if (emergencyTrauma >= 20) base += 5;
-    else if (emergencyTrauma >= 10) base += 2;
+    if (livelihoodSupport >= 20) base += 4;
+    else if (livelihoodSupport >= 10) base += 2;
 
-    // Bonus for spending nearly all 100M effectively
-    if (total >= 90 && total <= 100) base += 5;
+    s2Score = Math.min(33, base);
 
-    d2Score = Math.min(40, base);
+    if (relocationStalls >= 35 && phasedConstruction >= 30 && livelihoodSupport >= 20) {
+      s2Feedback = "Optimal Alignment & Mitigation: Balanced investment across serviced interim stalls, phased construction sections, and livelihood support keeps the best commuter route while building trust with the 300 market traders.";
+    } else if (relocationStalls < 30) {
+      s2Feedback = "Relocation Vulnerability: Temporary vendor stalls were underfunded, risking severe merchant hardship and street protests.";
+    } else {
+      s2Feedback = "Functional Distribution: Successfully respected the 100M cap and supported baseline operations, though trade-offs constrained civil phasing speed.";
+    }
   }
 
-  let d2Feedback = '';
-  if (total > 100) {
-    d2Feedback = `Budget Breach: Total allocation (${total}M LKR) exceeded the authorized 100M ceiling. Overdrawing was intercepted by treasury controllers.`;
-  } else if (gridRestoration >= 20 && cleanWater >= 25 && emergencyTrauma >= 20) {
-    d2Feedback = `Exemplary Allocation: Balanced ${gridRestoration}M Grid, ${cleanWater}M Water, and ${emergencyTrauma}M Medical. No critical lifeline suffered operational starvation.`;
-  } else if (cleanWater < 20) {
-    d2Feedback = `Water Vulnerability: Clean water was underfunded (${cleanWater}M < 25M recommended), increasing the hazard of acute gastrointestinal epidemics.`;
-  } else if (gridRestoration < 20) {
-    d2Feedback = `Drainage Latency: Power & pumping was underfunded (${gridRestoration}M < 20M recommended), prolonging stagnant saltwater retention in urban basins.`;
+  // ---------------------------------------------------------------------------
+  // Scenario 3 Evaluation: First 3 actions get executed
+  // ---------------------------------------------------------------------------
+  const s3Selected = scenario3Rankings.slice(0, 3);
+  let s3Score = 0;
+  let s3Feedback = '';
+
+  const s3HasC = s3Selected.includes('C');
+  const s3HasE = s3Selected.includes('E');
+  const s3Rank1IsC = scenario3Rankings[0] === 'C';
+
+  if (s3HasC) s3Score += 18;
+  if (s3HasE) s3Score += 10;
+  if (s3Rank1IsC) s3Score += 6; // Top priority placement bonus
+  if (s3Selected.includes('B') && !s3HasE) s3Score += 5;
+  if (s3Selected.includes('A')) s3Score += 3;
+  if (s3Selected.includes('D')) s3Score += 2;
+
+  s3Score = Math.min(34, Math.max(8, s3Score));
+
+  if (s3HasC && s3HasE) {
+    s3Feedback = "Flawless Staged Transition: Piloting on two routes (C) with cash options and deploying cash-to-smartcard kiosks (E) simultaneously protects vulnerable daily-wage commuters while isolating technical bugs at low cost.";
+  } else if (s3HasC) {
+    s3Feedback = "Prudent Risk Management: Piloting on two routes exposes technical faults when the cost of failure is small, and keeping cash protects passengers who cannot switch yet.";
+  } else if (s3Selected.includes('A')) {
+    s3Feedback = "High Coercion Risk: Forcing citywide adoption and removing cash in 3 months (A) disenfranchises elderly commuters and daily-wage earners without bank accounts.";
   } else {
-    d2Feedback = `Functional Distribution: Allocated ${total}M / 100M. Core services were maintained, though certain sectoral tradeoffs constrained rapid recovery.`;
+    s3Feedback = "Excessive Systemic Risk: Deploying hardware citywide with an untested scale (B) risks massive breakdowns, while canceling the project (D) surrenders modernization benefits.";
   }
 
-  // Day 3 Evaluation (Max 30)
-  let d3Score = 0;
-  const d3Selected = day3Rankings.slice(0, 3);
-  if (d3Selected.includes('P3-A')) d3Score += 10; // Direct household relief
-  if (d3Selected.includes('P3-B')) d3Score += 10; // Reopening port commerce
-  if (d3Selected.includes('P3-C')) d3Score += 8;  // Fast drone grid mapping
-  if (d3Selected.includes('P3-E')) d3Score += 7;  // Mangrove bio-shield
-  if (d3Selected.includes('P3-D')) d3Score += 6;  // Demurrage relief
-  d3Score = Math.min(30, Math.max(14, d3Score));
+  const finalScore = Math.min(100, Math.max(20, s1Score + s2Score + s3Score));
+  const optimalCount = [
+    s1HasB && s1Rank1IsB,
+    s2Score >= 30,
+    s3HasC && s3Rank1IsC
+  ].filter(Boolean).length;
 
-  let d3Feedback = '';
-  if (d3Selected.includes('P3-A') && d3Selected.includes('P3-B')) {
-    d3Feedback = 'Harmonious Dual Recovery: Coupling direct household survival grants with harbor dredging successfully stabilized both community welfare and commercial supply chains.';
-  } else if (d3Selected.includes('P3-A')) {
-    d3Feedback = 'People-First Recovery: Prioritizing micro-grants directly aided displaced families, though maritime trade bottlenecks required secondary clearance.';
-  } else {
-    d3Feedback = 'Industrial-Led Recovery: Shipping lanes and infrastructure diagnostics were prioritized, establishing trade foundations while citizen relief moved at moderate speed.';
-  }
-
-  const finalScore = Math.min(100, Math.max(20, d1Score + d2Score + d3Score));
-
-  let tier: PracticeEvaluationResult['tier'] = 'Tier 4: Critical Breakdown';
+  let tier: PracticeEvaluationResult['tier'] = 'Tier 4: Tactical Misalignment';
   let tierColor = 'text-red-400 border-red-500/40 bg-red-950/40';
   let summary = '';
 
-  if (finalScore >= 85) {
-    tier = 'Tier 1: Exemplary Command';
+  if (finalScore >= 88) {
+    tier = 'Tier 1: Master Urban Planner';
     tierColor = 'text-emerald-300 border-emerald-500/50 bg-emerald-950/50';
-    summary = 'Outstanding Command Performance! You demonstrated superior strategic synchronization across acute tactical containment, multi-sector resource budgeting, and sustainable community recovery.';
+    summary = 'Outstanding Strategic Command! You addressed root causes rather than symptoms, balanced critical civic infrastructure with community welfare, and managed technology transitions with prudent risk staging.';
   } else if (finalScore >= 70) {
-    tier = 'Tier 2: Competent Crisis Manager';
+    tier = 'Tier 2: Strategic Transit Analyst';
     tierColor = 'text-cyan-300 border-cyan-500/50 bg-cyan-950/50';
-    summary = 'Solid Operational Management. You effectively stabilized Aurelia Metro with sound tactical instincts and controlled budget execution, maintaining essential lifelines under stress.';
-  } else if (finalScore >= 50) {
-    tier = 'Tier 3: Vulnerable Operations';
+    summary = 'Solid Policy & Operational Execution. You made sound strategic calls across transit reliability and fiscal allocation, keeping core commuter lifelines stable with minor sectoral compromises.';
+  } else if (finalScore >= 48) {
+    tier = 'Tier 3: Developing Policy Maker';
     tierColor = 'text-amber-300 border-amber-500/50 bg-amber-950/50';
-    summary = 'Pyrrhic Survival. The metropolitan area avoided complete catastrophe, but severe sectoral imbalances or underfunded lifelines resulted in lingering vulnerabilities.';
+    summary = 'Moderate Strategic Performance. Some decisions targeted immediate symptoms or incurred budget friction, leaving certain stakeholder segments vulnerable.';
   } else {
-    tier = 'Tier 4: Critical Breakdown';
+    tier = 'Tier 4: Tactical Misalignment';
     tierColor = 'text-red-400 border-red-500/50 bg-red-950/50';
-    summary = 'Systemic Crisis. Misaligned resource allocations and tactical delays allowed compounding hazards to overwhelm regional capacity.';
+    summary = 'Critical Policy Misalignment. Overdrafts, premature technological cutovers, or capital-heavy quick fixes led to severe operational vulnerabilities.';
   }
 
   const pillars = [
     {
-      name: 'Tactical Threat Mitigation',
-      score: Math.round((d1Score / 30) * 100),
-      description: 'Rapid response to acute coastal storm surge and flood perimeter breaches.'
+      name: 'Transit Reliability & Root Causes',
+      score: Math.round((s1Score / 33) * 100),
+      description: 'Prioritizing headway dispatching, vehicle spacing, and signal priority over cosmetic fleet purchases.'
     },
     {
-      name: 'Emergency Budget Allocation',
-      score: Math.round((d2Score / 40) * 100),
-      description: 'Disaster fund distribution across grid, water purification, and emergency trauma triage.'
+      name: 'Multi-Sector Community Budgeting',
+      score: Math.round((s2Score / 33) * 100),
+      description: 'Allocating the 100M fund to protect small trader livelihoods and maintain optimal transit alignment without budget breach.'
     },
     {
-      name: 'Resilient Recovery & Continuity',
-      score: Math.round((d3Score / 30) * 100),
-      description: 'Strategic balance between immediate citizen rehabilitation and macroeconomic port reboot.'
+      name: 'Staged Scaling & Digital Equity',
+      score: Math.round((s3Score / 34) * 100),
+      description: 'Conducting small-scale pilots with cash retention and accessible kiosks to protect unbanked commuters.'
     }
   ];
 
   const keyTakeaways = [
-    'Always prioritize life protection and electrical transmission in initial disaster hours to prevent secondary utility cascade.',
-    'Multi-sector budgeting (like Day 2) requires balanced spending: starve none of the lifelines (power, clean water, medical).',
-    'Post-disaster recovery is most sustainable when coupling immediate citizen cash transfers with commercial trade channel clearance.'
+    'Solve root causes first: Reliability, headway spacing, and schedule predictability drive ridership far more than vehicle luxury or fare cuts.',
+    'Protect community livelihoods: Phased construction, temporary serviced stalls, and early consultation resolve opposition without costly 4 km rerouting or delays.',
+    'Test before scaling: Controlled pilots expose technical flaws at low cost, and retaining cash safeguards vulnerable commuters who cannot transition immediately.'
   ];
 
   return {
@@ -468,22 +527,47 @@ export function evaluatePracticeGame(
     tier,
     tierColor,
     summary,
+    correctCount: optimalCount,
     pillars,
-    day1Breakdown: {
-      selectedIds: d1Selected,
-      score: d1Score,
-      feedback: d1Feedback
-    },
-    day2Breakdown: {
-      allocations: day2Allocations,
-      total,
-      score: d2Score,
-      feedback: d2Feedback
-    },
-    day3Breakdown: {
-      selectedIds: d3Selected,
-      score: d3Score,
-      feedback: d3Feedback
+    scenarioAudits: {
+      scenario1: {
+        scenarioNumber: 1,
+        scenarioTitle: PRACTICE_SCENARIO_1.title,
+        userSummary: `Top 3 Actions Deployed: [${s1Selected.join(', ')}] (Ranks 4-5 in reserve)`,
+        suggestedAnswerId: 'B',
+        suggestedAnswerSummary: PRACTICE_SCENARIO_1.suggestedAnswerSummary,
+        suggestedAnswerExplanation: PRACTICE_SCENARIO_1.suggestedAnswerExplanation,
+        isOptimal: s1HasB && s1Rank1IsB,
+        score: s1Score,
+        maxScore: 33,
+        feedback: s1Feedback
+      },
+      scenario2: {
+        scenarioNumber: 2,
+        scenarioTitle: PRACTICE_SCENARIO_2.title,
+        userSummary: scenario2Data.mode === 'preset'
+          ? `Preset Plan [${scenario2Data.presetPlan || 'None'}] (Total LKR ${s2Total}M)`
+          : `Custom Allocation: Stalls ${relocationStalls}M, Phasing ${phasedConstruction}M, Support ${livelihoodSupport}M (Total ${s2Total}M)`,
+        suggestedAnswerId: 'Plan 2A / C',
+        suggestedAnswerSummary: PRACTICE_SCENARIO_2.suggestedAnswerSummary,
+        suggestedAnswerExplanation: PRACTICE_SCENARIO_2.suggestedAnswerExplanation,
+        isOptimal: s2Score >= 30,
+        score: s2Score,
+        maxScore: 33,
+        feedback: s2Feedback
+      },
+      scenario3: {
+        scenarioNumber: 3,
+        scenarioTitle: PRACTICE_SCENARIO_3.title,
+        userSummary: `Top 3 Actions Deployed: [${s3Selected.join(', ')}] (Ranks 4-5 in reserve)`,
+        suggestedAnswerId: 'C',
+        suggestedAnswerSummary: PRACTICE_SCENARIO_3.suggestedAnswerSummary,
+        suggestedAnswerExplanation: PRACTICE_SCENARIO_3.suggestedAnswerExplanation,
+        isOptimal: s3HasC && s3Rank1IsC,
+        score: s3Score,
+        maxScore: 34,
+        feedback: s3Feedback
+      }
     },
     keyTakeaways
   };

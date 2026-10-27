@@ -199,14 +199,14 @@ export default function HomePage() {
                   Practice Gaming Challenge
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5 max-w-2xl">
-                  Test your disaster command instincts in a 3-day tactical sandbox with resource allocation and instant performance debriefing before deploying into the live tournament.
+                  Test your strategic decision instincts across 3 transit planning scenarios with trade-off analysis and instant debriefing before deploying into the live tournament.
                 </p>
 
                 {/* 2x2 Tactical Spec Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-300 font-mono">
                   <div className="flex items-center gap-2 bg-slate-900/70 border border-slate-800/80 rounded-xl px-3 py-2">
                     <CheckCircle2 size={14} className="text-amber-400 shrink-0" />
-                    <span>3-Day Scenario (100M Budget Cap)</span>
+                    <span>3 Stages (Prioritize & Allocate)</span>
                   </div>
                   <div className="flex items-center gap-2 bg-slate-900/70 border border-slate-800/80 rounded-xl px-3 py-2">
                     <CheckCircle2 size={14} className="text-amber-400 shrink-0" />
