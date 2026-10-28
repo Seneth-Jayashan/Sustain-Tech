@@ -27,6 +27,25 @@ export async function POST(request: Request) {
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    // Check if Real Game is locked for players
+    if (user.role !== 'admin') {
+      const { getGameAccessStatus } = await import('@/lib/gameAccess');
+      const accessStatus = await getGameAccessStatus();
+      if (accessStatus.isLocked) {
+        const formattedUnlock = accessStatus.unlockTime 
+          ? new Date(accessStatus.unlockTime).toLocaleString() 
+          : 'the scheduled tournament start time';
+        const customMsg = accessStatus.message ? ` Announcement: ${accessStatus.message}` : '';
+        return NextResponse.json({
+          error: `Real Game is locked until ${formattedUnlock}.${customMsg} Please play the Practice Game in the meantime!`,
+          isLocked: true,
+          unlockTime: accessStatus.unlockTime,
+          timeRemainingSeconds: accessStatus.timeRemainingSeconds,
+          message: accessStatus.message
+        }, { status: 403 });
+      }
+    }
     
     // For admins, teamId might be null. Safely extract team info.
     const teamIdStr = user.teamId ? (user.teamId as any)._id.toString() : '';

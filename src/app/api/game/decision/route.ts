@@ -23,6 +23,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Guard: block non-admins if Real Game is locked
+    if (session.role !== 'admin') {
+      const { getGameAccessStatus } = await import('@/lib/gameAccess');
+      const accessStatus = await getGameAccessStatus();
+      if (accessStatus.isLocked) {
+        return NextResponse.json({
+          error: 'Real game is locked until tournament start time',
+          isLocked: true,
+          unlockTime: accessStatus.unlockTime,
+          timeRemainingSeconds: accessStatus.timeRemainingSeconds
+        }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
     const { rankings, allocations, timeout, bucket } = body;
 

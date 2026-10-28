@@ -5,6 +5,7 @@ import Action from './Action';
 import Scenario from './Scenario';
 import Event from './Event';
 import IntegrityLog from './IntegrityLog';
+import SystemSettings from './SystemSettings';
 
 export {
   Team,
@@ -13,5 +14,7 @@ export {
   Action,
   Scenario,
   Event,
-  IntegrityLog
+  IntegrityLog,
+  SystemSettings
 };
+

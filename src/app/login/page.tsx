@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -23,7 +23,9 @@ import {
   Sliders,
   Activity,
   CheckCircle2,
-  Cpu
+  Cpu,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -32,11 +34,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lockStatus, setLockStatus] = useState<{ isLocked: boolean; unlockTime: string | null; timeRemainingSeconds: number; message?: string } | null>(null);
+  const [isLockedRejection, setIsLockedRejection] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/game/access-status')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.isLocked) {
+          setLockStatus({
+            isLocked: d.isLocked,
+            unlockTime: d.unlockTime,
+            timeRemainingSeconds: d.timeRemainingSeconds,
+            message: d.message,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setIsLockedRejection(false);
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -47,6 +68,9 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.isLocked) {
+          setIsLockedRejection(true);
+        }
         throw new Error(data.error || 'Login failed');
       }
 
@@ -298,6 +322,21 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              {/* Lock Status Notice in Card */}
+              {lockStatus?.isLocked && (
+                <div className="mb-5 p-3 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-300 text-xs font-mono flex items-start gap-2.5">
+                  <Lock size={15} className="text-rose-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block text-rose-200 uppercase tracking-wider text-[10px]">
+                      Real Game Access Restricted
+                    </span>
+                    <span className="text-[11px] text-slate-300 leading-tight block mt-0.5">
+                      Tournament unlocks at scheduled start time. Real Game is fully blocked until then. Practice Game is unrestricted!
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Login Form */}
               <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                 <div>
@@ -345,10 +384,29 @@ export default function LoginPage() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center gap-2 text-rose-400 text-xs font-mono bg-rose-500/10 border border-rose-500/30 rounded-xl p-3"
+                    className="flex flex-col gap-2 text-rose-400 text-xs font-mono bg-rose-500/10 border border-rose-500/30 rounded-xl p-3"
                   >
-                    <AlertCircle size={15} className="shrink-0 text-rose-400" />
-                    <span>{error}</span>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={15} className="shrink-0 text-rose-400" />
+                      <span>{error}</span>
+                    </div>
+
+                    {isLockedRejection && (
+                      <div className="pt-2 border-t border-rose-500/20 flex items-center gap-2 mt-1">
+                        <Link
+                          href="/practice"
+                          className="flex-1 py-2 px-3 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-lg text-center uppercase text-[10px] tracking-wider transition-all shadow-md"
+                        >
+                          Play Practice Game
+                        </Link>
+                        <Link
+                          href="/locked"
+                          className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-center text-[10px]"
+                        >
+                          View Timer
+                        </Link>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -14,10 +14,75 @@ import {
   Zap,
   Crosshair,
   ShieldAlert,
-  Play
+  Play,
+  Lock,
+  Clock,
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 
+interface GameAccessState {
+  isLocked: boolean;
+  unlockTime: string | null;
+  timeRemainingSeconds: number;
+  message?: string;
+}
+
 export default function HomePage() {
+  const [access, setAccess] = useState<GameAccessState | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
+
+  const fetchAccess = useCallback(async () => {
+    try {
+      const res = await fetch('/api/game/access-status', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setAccess({
+            isLocked: data.isLocked,
+            unlockTime: data.unlockTime,
+            timeRemainingSeconds: data.timeRemainingSeconds || 0,
+            message: data.message,
+          });
+          setCountdown(data.timeRemainingSeconds || 0);
+        }
+      }
+    } catch {
+      // silent fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAccess();
+    const interval = setInterval(fetchAccess, 8000);
+    return () => clearInterval(interval);
+  }, [fetchAccess]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          fetchAccess();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown, fetchAccess]);
+
+  const formatCountdown = (totalSec: number) => {
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) {
+      return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+    }
+    return `${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  };
+
+  const isRealGameLocked = access?.isLocked && countdown > 0;
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col justify-between relative overflow-hidden bg-[#030712] text-slate-100 p-4 sm:p-6 md:p-8 select-none">
       {/* Tactical Game Background: Cyber Grid, Radar Rings & Ambient Glows */}
@@ -129,40 +194,83 @@ export default function HomePage() {
           Collaborate in real time, evaluate multi-variable trade-offs under constraints, and optimize critical system performance.
         </motion.p>
 
-        {/* PRIMARY REAL GAME LAUNCH PORTAL (Button Only — No Spoilers/Details) */}
+        {/* Dynamic Lock Alert Banner if Real Game is locked */}
+        {isRealGameLocked && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-6 px-4 py-2 rounded-full bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold flex items-center gap-2.5 shadow-[0_0_25px_rgba(244,63,94,0.2)] backdrop-blur-md"
+          >
+            <Lock size={14} className="text-rose-400 animate-pulse" />
+            <span>REAL GAME SEALED UNTIL {formatCountdown(countdown)} • PLAY PRACTICE CHALLENGE NOW</span>
+          </motion.div>
+        )}
+
+        {/* PRIMARY REAL GAME LAUNCH PORTAL */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
           className="w-full max-w-md mb-10"
         >
-          <div className="relative group p-1 rounded-3xl bg-gradient-to-r from-teal-500/40 via-cyan-400/40 to-emerald-500/40 shadow-[0_0_50px_rgba(20,184,166,0.25)] hover:shadow-[0_0_70px_rgba(34,211,238,0.45)] transition-all duration-300">
-            {/* Animated Glow Halo */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500 pointer-events-none" />
+          {isRealGameLocked ? (
+            /* LOCKED STATE PORTAL */
+            <div className="relative group p-1 rounded-3xl bg-gradient-to-r from-rose-500/40 via-amber-400/40 to-orange-500/40 shadow-[0_0_50px_rgba(244,63,94,0.25)] hover:shadow-[0_0_70px_rgba(251,191,36,0.35)] transition-all duration-300">
+              <div className="absolute -inset-1 bg-gradient-to-r from-rose-500 via-amber-400 to-orange-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-50 transition duration-500 pointer-events-none" />
 
-            <Link
-              href="/login"
-              className="relative w-full bg-gradient-to-r from-teal-400 via-cyan-400 to-emerald-400 hover:from-teal-300 hover:via-cyan-300 hover:to-emerald-300 text-slate-950 font-black py-4 sm:py-5 px-8 rounded-[1.35rem] flex items-center justify-between gap-4 text-base sm:text-lg uppercase tracking-wider transition-all cursor-pointer overflow-hidden"
-            >
-              <div className="flex items-center gap-3">
-                <span className="p-2 rounded-xl bg-slate-950/15 text-slate-950">
-                  <Trophy size={22} className="stroke-[2.5]" />
-                </span>
-                <div className="flex flex-col items-start leading-tight">
-                  <span className="text-[10px] font-mono font-extrabold uppercase tracking-[0.2em] text-slate-900/80">
-                    Official Tournament
+              <Link
+                href="/locked"
+                className="relative w-full bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500 hover:from-rose-400 hover:via-amber-400 hover:to-orange-400 text-slate-950 font-black py-4 sm:py-5 px-7 rounded-[1.35rem] flex items-center justify-between gap-4 text-base sm:text-lg uppercase tracking-wider transition-all cursor-pointer overflow-hidden"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="p-2 rounded-xl bg-slate-950/20 text-slate-950">
+                    <Lock size={22} className="stroke-[2.5]" />
                   </span>
-                  <span className="text-lg sm:text-xl font-black tracking-tight">
-                    Enter Real Game
-                  </span>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[10px] font-mono font-extrabold uppercase tracking-[0.2em] text-slate-900/80 flex items-center gap-1">
+                      <Clock size={10} />
+                      Starts in {formatCountdown(countdown)}
+                    </span>
+                    <span className="text-lg sm:text-xl font-black tracking-tight">
+                      Real Game Locked
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="h-10 w-10 rounded-xl bg-slate-950 text-teal-400 flex items-center justify-center group-hover:translate-x-1 transition-transform shadow-md">
-                <Play size={18} className="fill-current ml-0.5" />
-              </div>
-            </Link>
-          </div>
+                <div className="h-10 px-3 rounded-xl bg-slate-950 text-amber-300 flex items-center justify-center font-mono text-xs font-bold shadow-md">
+                  Countdown
+                </div>
+              </Link>
+            </div>
+          ) : (
+            /* UNLOCKED STATE PORTAL */
+            <div className="relative group p-1 rounded-3xl bg-gradient-to-r from-teal-500/40 via-cyan-400/40 to-emerald-500/40 shadow-[0_0_50px_rgba(20,184,166,0.25)] hover:shadow-[0_0_70px_rgba(34,211,238,0.45)] transition-all duration-300">
+              <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500 pointer-events-none" />
+
+              <Link
+                href="/login"
+                className="relative w-full bg-gradient-to-r from-teal-400 via-cyan-400 to-emerald-400 hover:from-teal-300 hover:via-cyan-300 hover:to-emerald-300 text-slate-950 font-black py-4 sm:py-5 px-8 rounded-[1.35rem] flex items-center justify-between gap-4 text-base sm:text-lg uppercase tracking-wider transition-all cursor-pointer overflow-hidden"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="p-2 rounded-xl bg-slate-950/15 text-slate-950">
+                    <Trophy size={22} className="stroke-[2.5]" />
+                  </span>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[10px] font-mono font-extrabold uppercase tracking-[0.2em] text-slate-900/80">
+                      Official Tournament
+                    </span>
+                    <span className="text-lg sm:text-xl font-black tracking-tight">
+                      Enter Real Game
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-10 w-10 rounded-xl bg-slate-950 text-teal-400 flex items-center justify-center group-hover:translate-x-1 transition-transform shadow-md">
+                  <Play size={18} className="fill-current ml-0.5" />
+                </div>
+              </Link>
+            </div>
+          )}
         </motion.div>
 
         {/* PRACTICE SANDBOX DECK (Tactical Game Mode Card) */}
@@ -172,7 +280,11 @@ export default function HomePage() {
           transition={{ duration: 0.5, delay: 0.45 }}
           className="w-full max-w-4xl text-left"
         >
-          <div className="relative rounded-3xl p-6 sm:p-7 bg-slate-950/80 border border-amber-500/30 hover:border-amber-400/60 backdrop-blur-2xl shadow-2xl transition-all overflow-hidden group">
+          <div className={`relative rounded-3xl p-6 sm:p-7 bg-slate-950/80 backdrop-blur-2xl shadow-2xl transition-all overflow-hidden group border ${
+            isRealGameLocked
+              ? 'border-amber-400/80 shadow-[0_0_40px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/30'
+              : 'border-amber-500/30 hover:border-amber-400/60'
+          }`}>
             {/* HUD Corner Accents */}
             <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-amber-400/60 rounded-tl-3xl pointer-events-none" />
             <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-amber-400/60 rounded-tr-3xl pointer-events-none" />

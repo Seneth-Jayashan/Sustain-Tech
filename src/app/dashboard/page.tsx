@@ -6,6 +6,7 @@ import { getSession } from '@/lib/session';
 import { getInitialGameState } from '@/game/state';
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
 import { resolveExpiredRoundIfNecessary } from '@/lib/serverGameSession';
+import { getGameAccessStatus } from '@/lib/gameAccess';
 import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
@@ -14,6 +15,14 @@ export default async function DashboardPage() {
   
   if (!session || !session.teamId) {
     redirect('/login');
+  }
+
+  // Guard: if tournament has not started yet, redirect player to locked holding screen
+  if (session.role !== 'admin') {
+    const accessStatus = await getGameAccessStatus();
+    if (accessStatus.isLocked) {
+      redirect('/locked');
+    }
   }
 
   let gameSession = await GameSession.findOne({ teamId: session.teamId, status: 'ACTIVE' });

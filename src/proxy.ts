@@ -10,8 +10,11 @@ export async function proxy(request: NextRequest) {
     pathname === '/' ||
     pathname === '/practice' ||
     pathname.startsWith('/practice') ||
+    pathname === '/locked' ||
+    pathname.startsWith('/locked') ||
     pathname === '/login' || 
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/game/access-status') ||
     pathname.startsWith('/scenario') ||
     pathname.startsWith('/assets') ||
     /\.(mp3|wav|ogg|jpg|jpeg|png|svg|ico|webp)$/i.test(pathname);

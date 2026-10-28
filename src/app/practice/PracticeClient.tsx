@@ -604,7 +604,7 @@ export default function PracticeClient() {
                       {option.title}
                     </h4>
                     <p className="text-[11px] text-cyan-200/90 font-medium italic mb-2">
-                      "{option.tagline}"
+                      &ldquo;{option.tagline}&rdquo;
                     </p>
                     <p className="text-[11px] text-slate-300 leading-relaxed mb-2.5 line-clamp-3">
                       {option.description}

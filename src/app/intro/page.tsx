@@ -294,6 +294,17 @@ export default function IntroPage() {
   const bgFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rafRef = useRef<number>(0);
 
+  useEffect(() => {
+    fetch('/api/game/access-status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.isLocked) {
+          router.replace('/locked');
+        }
+      })
+      .catch(() => {});
+  }, [router]);
+
   const skipIntro = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (bgFadeRef.current) clearInterval(bgFadeRef.current);

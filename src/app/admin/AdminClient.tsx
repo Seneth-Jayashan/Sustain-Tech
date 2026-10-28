@@ -7,7 +7,7 @@ import {
   Activity, Users, LayoutDashboard, Settings, FileText, Database, Plus, Trash2,
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
   Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu,
-  Clock, Zap, Trophy, Timer
+  Clock, Zap, Trophy, Timer, Lock, Unlock, Calendar, Sparkles
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -60,7 +60,7 @@ const sortCompletedSessions = (sessionList: any[]) => {
 
 export default function AdminClient() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'scenarios'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'teams' | 'scenarios'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Data states
@@ -69,6 +69,22 @@ export default function AdminClient() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [allActions, setAllActions] = useState<any[]>([]);
+
+  // Real Game Access / Schedule state
+  const [accessStatus, setAccessStatus] = useState<{
+    isLocked: boolean;
+    unlockTime: string | null;
+    serverTime: string;
+    timeRemainingSeconds: number;
+    isAccessBlocked: boolean;
+    message: string;
+    updatedAt: string | null;
+  } | null>(null);
+
+  const [accessCountdown, setAccessCountdown] = useState<number>(0);
+  const [unlockDateInput, setUnlockDateInput] = useState<string>('');
+  const [customMsgInput, setCustomMsgInput] = useState<string>('');
+  const [savingAccess, setSavingAccess] = useState<boolean>(false);
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,9 +126,116 @@ export default function AdminClient() {
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const toLocalDateTimeInputString = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const formatDuration = (totalSec: number) => {
+    const d = Math.floor(totalSec / (3600 * 24));
+    const h = Math.floor((totalSec % (3600 * 24)) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+  };
+
+  const fetchAccessStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/game-access');
+      const data = await res.json();
+      if (data.success) {
+        setAccessStatus({
+          isLocked: data.isLocked,
+          unlockTime: data.unlockTime,
+          serverTime: data.serverTime,
+          timeRemainingSeconds: data.timeRemainingSeconds || 0,
+          isAccessBlocked: data.isAccessBlocked,
+          message: data.message || '',
+          updatedAt: data.updatedAt,
+        });
+        setAccessCountdown(data.timeRemainingSeconds || 0);
+        if (data.unlockTime) {
+          setUnlockDateInput(toLocalDateTimeInputString(new Date(data.unlockTime)));
+        }
+        setCustomMsgInput(data.message || '');
+      }
+    } catch (err) {
+      console.error('Error fetching game access:', err);
+    }
+  };
+
+  const handleUpdateGameAccess = async (params: {
+    realGameUnlockTime?: string | null;
+    isAccessBlocked?: boolean;
+    message?: string;
+  }) => {
+    setSavingAccess(true);
+    try {
+      const res = await fetch('/api/admin/game-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAccessStatus({
+          isLocked: data.isLocked,
+          unlockTime: data.unlockTime,
+          serverTime: data.serverTime,
+          timeRemainingSeconds: data.timeRemainingSeconds || 0,
+          isAccessBlocked: data.isAccessBlocked,
+          message: data.message || '',
+          updatedAt: data.updatedAt,
+        });
+        setAccessCountdown(data.timeRemainingSeconds || 0);
+        if (data.unlockTime) {
+          setUnlockDateInput(toLocalDateTimeInputString(new Date(data.unlockTime)));
+        } else {
+          setUnlockDateInput('');
+        }
+        showNotification('success', data.isLocked ? 'Real Game locked until scheduled time.' : 'Real Game is now unlocked and accessible.');
+      } else {
+        showNotification('error', data.error || 'Failed to update access schedule');
+      }
+    } catch (err: any) {
+      showNotification('error', err.message || 'Error updating access settings');
+    } finally {
+      setSavingAccess(false);
+    }
+  };
+
+  const applyTimePreset = (minutesFromNow: number) => {
+    const target = new Date(Date.now() + minutesFromNow * 60 * 1000);
+    setUnlockDateInput(toLocalDateTimeInputString(target));
+  };
+
+  const applyTomorrowPreset = (targetHour: number) => {
+    const target = new Date();
+    target.setDate(target.getDate() + 1);
+    target.setHours(targetHour, 0, 0, 0);
+    setUnlockDateInput(toLocalDateTimeInputString(target));
+  };
+
+  useEffect(() => {
+    if (accessCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setAccessCountdown(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [accessCountdown]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
+      fetchAccessStatus();
+
       if (activeTab === 'overview') {
         const res = await fetch('/api/admin/teams');
         const data = await res.json();
@@ -142,6 +265,8 @@ export default function AdminClient() {
           setScenarios(data.scenarios || []);
           setAllActions(data.allActions || []);
         }
+      } else if (activeTab === 'schedule') {
+        fetchAccessStatus();
       }
     } catch (e) {
       console.error(e);
@@ -153,7 +278,7 @@ export default function AdminClient() {
 
   useEffect(() => {
     fetchData();
-    if (activeTab === 'overview') {
+    if (activeTab === 'overview' || activeTab === 'schedule') {
       const interval = setInterval(fetchData, 6000);
       return () => clearInterval(interval);
     }
@@ -696,6 +821,7 @@ export default function AdminClient() {
   // Nav structure
   const navItems = [
     { id: 'overview', icon: LayoutDashboard, label: 'Telemetry Overview' },
+    { id: 'schedule', icon: Timer, label: 'Game Schedule & Access' },
     { id: 'teams', icon: Users, label: 'Teams & Players' },
     { id: 'scenarios', icon: FileText, label: 'Scenarios & Actions' },
   ];
@@ -887,6 +1013,7 @@ export default function AdminClient() {
             </h2>
             <p className="text-[11px] sm:text-xs font-mono text-gray-400 mt-1">
               {activeTab === 'overview' && 'Live sector monitoring, team decision pipelines, and telemetry'}
+              {activeTab === 'schedule' && 'Configure Real Game start time, tournament countdown, and player access locks'}
               {activeTab === 'teams' && 'Create teams, manage player rosters, and configure administrative access'}
               {activeTab === 'scenarios' && 'Manage simulation operational buckets and link actionable decision cards'}
             </p>
@@ -920,6 +1047,68 @@ export default function AdminClient() {
 
           return (
             <div className="grid gap-4 sm:gap-6">
+              {/* TOURNAMENT ACCESS & REAL GAME SCHEDULE QUICK-BAR */}
+              <div className={`p-4 sm:p-5 rounded-2xl border backdrop-blur-xl transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                accessStatus?.isLocked
+                  ? 'bg-rose-950/40 border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.12)]'
+                  : 'bg-emerald-950/40 border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.12)]'
+              }`}>
+                <div className="flex items-center gap-3.5">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+                    accessStatus?.isLocked
+                      ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
+                      : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                  }`}>
+                    {accessStatus?.isLocked ? <Lock size={22} className="animate-pulse" /> : <Unlock size={22} />}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                        accessStatus?.isLocked
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                      }`}>
+                        {accessStatus?.isLocked ? 'REAL GAME SEALED / LOCKED' : 'REAL GAME LIVE / UNLOCKED'}
+                      </span>
+                      {accessStatus?.isLocked && accessCountdown > 0 && (
+                        <span className="text-[11px] font-mono text-amber-300 font-bold flex items-center gap-1">
+                          <Clock size={12} /> Starts in {formatDuration(accessCountdown)}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-300 font-mono">
+                      {accessStatus?.isLocked
+                        ? accessStatus.unlockTime
+                          ? `Access restricted until: ${new Date(accessStatus.unlockTime).toLocaleString()} (Practice challenge only)`
+                          : 'Real Game locked indefinitely by administrator directive.'
+                        : 'Real Game tournament is currently open to all verified teams.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-stretch md:self-auto shrink-0">
+                  <button
+                    onClick={() => setActiveTab('schedule')}
+                    className="flex-1 md:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+                  >
+                    <Clock size={14} />
+                    <span>Set Time / Schedule</span>
+                  </button>
+                  {accessStatus?.isLocked && (
+                    <button
+                      onClick={() => handleUpdateGameAccess({ realGameUnlockTime: null, isAccessBlocked: false })}
+                      disabled={savingAccess}
+                      className="px-3 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
+                      title="Instantly open the Real Game for all players"
+                    >
+                      Unlock Now
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {sortedSessions.length === 0 && !loading && (
                 <div className="text-center p-12 sm:p-16 border border-dashed border-blue-900/40 rounded-2xl text-gray-500 font-mono text-xs sm:text-sm">
                   NO ACTIVE SESSIONS REGISTERED IN SECTOR
@@ -1152,6 +1341,237 @@ export default function AdminClient() {
             </div>
           );
         })()}
+
+        {/* ========================================================================= */}
+        {/* TAB: REAL GAME SCHEDULE & ACCESS CONTROL                                  */}
+        {/* ========================================================================= */}
+        {activeTab === 'schedule' && (
+          <div className="space-y-6 sm:space-y-8 max-w-5xl">
+            {/* 1. Status Readout Banner */}
+            <div className={`relative p-6 sm:p-8 rounded-3xl border backdrop-blur-2xl overflow-hidden transition-all shadow-2xl ${
+              accessStatus?.isLocked
+                ? 'bg-rose-950/30 border-rose-500/40 shadow-[0_0_50px_rgba(244,63,94,0.15)]'
+                : 'bg-emerald-950/30 border-emerald-500/40 shadow-[0_0_50px_rgba(16,185,129,0.15)]'
+            }`}>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
+                      accessStatus?.isLocked
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                    }`}>
+                      {accessStatus?.isLocked ? <Lock size={13} className="animate-pulse" /> : <Unlock size={13} />}
+                      {accessStatus?.isLocked ? 'Real Game Fully Blocked' : 'Real Game Unlocked / Open'}
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">
+                      Practice Simulator: Always Accessible
+                    </span>
+                  </div>
+
+                  <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white mb-2">
+                    {accessStatus?.isLocked ? 'Tournament Lock Protocol Active' : 'Tournament Live Protocol Active'}
+                  </h3>
+
+                  <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-mono leading-relaxed">
+                    {accessStatus?.isLocked
+                      ? 'Until the scheduled start time passes, player access to the Real Game is completely blocked. Players can exclusively play the Practice Game. When the timer expires, Real Game unlocks automatically.'
+                      : 'Real Game simulation is open to all teams. Players can log in, view the mission intro, and submit strategic decision directives.'}
+                  </p>
+                </div>
+
+                {/* Digital Countdown Box */}
+                {accessStatus?.isLocked && accessCountdown > 0 && (
+                  <div className="shrink-0 p-4 rounded-2xl bg-slate-950/80 border border-amber-500/40 text-center min-w-[200px]">
+                    <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold mb-1">
+                      Time Until Automatic Unlock
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-mono font-black text-amber-300">
+                      {formatDuration(accessCountdown)}
+                    </div>
+                    <div className="text-[10px] font-mono text-slate-400 mt-1">
+                      {accessStatus.unlockTime ? new Date(accessStatus.unlockTime).toLocaleTimeString() : ''}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Update Start Time & Access Controls Form */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-slate-950/80 border border-blue-900/50 shadow-2xl backdrop-blur-2xl">
+              <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-blue-900/40">
+                <Clock className="text-blue-400" size={20} />
+                <div>
+                  <h4 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
+                    Set Scheduled Start Time &amp; Access Directive
+                  </h4>
+                  <p className="text-xs font-mono text-gray-400">
+                    Define when the Real Game unlocks. Players attempting to access prior to this time are blocked with a live countdown and guided to practice mode.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Date & Time Picker */}
+                <div>
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-blue-300 mb-2 flex items-center gap-2">
+                    <Calendar size={14} className="text-blue-400" />
+                    Scheduled Start Date &amp; Time
+                  </label>
+                  <div className="max-w-md">
+                    <input
+                      type="datetime-local"
+                      value={unlockDateInput}
+                      onChange={(e) => setUnlockDateInput(e.target.value)}
+                      className="w-full bg-black/60 border border-blue-800/60 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 rounded-xl px-4 py-3 text-white font-mono text-sm tracking-wider outline-none"
+                    />
+                  </div>
+                  <p className="text-[11px] font-mono text-gray-400 mt-1.5">
+                    Select the exact local date and time when the official tournament unlocks.
+                  </p>
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Quick Schedule Presets
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { label: '+15 Mins', mins: 15 },
+                      { label: '+30 Mins', mins: 30 },
+                      { label: '+1 Hour', mins: 60 },
+                      { label: '+2 Hours', mins: 120 },
+                    ].map(preset => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => applyTimePreset(preset.mins)}
+                        className="px-3 py-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/70 text-blue-300 border border-blue-800/50 text-xs font-mono font-bold transition-colors cursor-pointer"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => applyTomorrowPreset(9)}
+                      className="px-3 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/70 text-purple-300 border border-purple-800/50 text-xs font-mono font-bold transition-colors cursor-pointer"
+                    >
+                      Tomorrow 9:00 AM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyTomorrowPreset(10)}
+                      className="px-3 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/70 text-purple-300 border border-purple-800/50 text-xs font-mono font-bold transition-colors cursor-pointer"
+                    >
+                      Tomorrow 10:00 AM
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Announcement Message */}
+                <div>
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-blue-300 mb-2 flex items-center gap-2">
+                    <Sparkles size={14} className="text-amber-400" />
+                    Custom Message to Players (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={customMsgInput}
+                    onChange={(e) => setCustomMsgInput(e.target.value)}
+                    placeholder="e.g. Welcome teams! The official symposium simulation starts after keynotes at 10:00 AM. Please practice in the sandbox while waiting."
+                    className="w-full bg-black/60 border border-blue-800/60 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 rounded-xl p-3 text-white font-mono text-xs outline-none"
+                  />
+                  <p className="text-[11px] font-mono text-gray-400 mt-1">
+                    Displayed directly on the player login portal, homepage banner, and the tournament holding screen.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-4 border-t border-blue-900/40 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={savingAccess || !unlockDateInput}
+                    onClick={() => {
+                      if (!unlockDateInput) {
+                        showNotification('error', 'Please pick a scheduled start time first.');
+                        return;
+                      }
+                      const date = new Date(unlockDateInput);
+                      if (isNaN(date.getTime())) {
+                        showNotification('error', 'Invalid date format');
+                        return;
+                      }
+                      handleUpdateGameAccess({
+                        realGameUnlockTime: date.toISOString(),
+                        isAccessBlocked: false,
+                        message: customMsgInput
+                      });
+                    }}
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Lock size={15} />
+                    <span>{savingAccess ? 'Saving...' : 'Lock Real Game Until Scheduled Time'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={savingAccess}
+                    onClick={() => {
+                      handleUpdateGameAccess({
+                        realGameUnlockTime: null,
+                        isAccessBlocked: false,
+                        message: customMsgInput
+                      });
+                    }}
+                    className="px-5 py-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/50 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Unlock size={15} />
+                    <span>Unlock Real Game Immediately</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={savingAccess}
+                    onClick={() => {
+                      handleUpdateGameAccess({
+                        realGameUnlockTime: null,
+                        isAccessBlocked: true,
+                        message: customMsgInput
+                      });
+                    }}
+                    className="px-4 py-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <ShieldAlert size={15} />
+                    <span>Lock Indefinitely</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Tournament Architecture & Rules Info Card */}
+            <div className="p-6 rounded-2xl bg-black/40 border border-slate-800 text-slate-300 font-mono text-xs space-y-3">
+              <h5 className="font-bold uppercase tracking-widest text-slate-200 text-xs flex items-center gap-2">
+                <Info size={14} className="text-teal-400" />
+                Tournament Architecture &amp; Locking Mechanism
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] leading-relaxed">
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <span className="font-bold text-rose-300 block mb-1">1. Real Game Sealed</span>
+                  Until the specified timestamp, non-admin players cannot log in, initialize sessions, or view directives. API routes enforce 403 blocks.
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <span className="font-bold text-amber-300 block mb-1">2. Practice Grounds Open</span>
+                  The offline Practice Gaming Challenge is 100% accessible to all teams for strategy testing, policy simulations, and multi-pillar metric checks.
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <span className="font-bold text-emerald-300 block mb-1">3. Automated Unlock</span>
+                  Once real-world time matches or exceeds the configured target, the Real Game unlocks automatically without requiring any server restarts.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* TAB 2: TEAMS & PLAYERS (Unified page, Players must have a team)          */}

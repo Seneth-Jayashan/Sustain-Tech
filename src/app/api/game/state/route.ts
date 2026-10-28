@@ -21,6 +21,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Guard: block non-admins if Real Game is locked
+    if (session.role !== 'admin') {
+      const { getGameAccessStatus } = await import('@/lib/gameAccess');
+      const accessStatus = await getGameAccessStatus();
+      if (accessStatus.isLocked) {
+        return NextResponse.json({
+          error: 'Real game is locked until tournament start time',
+          isLocked: true,
+          unlockTime: accessStatus.unlockTime,
+          timeRemainingSeconds: accessStatus.timeRemainingSeconds
+        }, { status: 403 });
+      }
+    }
+
     // Find active game session
     let gameSession = await GameSession.findOne({ teamId: session.teamId, status: 'ACTIVE' });
     
