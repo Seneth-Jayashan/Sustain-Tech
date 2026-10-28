@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import Team from '@/models/Team';
 import bcrypt from 'bcryptjs';
+import { sendPlayerWelcomeEmail } from '@/lib/mail';
 
 export async function GET() {
   await connectDB();
@@ -57,7 +58,23 @@ export async function POST(request: Request) {
     });
     
     const populated = await User.findById(newUser._id).select('-passwordHash').populate('teamId');
-    return NextResponse.json({ success: true, user: populated });
+
+    // Send attractive gaming-vibe welcome email to registered players
+    let emailStatus = null;
+    if (userRole === 'player') {
+      const teamName = (populated?.teamId as any)?.name || 'Assigned Squad';
+      try {
+        emailStatus = await sendPlayerWelcomeEmail({
+          toEmail: newUser.email,
+          name: newUser.name,
+          teamName,
+        });
+      } catch (mailErr) {
+        console.error('[User Registration] Failed to send welcome email:', mailErr);
+      }
+    }
+
+    return NextResponse.json({ success: true, user: populated, emailStatus });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || 'Failed to create user' }, { status: 500 });
   }
