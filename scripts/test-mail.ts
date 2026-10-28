@@ -1,9 +1,9 @@
 import 'dotenv/config';
-import { sendPlayerWelcomeEmail, sendPlayerCredentialsEmail } from '../src/lib/mail';
+import { sendPlayerWelcomeEmail, sendPlayerCredentialsEmail, sendGameCompletionEmail } from '../src/lib/mail';
 
 async function main() {
   const recipient = process.argv[2] || process.env.ZOHO_ACCOUNT_EMAIL || 'test@example.com';
-  const mode = process.argv[3] || 'credentials'; // 'welcome' or 'credentials'
+  const mode = process.argv[3] || 'completion'; // 'welcome' | 'credentials' | 'completion'
 
   console.log(`\n🎮 Testing Zoho Mail Service for Sustain Tech 2026...`);
   console.log(`Mode: ${mode}`);
@@ -19,12 +19,39 @@ async function main() {
       name: 'Cyber Operative',
       teamName: 'Neon Vanguard',
     });
-  } else {
+  } else if (mode === 'credentials') {
     res = await sendPlayerCredentialsEmail({
       toEmail: recipient,
       name: 'Cyber Operative',
       teamName: 'Neon Vanguard',
       password: 'SampleTeamPass2026!',
+    });
+  } else {
+    res = await sendGameCompletionEmail({
+      toEmail: recipient,
+      name: 'Cyber Operative',
+      teamName: 'Neon Vanguard',
+      result: {
+        cps: 84.5,
+        endingTier: 'Tier 1: Exemplary Climate Resilience',
+        rating: 'Excellent',
+        tradeoffs: [
+          'Harmonized Water Management: Exemplary balance between flood buffering and long-term agrarian storage.',
+          'Fiscal Conservatism: Retained LKR 280M in reserves; prudent fiscal buffer maintained.',
+          'Strong Civic Trust: Clear communication and participatory camp logistics earned high public cooperation.',
+        ],
+      },
+      scores: {
+        floodPreparedness: 82,
+        droughtPreparedness: 86,
+        resourceScore: 88,
+        informationQuality: 85,
+        communityTrust: 80,
+        decisionQuality: 86,
+      },
+      resources: {
+        emergencyBudget: 280,
+      },
     });
   }
 

@@ -7,6 +7,7 @@ import { getSession } from '@/lib/session';
 import { getRoundDuration, getDefaultBucketShuffledOrder } from '@/game/timer';
 import { calculateFinalOutcome } from '@/game/engine';
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
+import { dispatchTeamGameCompletionEmail } from '@/lib/mail';
 
 export async function POST() {
   try {
@@ -178,6 +179,12 @@ export async function POST() {
     const nextScenario = updatedSession.status === 'ACTIVE'
       ? await determineNextScenario(updatedSession.state)
       : null;
+
+    if (updatedSession.status === 'COMPLETED') {
+      dispatchTeamGameCompletionEmail(String(updatedSession._id)).catch((mailErr) => {
+        console.error('[Fallback Completion Email Trigger] Error:', mailErr);
+      });
+    }
 
     return NextResponse.json({
       success: true,

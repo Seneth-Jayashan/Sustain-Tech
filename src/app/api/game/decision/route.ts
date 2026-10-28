@@ -13,6 +13,7 @@ import {
 import { determineNextScenario } from '@/game/engines/scenarioEngine';
 import { getRoundDuration } from '@/game/timer';
 import { SimulationMode } from '@/game/types';
+import { dispatchTeamGameCompletionEmail } from '@/lib/mail';
 
 export async function POST(request: Request) {
   try {
@@ -472,10 +473,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. If active, determine the next scenario
+    // 5. If active, determine the next scenario; if completed, dispatch debrief results email to squad
     let nextScenario = null;
     if (updatedSession.status === 'ACTIVE') {
       nextScenario = await determineNextScenario(newState);
+    } else if (updatedSession.status === 'COMPLETED') {
+      dispatchTeamGameCompletionEmail(String(updatedSession._id)).catch((mailErr) => {
+        console.error('[Game Completion Email Trigger] Error:', mailErr);
+      });
     }
 
     return NextResponse.json({ 

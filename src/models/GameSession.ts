@@ -7,6 +7,7 @@ export interface IGameSession extends Document {
   status: 'ACTIVE' | 'COMPLETED';
   state: GameState;
   finalResult?: any;
+  completionEmailSent?: boolean;
   startedAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +18,7 @@ const GameSessionSchema: Schema = new Schema({
   status: { type: String, enum: ['ACTIVE', 'COMPLETED'], default: 'ACTIVE' },
   state: { type: Schema.Types.Mixed, required: true }, // Store full GameState as JSON
   finalResult: { type: Schema.Types.Mixed },
+  completionEmailSent: { type: Boolean, default: false },
 }, { timestamps: true });
 
 GameSessionSchema.index({ teamId: 1, status: 1 });
