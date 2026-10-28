@@ -492,14 +492,455 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+export interface SendCredentialsEmailParams {
+  toEmail: string;
+  name: string;
+  teamName: string;
+  password: string;
+}
+
 /**
- * Send an attractive tactical gaming-vibe welcome email to a newly registered player via Zoho Mail API.
+ * Build the Tactical Military + Gaming HUD HTML email for sending player credentials.
  */
-export async function sendPlayerWelcomeEmail({
-  toEmail,
+function buildCredentialsEmailHtml({
   name,
   teamName,
-}: SendWelcomeEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  email,
+  password,
+}: {
+  name: string;
+  teamName: string;
+  email: string;
+  password: string;
+}): string {
+  const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
+  const loginUrl = 'https://sustaintech.online/login';
+  const safeName = escapeHtml(name);
+  const safeTeam = escapeHtml(teamName);
+  const safeEmail = escapeHtml(email);
+  const safePassword = escapeHtml(password);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission Access Keys // Sustain Tech 2026</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #060a08;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #e2e8f0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #060a08;
+      background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.14) 0%, transparent 60%);
+      padding: 36px 12px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #0c1410 0%, #070b09 100%);
+      border: 1px solid #1f3528;
+      border-top: 3px solid #10b981;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(16, 185, 129, 0.12);
+    }
+    .hud-topbar {
+      background-color: #09100c;
+      border-bottom: 1px solid #1a2e22;
+      padding: 10px 20px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #10b981;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .banner-wrap {
+      position: relative;
+      border-bottom: 2px solid #10b981;
+      background-color: #050806;
+    }
+    .banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .hazard-strip {
+      height: 6px;
+      width: 100%;
+      background: repeating-linear-gradient(
+        -45deg,
+        #10b981,
+        #10b981 10px,
+        #060a08 10px,
+        #060a08 20px
+      );
+      opacity: 0.85;
+    }
+    .content {
+      padding: 34px 30px 30px 30px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      border-left: 4px solid #10b981;
+      color: #34d399;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      margin-right: 8px;
+      box-shadow: 0 0 8px #10b981;
+    }
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #f8fafc;
+      text-transform: uppercase;
+    }
+    .accent-green {
+      color: #10b981;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+    }
+    .subtitle {
+      font-size: 15px;
+      line-height: 1.65;
+      color: #94a3b8;
+      margin: 0 0 26px 0;
+    }
+    /* Tactical Credentials Dossier Card */
+    .dossier-card {
+      background-color: #0b130f;
+      border: 1px solid #233d2e;
+      border-left: 4px solid #10b981;
+      border-radius: 4px;
+      margin-bottom: 26px;
+      overflow: hidden;
+    }
+    .dossier-header {
+      background-color: #111f17;
+      border-bottom: 1px solid #233d2e;
+      padding: 10px 18px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6ee7b7;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .dossier-body {
+      padding: 22px;
+    }
+    .field-label {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .field-value {
+      font-size: 19px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .squad-tag {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+      padding: 5px 14px;
+      border-radius: 3px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .divider {
+      height: 1px;
+      background-color: #1a2e22;
+      margin: 16px 0;
+    }
+    .email-box {
+      background-color: #060e0a;
+      border: 1px solid #1e3a29;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+    .password-box {
+      background-color: #050a07;
+      border: 1px solid #10b981;
+      border-left: 4px solid #10b981;
+      border-radius: 4px;
+      padding: 12px 18px;
+      margin-top: 4px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 22px;
+      font-weight: 900;
+      color: #10b981;
+      letter-spacing: 2.5px;
+      display: inline-block;
+    }
+    .telemetry-grid {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .telemetry-cell {
+      padding-top: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .telemetry-val {
+      color: #cbd5e1;
+      font-weight: 700;
+    }
+    /* Tactical Launch CTA */
+    .cta-wrap {
+      text-align: center;
+      margin: 28px 0 26px 0;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 34px;
+      border-radius: 5px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+    }
+    .cta-subtext {
+      margin-top: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+    }
+    /* Tactical Amber Command Alert Box */
+    .intel-box {
+      background: rgba(245, 158, 11, 0.07);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      border-left: 4px solid #f59e0b;
+      border-radius: 4px;
+      padding: 18px 20px;
+      margin-bottom: 26px;
+    }
+    .intel-header {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fbbf24;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .intel-body {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      margin: 0;
+    }
+    .mission-motto {
+      background-color: #09100c;
+      border: 1px dashed #1f3528;
+      padding: 14px;
+      text-align: center;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .footer {
+      background-color: #050806;
+      border-top: 1px solid #1a2e22;
+      padding: 24px 20px;
+      text-align: center;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+    }
+    @media only screen and (max-width: 480px) {
+      .content {
+        padding: 24px 18px;
+      }
+      h1 {
+        font-size: 23px;
+      }
+      .field-value {
+        font-size: 17px;
+      }
+      .password-box {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <!-- Tactical HUD Telemetry Top Bar -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
+        <tr>
+          <td align="left">// SYS.AUTH: LEVEL-01 GRANTED</td>
+          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+        </tr>
+      </table>
+
+      <!-- Gaming Banner Header -->
+      <div class="banner-wrap">
+        <img src="${bannerUrl}" alt="Sustain Tech 2026 Command" class="banner-img" />
+        <div class="hazard-strip"></div>
+      </div>
+
+      <div class="content">
+        <!-- Active Clearance Status Pill -->
+        <div class="status-badge">
+          <span class="status-dot"></span>ACCESS KEYS ISSUED // CONFIDENTIAL
+        </div>
+
+        <h1>MISSION ACCESS <span class="accent-green">CREDENTIALS</span></h1>
+        <p class="subtitle">
+          Central Command has authorized and dispatched your individual mission credentials. Use the security credentials below to authenticate into the Sustain Tech platform.
+        </p>
+
+        <!-- Military Personnel Dossier Card with Login & Password -->
+        <div class="dossier-card">
+          <div class="dossier-header">
+            &#9632; CLASSIFIED OPERATIVE ACCESS DOSSIER // AUTH KEYS
+          </div>
+          <div class="dossier-body">
+            <div>
+              <div class="field-label">&gt; OPERATIVE CALLSIGN / NAME</div>
+              <div class="field-value">${safeName}</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div>
+              <div class="field-label">&gt; ASSIGNED COMBAT UNIT / SQUAD</div>
+              <div style="margin-top: 6px;">
+                <span class="squad-tag">[ ${safeTeam} ]</span>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div>
+              <div class="field-label">&gt; ACCESS TERMINAL EMAIL (LOGIN)</div>
+              <div class="email-box">${safeEmail}</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div>
+              <div class="field-label">&gt; SECURITY PASSKEY / PASSWORD</div>
+              <div class="password-box">${safePassword}</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <table class="telemetry-grid" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td class="telemetry-cell" align="left">
+                  CLEARANCE: <span class="telemetry-val">LEVEL 01</span>
+                </td>
+                <td class="telemetry-cell" align="right">
+                  STATUS: <span style="color: #10b981; font-weight: 700;">AUTHORIZED FOR LAUNCH</span>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Direct Terminal Launch CTA -->
+        <div class="cta-wrap">
+          <a href="${loginUrl}" target="_blank" class="cta-btn">
+            &#9654; LAUNCH MISSION TERMINAL // LOGIN
+          </a>
+          <div class="cta-subtext">Terminal URL: ${loginUrl}</div>
+        </div>
+
+        <!-- Tactical Amber Alert: Security & Time-Lock Notice -->
+        <div class="intel-box">
+          <div class="intel-header">
+            &#9888; // SECURITY DIRECTIVE &amp; OPERATIONAL LOCK
+          </div>
+          <p class="intel-body">
+            <strong>Keep these credentials secure.</strong> Real-world competitive game sessions remain locked until the designated unlock time authorized by Central Command. In the meantime, you may access practice scenarios to hone your squad strategies.
+          </p>
+        </div>
+
+        <!-- Tactical Callout Footer Box -->
+        <div class="mission-motto">
+          [RALLY YOUR SQUAD &bull; FORTIFY YOUR STRATEGY &bull; DOMINATE THE ARENA]
+        </div>
+      </div>
+
+      <!-- Command Footer -->
+      <div class="footer">
+        <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
+          SUSTAIN TECH 2026 // CENTRAL COMMAND HQ
+        </div>
+        <div style="margin-top: 6px;">
+          AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Low-level Zoho Mail message dispatch helper.
+ */
+async function sendZohoMessage({
+  toEmail,
+  subject,
+  htmlContent,
+}: {
+  toEmail: string;
+  subject: string;
+  htmlContent: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const fromEmail = (process.env.ZOHO_ACCOUNT_EMAIL || 'no-reply@sustaintech.online').trim();
     const accountName = (process.env.ZOHO_ACCOUNT_NAME || '').trim();
@@ -507,9 +948,6 @@ export async function sendPlayerWelcomeEmail({
 
     const accessToken = await getZohoAccessToken();
     const accountId = await getZohoAccountId(accessToken);
-
-    const subject = '🎖️ [MISSION BRIEFING] Sustain Tech - Operative Enlistment Confirmed';
-    const htmlContent = buildWelcomeEmailHtml(name, teamName);
 
     const payload = JSON.stringify({
       fromAddress,
@@ -567,10 +1005,37 @@ export async function sendPlayerWelcomeEmail({
       return { success: false, error: result.error };
     }
 
-    console.log(`[Zoho Mail] Welcome email sent successfully to ${toEmail}`);
+    console.log(`[Zoho Mail] Email sent successfully to ${toEmail}`);
     return { success: true, messageId: result.data?.data?.messageId };
   } catch (err: any) {
-    console.error('[Zoho Mail] Service error sending welcome email:', err);
+    console.error('[Zoho Mail] Service error sending email:', err);
     return { success: false, error: err.message || 'Unknown mail error' };
   }
+}
+
+/**
+ * Send an attractive tactical gaming-vibe welcome email to a newly registered player via Zoho Mail API.
+ */
+export async function sendPlayerWelcomeEmail({
+  toEmail,
+  name,
+  teamName,
+}: SendWelcomeEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const subject = '🎖️ [MISSION BRIEFING] Sustain Tech - Operative Enlistment Confirmed';
+  const htmlContent = buildWelcomeEmailHtml(name, teamName);
+  return sendZohoMessage({ toEmail, subject, htmlContent });
+}
+
+/**
+ * Send tactical gaming credentials (email & password) to a player via Zoho Mail API.
+ */
+export async function sendPlayerCredentialsEmail({
+  toEmail,
+  name,
+  teamName,
+  password,
+}: SendCredentialsEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const subject = `🔑 [MISSION ACCESS] Sustain Tech - Login Credentials for ${teamName}`;
+  const htmlContent = buildCredentialsEmailHtml({ name, teamName, email: toEmail, password });
+  return sendZohoMessage({ toEmail, subject, htmlContent });
 }

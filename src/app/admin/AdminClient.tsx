@@ -7,7 +7,8 @@ import {
   Activity, Users, LayoutDashboard, Settings, FileText, Database, Plus, Trash2,
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
   Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu,
-  Clock, Zap, Trophy, Timer, Lock, Unlock, Calendar, Sparkles
+  Clock, Zap, Trophy, Timer, Lock, Unlock, Calendar, Sparkles,
+  Key, Send, Eye, EyeOff
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -95,6 +96,13 @@ export default function AdminClient() {
   const [teamModal, setTeamModal] = useState<{ open: boolean; mode: 'create' | 'edit'; team?: any }>({ open: false, mode: 'create' });
   const [playerModal, setPlayerModal] = useState<{ open: boolean; mode: 'create' | 'edit'; teamId?: string; player?: any }>({ open: false, mode: 'create' });
   const [adminModal, setAdminModal] = useState<{ open: boolean; mode: 'create' | 'edit'; adminUser?: any }>({ open: false, mode: 'create' });
+  const [credentialsModal, setCredentialsModal] = useState<{
+    open: boolean;
+    team?: any;
+    password: string;
+    sending: boolean;
+    showPassword: boolean;
+  }>({ open: false, password: '', sending: false, showPassword: false });
 
   const [scenarioModal, setScenarioModal] = useState<{ open: boolean; mode: 'create' | 'edit'; scenario?: any }>({ open: false, mode: 'create' });
   const [addActionModal, setAddActionModal] = useState<{ open: boolean; scenario?: any }>({ open: false });
@@ -330,6 +338,57 @@ export default function AdminClient() {
   const openEditTeam = (team: any) => {
     setTeamForm({ name: team.name });
     setTeamModal({ open: true, mode: 'edit', team });
+  };
+
+  const openSendCredentials = (team: any) => {
+    const players = team.players || [];
+    if (players.length === 0) {
+      showNotification('error', `Cannot send credentials: "${team.name}" has no registered players yet.`);
+      return;
+    }
+    setCredentialsModal({
+      open: true,
+      team,
+      password: '',
+      sending: false,
+      showPassword: false,
+    });
+  };
+
+  const handleDispatchTeamCredentials = async () => {
+    if (!credentialsModal.team) return;
+    if (!credentialsModal.password.trim()) {
+      showNotification('error', 'Please enter the team password to dispatch');
+      return;
+    }
+
+    setCredentialsModal(prev => ({ ...prev, sending: true }));
+
+    try {
+      const res = await fetch('/api/admin/send-team-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId: credentialsModal.team._id,
+          password: credentialsModal.password.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showNotification(
+          'success',
+          `Credentials dispatched to ${data.sentCount} of ${data.total} players of "${credentialsModal.team.name}"`
+        );
+        setCredentialsModal({ open: false, password: '', sending: false, showPassword: false });
+      } else {
+        showNotification('error', data.error || 'Failed to dispatch credentials');
+        setCredentialsModal(prev => ({ ...prev, sending: false }));
+      }
+    } catch {
+      showNotification('error', 'Network error dispatching credentials');
+      setCredentialsModal(prev => ({ ...prev, sending: false }));
+    }
   };
 
   const handleSaveTeam = async () => {
@@ -1648,6 +1707,14 @@ export default function AdminClient() {
                         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                           <button
                             type="button"
+                            onClick={() => openSendCredentials(team)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                            title={`Dispatch login credentials to all members of ${team.name}`}
+                          >
+                            <Key size={14} className="text-emerald-400" /> Send Credentials
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => openAddPlayer(team._id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer active:scale-95"
                           >
@@ -2042,6 +2109,116 @@ export default function AdminClient() {
           </div>
         )}
       </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL: DISPATCH TEAM CREDENTIALS                                          */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {credentialsModal.open && credentialsModal.team && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#050a07] border border-emerald-500/40 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-[0_0_50px_rgba(16,185,129,0.15)] space-y-4 sm:space-y-5"
+            >
+              <div className="flex justify-between items-center border-b border-emerald-900/40 pb-3 sm:pb-4">
+                <div>
+                  <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wider flex items-center gap-2">
+                    <Key size={18} className="text-emerald-400" />
+                    Dispatch Team Credentials
+                  </h3>
+                  <p className="text-[11px] font-mono text-gray-400 mt-0.5">
+                    Squad Target: <span className="text-emerald-400 font-bold">{credentialsModal.team.name}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !credentialsModal.sending && setCredentialsModal(prev => ({ ...prev, open: false }))}
+                  className="text-gray-400 hover:text-white p-1"
+                  disabled={credentialsModal.sending}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Squad Operatives Overview */}
+              <div className="bg-black/50 border border-emerald-900/40 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-gray-400">Recipient Operatives:</span>
+                  <span className="text-emerald-400 font-bold">
+                    {credentialsModal.team.players?.length || 0} Member(s)
+                  </span>
+                </div>
+                <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-900/60">
+                  {(credentialsModal.team.players || []).map((p: any) => (
+                    <div key={p._id} className="pt-1.5 first:pt-0 flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-gray-200 font-semibold truncate max-w-[180px]">{p.name}</span>
+                      <span className="text-blue-400 truncate max-w-[200px]">{p.email}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-2">
+                <label className="block text-xs font-mono text-emerald-300 uppercase">
+                  Enter Plaintext Team Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={credentialsModal.showPassword ? 'text' : 'password'}
+                    placeholder="Enter the password set for this team..."
+                    value={credentialsModal.password}
+                    onChange={(e) => setCredentialsModal(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full bg-black/60 text-white p-3 pr-10 rounded-xl border border-emerald-900/60 focus:border-emerald-500 font-mono text-sm focus:outline-none"
+                    disabled={credentialsModal.sending}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCredentialsModal(prev => ({ ...prev, showPassword: !prev.showPassword }))}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-emerald-400 transition-colors"
+                  >
+                    {credentialsModal.showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="text-[11px] font-mono text-gray-500 leading-relaxed">
+                  ⚠️ Because passwords in the database are encrypted using bcrypt hashes, enter the plaintext password set for this team. Each operative will receive their own login email and this password in a tactical mission dossier email.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-emerald-900/40">
+                <button
+                  type="button"
+                  onClick={() => setCredentialsModal(prev => ({ ...prev, open: false }))}
+                  disabled={credentialsModal.sending}
+                  className="w-full sm:w-auto px-4 py-2.5 font-mono text-xs text-gray-400 hover:text-white text-center cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDispatchTeamCredentials}
+                  disabled={credentialsModal.sending || !credentialsModal.password.trim()}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-500 text-white font-mono text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 text-center flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                >
+                  {credentialsModal.sending ? (
+                    <>
+                      <RefreshCcw size={14} className="animate-spin" /> Dispatching Emails...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} /> Send to All Members
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ========================================================================= */}
       {/* MODAL 1: CREATE / EDIT TEAM                                               */}
