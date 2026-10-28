@@ -8,9 +8,10 @@ import {
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
   Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu,
   Clock, Zap, Trophy, Timer, Lock, Unlock, Calendar, Sparkles,
-  Key, Send, Eye, EyeOff
+  Key, Send, Eye, EyeOff, MessageSquare
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { notifyConfirm } from '@/lib/notifications';
 
@@ -1053,7 +1054,14 @@ export default function AdminClient() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-blue-900/40">
+        <div className="p-4 border-t border-blue-900/40 space-y-2">
+          <Link
+            href="/feedback"
+            target="_blank"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"
+          >
+            <MessageSquare size={16} /> Feedback Form
+          </Link>
           <button
             onClick={handleLogout}
             className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"

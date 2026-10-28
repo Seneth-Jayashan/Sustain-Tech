@@ -26,7 +26,8 @@ import {
   ShieldCheck,
   Sliders,
   DollarSign,
-  ChevronDown
+  ChevronDown,
+  MessageSquare
 } from 'lucide-react';
 import {
   PRACTICE_SCENARIOS,
@@ -1056,6 +1057,28 @@ export default function PracticeClient() {
                   <li key={idx} className="leading-relaxed">{takeaway}</li>
                 ))}
               </ul>
+            </div>
+
+            {/* High-Visibility Mission Feedback Highlight */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/80 via-teal-950/60 to-slate-950/90 border border-emerald-400/50 shadow-[0_0_25px_rgba(16,185,129,0.2)] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <MessageSquare size={11} className="text-emerald-400" />
+                  <span>Operative Feedback</span>
+                </div>
+                <h4 className="text-sm font-black text-white">How was your sandbox experience?</h4>
+                <p className="text-xs text-slate-300">
+                  Share your thoughts, suggestions, or difficulty balance directly with the Sustain Tech game creators.
+                </p>
+              </div>
+
+              <Link
+                href="/feedback"
+                className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black font-mono text-xs uppercase tracking-wider shadow-lg transition-all"
+              >
+                <span>Give Feedback</span>
+                <ArrowRight size={14} />
+              </Link>
             </div>
 
             {/* Footer Navigation */}

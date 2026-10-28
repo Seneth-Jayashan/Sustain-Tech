@@ -1,12 +1,13 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { GameState } from '@/game/state';
 import { FinalResult } from '@/game/types';
 import {
   LogOut, AlertCircle, Droplets, Coins, RadioTower, Users, Award,
-  CheckCircle2, XCircle, ArrowRight,
+  CheckCircle2, XCircle, ArrowRight, MessageSquare,
   Clock, Zap, ShieldAlert
 } from 'lucide-react';
 
@@ -453,19 +454,64 @@ export default function ReflectionClient({ finalState, result, teamName }: Props
           </p>
         </div>
 
+        {/* High-Visibility Mission Feedback & Evaluation Highlight */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/80 via-teal-950/60 to-slate-950/90 border-2 border-emerald-400/60 shadow-[0_0_35px_rgba(16,185,129,0.25)] p-5 sm:p-7">
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-0 h-full w-2 bg-gradient-to-b from-emerald-400 via-teal-400 to-cyan-400" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span>Operative Debrief Required</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
+                <span>Shape the Future of Sustain Tech Arena</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                What went well? What was difficult, frustrating, or unbalanced? What features should we add next? Your tactical debrief will be forwarded directly to the lead developers at{' '}
+                <span className="text-emerald-400 font-mono font-semibold">feedback@sustaintech.online</span>.
+              </p>
+            </div>
+
+            <div className="w-full md:w-auto shrink-0">
+              <Link
+                href="/feedback"
+                className="w-full md:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black font-mono text-xs uppercase tracking-widest shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all cursor-pointer active:scale-95 text-center"
+              >
+                <span>Submit Mission Feedback</span>
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Footer Actions */}
         <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-slate-800/80 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
           <span className="text-[11px] sm:text-xs font-mono text-slate-500 text-center sm:text-left">
             SustainTech Simulation Engine // Verified Playthrough Complete
           </span>
 
-          <button
-            id="reflection-end-session"
-            onClick={handleLogout}
-            className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black font-mono text-xs uppercase tracking-widest px-6 py-3.5 sm:py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center cursor-pointer active:scale-95"
-          >
-            End Session
-          </button>
+          <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3">
+            <Link
+              href="/feedback"
+              className="w-full sm:w-auto bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/50 hover:border-emerald-400 text-emerald-300 hover:text-white font-bold font-mono text-xs uppercase tracking-wider px-5 py-3 rounded-xl transition-all text-center cursor-pointer flex items-center justify-center gap-2"
+            >
+              <MessageSquare size={14} className="text-emerald-400" />
+              <span>Feedback Form</span>
+            </Link>
+
+            <button
+              id="reflection-end-session"
+              onClick={handleLogout}
+              className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black font-mono text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center cursor-pointer active:scale-95"
+            >
+              End Session
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

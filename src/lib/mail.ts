@@ -476,6 +476,9 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
         <div style="margin-top: 6px;">
           AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
         </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
+          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+        </div>
       </div>
     </div>
   </div>
@@ -921,6 +924,9 @@ function buildCredentialsEmailHtml({
         </div>
         <div style="margin-top: 6px;">
           AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+        </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
+          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
@@ -1488,6 +1494,19 @@ function buildGameCompletionEmailHtml({
           </div>
         </div>
 
+        <!-- Feedback Prompt Box -->
+        <div style="background-color: #0b1410; border: 1px dashed #10b981; border-radius: 4px; padding: 16px; text-align: center; margin-bottom: 24px;">
+          <div style="font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #34d399; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">
+            📢 OPERATIVE MISSION FEEDBACK REQUESTED
+          </div>
+          <div style="font-size: 13px; color: #cbd5e1; margin: 6px 0 12px 0;">
+            How was your tactical experience? Share what worked, areas to improve, and suggestions with Central Command.
+          </div>
+          <a href="https://sustaintech.online/feedback" target="_blank" style="display: inline-block; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; padding: 8px 20px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px;">
+            &gt;&gt; SUBMIT MISSION DEBRIEF &amp; FEEDBACK
+          </a>
+        </div>
+
         <!-- Mission Motto -->
         <div class="mission-motto">
           [ DEBRIEF COMPLETED &bull; SQUAD LESSONS CONSOLIDATED &bull; SUSTAINABILITY ADVANCED ]
@@ -1501,6 +1520,9 @@ function buildGameCompletionEmailHtml({
         </div>
         <div style="margin-top: 6px;">
           AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+        </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
+          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
@@ -1592,4 +1614,388 @@ export async function dispatchTeamGameCompletionEmail(
     console.error('[Game Completion Email] Dispatch error:', err);
     return { success: false, sentCount: 0, error: err.message };
   }
+}
+
+export interface FeedbackData {
+  name: string;
+  email: string;
+  teamName?: string;
+  rating: number; // 1 to 5
+  gameGoods?: string;
+  gameBads?: string;
+  improvements?: string;
+  additionalComments?: string;
+}
+
+/**
+ * Build HTML email for forwarding player feedback to feedback@sustaintech.online.
+ */
+function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
+  const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
+  const safeName = escapeHtml(data.name);
+  const safeEmail = escapeHtml(data.email);
+  const safeTeam = escapeHtml(data.teamName || 'Independent Operative');
+  const safeGoods = escapeHtml(data.gameGoods || 'None reported');
+  const safeBads = escapeHtml(data.gameBads || 'None reported');
+  const safeImprovements = escapeHtml(data.improvements || 'None reported');
+  const safeComments = escapeHtml(data.additionalComments || 'No additional comments');
+  const stars = '★'.repeat(Math.max(1, Math.min(5, data.rating))) + '☆'.repeat(Math.max(0, 5 - data.rating));
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Player Feedback // Sustain Tech 2026</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #060a08;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #e2e8f0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #060a08;
+      background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
+      padding: 36px 12px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #0c1410 0%, #070b09 100%);
+      border: 1px solid #1f3528;
+      border-top: 3px solid #10b981;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
+    }
+    .hud-topbar {
+      background-color: #09100c;
+      border-bottom: 1px solid #1a2e22;
+      padding: 10px 20px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #10b981;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-bottom: 2px solid #10b981;
+    }
+    .content {
+      padding: 32px 28px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .card {
+      background-color: #0b130f;
+      border: 1px solid #233d2e;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 22px;
+    }
+    .section-title {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .section-body {
+      background-color: #060a08;
+      border: 1px solid #1a2e22;
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 18px;
+    }
+    .footer {
+      background-color: #050806;
+      border-top: 1px solid #1a2e22;
+      padding: 22px;
+      text-align: center;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
+        <tr>
+          <td align="left">// SYS.FEEDBACK: INCOMING TRANSMISSION</td>
+          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+        </tr>
+      </table>
+
+      <img src="${bannerUrl}" alt="Sustain Tech 2026" class="banner-img" />
+
+      <div class="content">
+        <div class="status-badge">
+          &#9632; OPERATIVE DEBRIEF LOGGED
+        </div>
+
+        <h1 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 900; color: #ffffff; text-transform: uppercase;">
+          NEW PLAYER <span style="color: #10b981;">FEEDBACK REPORT</span>
+        </h1>
+        <p style="font-size: 14px; color: #94a3b8; margin: 0 0 24px 0;">
+          A player has submitted an official evaluation of the simulation. Details logged below:
+        </p>
+
+        <!-- Operative Profile Card -->
+        <div class="card">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family: 'Courier New', Courier, monospace; font-size: 12px;">
+            <tr>
+              <td style="color: #64748b; padding-bottom: 6px;">OPERATIVE:</td>
+              <td style="color: #f8fafc; font-weight: bold; padding-bottom: 6px;">${safeName}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b; padding-bottom: 6px;">EMAIL:</td>
+              <td style="color: #38bdf8; font-weight: bold; padding-bottom: 6px;">${safeEmail}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b; padding-bottom: 6px;">SQUAD:</td>
+              <td style="color: #34d399; font-weight: bold; padding-bottom: 6px;">[ ${safeTeam} ]</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">OVERALL RATING:</td>
+              <td style="color: #fbbf24; font-size: 16px; font-weight: 900;">${stars} (${data.rating} / 5)</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Feedback Responses -->
+        <div class="section-title" style="color: #34d399;">
+          &gt; WHAT WENT WELL (GAME GOODS)
+        </div>
+        <div class="section-body">
+          ${safeGoods}
+        </div>
+
+        <div class="section-title" style="color: #f87171;">
+          &gt; DIFFICULTIES / PAIN POINTS (GAME BADS)
+        </div>
+        <div class="section-body">
+          ${safeBads}
+        </div>
+
+        <div class="section-title" style="color: #38bdf8;">
+          &gt; SUGGESTED IMPROVEMENTS &amp; TACTICAL IDEAS
+        </div>
+        <div class="section-body">
+          ${safeImprovements}
+        </div>
+
+        <div class="section-title" style="color: #c084fc;">
+          &gt; ADDITIONAL COMMENTS
+        </div>
+        <div class="section-body" style="margin-bottom: 0;">
+          ${safeComments}
+        </div>
+      </div>
+
+      <div class="footer">
+        <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
+          SUSTAIN TECH 2026 // CENTRAL COMMAND FEEDBACK DESK
+        </div>
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
+          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Build HTML email for replying to the player confirming feedback receipt.
+ */
+function buildFeedbackReplyEmailHtml(name: string): string {
+  const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
+  const safeName = escapeHtml(name);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback Acknowledged // Sustain Tech 2026</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #060a08;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #e2e8f0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #060a08;
+      background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
+      padding: 36px 12px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #0c1410 0%, #070b09 100%);
+      border: 1px solid #1f3528;
+      border-top: 3px solid #10b981;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
+    }
+    .hud-topbar {
+      background-color: #09100c;
+      border-bottom: 1px solid #1a2e22;
+      padding: 10px 20px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #10b981;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-bottom: 2px solid #10b981;
+    }
+    .content {
+      padding: 34px 30px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .footer {
+      background-color: #050806;
+      border-top: 1px solid #1a2e22;
+      padding: 24px 20px;
+      text-align: center;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
+        <tr>
+          <td align="left">// SYS.FEEDBACK: ACKNOWLEDGED</td>
+          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+        </tr>
+      </table>
+
+      <img src="${bannerUrl}" alt="Sustain Tech 2026" class="banner-img" />
+
+      <div class="content">
+        <div class="status-badge">
+          &#9632; TRANSMISSION RECEIVED // FILED TO COMMAND
+        </div>
+
+        <h1 style="margin: 0 0 12px 0; font-size: 26px; font-weight: 900; color: #ffffff; text-transform: uppercase;">
+          FEEDBACK <span style="color: #10b981;">RECEIVED</span>
+        </h1>
+
+        <p style="font-size: 15px; line-height: 1.7; color: #cbd5e1; margin: 0 0 20px 0;">
+          Operative <strong>${safeName}</strong>, Central Command has successfully registered and logged your mission evaluation and suggestions for Sustain Tech 2026.
+        </p>
+
+        <div style="background-color: #0b130f; border: 1px solid #233d2e; border-left: 4px solid #10b981; border-radius: 4px; padding: 20px; margin-bottom: 24px;">
+          <div style="font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 800; color: #34d399; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;">
+            &#9632; COMMAND DIRECTIVE NOTICE
+          </div>
+          <p style="font-size: 14px; line-height: 1.6; color: #e2e8f0; margin: 0;">
+            Your feedback directly impacts upcoming scenario calibrations, operational balancing, and UI improvements for future competitive seasons. Thank you for taking the time to share your insights with us!
+          </p>
+        </div>
+
+        <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; text-align: center;">
+          Together, we advance strategic decision-making and sustainable climate resilience.
+        </p>
+      </div>
+
+      <div class="footer">
+        <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
+          SUSTAIN TECH 2026 // CENTRAL COMMAND HQ
+        </div>
+        <div style="margin-top: 6px;">
+          AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+        </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
+          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Send player feedback to feedback@sustaintech.online.
+ */
+export async function sendFeedbackToAdminEmail(
+  data: FeedbackData
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const targetEmail = 'feedback@sustaintech.online';
+  const subject = `📢 [PLAYER FEEDBACK] Rating: ${data.rating}★ from ${data.name} (${data.teamName || 'Independent'})`;
+  const htmlContent = buildFeedbackForwardEmailHtml(data);
+  return sendZohoMessage({ toEmail: targetEmail, subject, htmlContent });
+}
+
+/**
+ * Send automatic acknowledgment reply email to the player who submitted feedback.
+ */
+export async function sendFeedbackReplyToPlayerEmail({
+  toEmail,
+  name,
+}: {
+  toEmail: string;
+  name: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const subject = `🛡️ [FEEDBACK RECEIVED] Thank you for your debrief, Operative ${name}!`;
+  const htmlContent = buildFeedbackReplyEmailHtml(name);
+  return sendZohoMessage({ toEmail, subject, htmlContent });
 }

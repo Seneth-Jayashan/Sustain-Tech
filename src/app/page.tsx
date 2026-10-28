@@ -361,6 +361,10 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-4 text-slate-400">
+          <Link href="/feedback" className="hover:text-emerald-300 transition-colors flex items-center gap-1 text-emerald-400 font-semibold">
+            ★ Feedback &amp; Suggestions
+          </Link>
+          <span className="text-slate-700">•</span>
           <Link href="/practice" className="hover:text-amber-400 transition-colors">
             Practice Sandbox
           </Link>

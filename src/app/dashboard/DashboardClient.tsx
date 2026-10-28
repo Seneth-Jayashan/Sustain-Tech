@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { GameState } from '@/game/state';
 import { SCENARIOS } from '@/game/scenario';
 import { findAction } from '@/game/engine';
@@ -20,7 +21,7 @@ import {
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw,
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
   ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX,
-  Waves, Sun, Scale
+  Waves, Sun, Scale, MessageSquarePlus
 } from 'lucide-react';
 import Image from 'next/image';
 import {
@@ -1398,6 +1399,16 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </div>
             </div>
 
+            {/* Prominent Feedback Button */}
+            <Link
+              href="/feedback"
+              className="flex items-center gap-1.5 px-3 h-10 sm:h-11 rounded-xl bg-gradient-to-r from-emerald-950/90 to-teal-950/80 border border-emerald-400/50 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider backdrop-blur-xl transition-all hover:bg-emerald-900/90 hover:border-emerald-300 hover:text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 group"
+              title="Give Mission Feedback & Suggestions"
+            >
+              <MessageSquarePlus size={16} className="text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden sm:inline">Feedback</span>
+            </Link>
+
             {/* Logout */}
             <button
               onClick={handleLogout}
@@ -1416,24 +1427,34 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="lg:hidden pointer-events-auto bg-slate-950/95 border border-cyan-500/40 rounded-xl p-2 backdrop-blur-2xl shadow-2xl grid grid-cols-2 gap-1.5 mt-1"
+              className="lg:hidden pointer-events-auto bg-slate-950/95 border border-cyan-500/40 rounded-xl p-2 backdrop-blur-2xl shadow-2xl flex flex-col gap-2 mt-1"
             >
-              {[
-                { label: 'FLOOD', val: state.scores.floodPreparedness, icon: Navigation, border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
-                { label: 'DROUGHT', val: state.scores.droughtPreparedness, icon: Droplets, border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' },
-                { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
-                { label: 'TRUST', val: state.community.communityTrust, icon: Users, border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' }
-              ].map((metric) => (
-                <div key={metric.label} className={`p-1.5 rounded-lg border bg-slate-900/90 ${metric.border} ${metric.text} flex flex-col gap-0.5`}>
-                  <div className="flex items-center justify-between text-[9px] font-mono font-bold">
-                    <span className="flex items-center gap-1"><metric.icon size={10} /> {metric.label}</span>
-                    <span>{Math.round(metric.val)}%</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: 'FLOOD', val: state.scores.floodPreparedness, icon: Navigation, border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
+                  { label: 'DROUGHT', val: state.scores.droughtPreparedness, icon: Droplets, border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' },
+                  { label: 'INTEL', val: state.information.informationQuality, icon: RadioTower, border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
+                  { label: 'TRUST', val: state.community.communityTrust, icon: Users, border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' }
+                ].map((metric) => (
+                  <div key={metric.label} className={`p-1.5 rounded-lg border bg-slate-900/90 ${metric.border} ${metric.text} flex flex-col gap-0.5`}>
+                    <div className="flex items-center justify-between text-[9px] font-mono font-bold">
+                      <span className="flex items-center gap-1"><metric.icon size={10} /> {metric.label}</span>
+                      <span>{Math.round(metric.val)}%</span>
+                    </div>
+                    <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div style={{ width: `${Math.min(100, Math.max(0, metric.val))}%` }} className={`h-full ${metric.bar}`} />
+                    </div>
                   </div>
-                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                    <div style={{ width: `${Math.min(100, Math.max(0, metric.val))}%` }} className={`h-full ${metric.bar}`} />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <Link
+                href="/feedback"
+                className="w-full py-2 px-3 rounded-lg bg-emerald-950/80 border border-emerald-400/40 text-emerald-300 font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-emerald-900/90 transition-all text-center"
+              >
+                <MessageSquarePlus size={14} className="text-emerald-400" />
+                <span>Give Mission Feedback</span>
+              </Link>
             </motion.div>
           )}
         </AnimatePresence>

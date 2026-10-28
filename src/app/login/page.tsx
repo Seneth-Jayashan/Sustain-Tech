@@ -459,6 +459,10 @@ export default function LoginPage() {
         </div>
 
         <div className="flex items-center gap-4 text-slate-400">
+          <Link href="/feedback" className="hover:text-emerald-300 transition-colors flex items-center gap-1 text-emerald-400 font-semibold">
+            ★ Feedback
+          </Link>
+          <span className="text-slate-700">•</span>
           <Link href="/" className="hover:text-teal-400 transition-colors flex items-center gap-1">
             <Home size={12} />
             <span>Lobby</span>

@@ -1,9 +1,15 @@
 import 'dotenv/config';
-import { sendPlayerWelcomeEmail, sendPlayerCredentialsEmail, sendGameCompletionEmail } from '../src/lib/mail';
+import {
+  sendPlayerWelcomeEmail,
+  sendPlayerCredentialsEmail,
+  sendGameCompletionEmail,
+  sendFeedbackToAdminEmail,
+  sendFeedbackReplyToPlayerEmail,
+} from '../src/lib/mail';
 
 async function main() {
   const recipient = process.argv[2] || process.env.ZOHO_ACCOUNT_EMAIL || 'test@example.com';
-  const mode = process.argv[3] || 'completion'; // 'welcome' | 'credentials' | 'completion'
+  const mode = process.argv[3] || 'feedback-reply'; // 'welcome' | 'credentials' | 'completion' | 'feedback' | 'feedback-reply'
 
   console.log(`\n🎮 Testing Zoho Mail Service for Sustain Tech 2026...`);
   console.log(`Mode: ${mode}`);
@@ -25,6 +31,22 @@ async function main() {
       name: 'Cyber Operative',
       teamName: 'Neon Vanguard',
       password: 'SampleTeamPass2026!',
+    });
+  } else if (mode === 'feedback') {
+    res = await sendFeedbackToAdminEmail({
+      name: 'Seneth Operative',
+      email: recipient,
+      teamName: 'Vanguard Alpha',
+      rating: 5,
+      gameGoods: 'The Kelani flood vs Dry Zone irrigation dynamic was intense and realistic!',
+      gameBads: 'Timer pressure on Round 1 was very tight before reviewing all cards.',
+      improvements: 'Add live team vote counter and post-action impact graphs.',
+      additionalComments: 'Outstanding simulation event and UI design!',
+    });
+  } else if (mode === 'feedback-reply') {
+    res = await sendFeedbackReplyToPlayerEmail({
+      toEmail: recipient,
+      name: 'Seneth Operative',
     });
   } else {
     res = await sendGameCompletionEmail({
