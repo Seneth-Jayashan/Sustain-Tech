@@ -15,8 +15,8 @@ let cachedToken: ZohoTokenCache | null = null;
 let cachedAccountId: string | null = null;
 
 /**
- * Obtain an active OAuth access token from Zoho Accounts using the refresh token.
- * Uses family: 4 to prevent Node.js IPv6 connectivity timeouts on Linux.
+- Obtain an active OAuth access token from Zoho Accounts using the refresh token.
+- Uses family: 4 to prevent Node.js IPv6 connectivity timeouts on Linux.
  */
 async function getZohoAccessToken(): Promise<string> {
   const now = Date.now();
@@ -86,9 +86,9 @@ async function getZohoAccessToken(): Promise<string> {
 }
 
 /**
- * Determine the Zoho Account ID.
- * 1. Checks process.env.ZOHO_ACCOUNT_ID
- * 2. Attempts GET /api/accounts (requires ZohoMail.accounts.READ scope)
+- Determine the Zoho Account ID.
+- Checks process.env.ZOHO_ACCOUNT_ID
+- 2. Attempts GET /api/accounts (requires ZohoMail.accounts.READ scope)
  */
 async function getZohoAccountId(accessToken: string): Promise<string> {
   if (process.env.ZOHO_ACCOUNT_ID) {
@@ -141,8 +141,17 @@ async function getZohoAccountId(accessToken: string): Promise<string> {
   );
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /**
- * Build the Tactical Military + Gaming HUD HTML email for registered players.
+- Build the User-Friendly Gaming HUD HTML email for registered players.
  */
 function buildWelcomeEmailHtml(name: string, teamName: string): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
@@ -154,7 +163,7 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mission Briefing // Sustain Tech 2026</title>
+  <title>Welcome // Sustain Tech 2026</title>
   <style>
     body {
       margin: 0;
@@ -258,7 +267,7 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
       color: #94a3b8;
       margin: 0 0 28px 0;
     }
-    /* Tactical Dossier Card */
+    /* Player Profile Card */
     .dossier-card {
       background-color: #0b130f;
       border: 1px solid #233d2e;
@@ -330,7 +339,7 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
       color: #cbd5e1;
       font-weight: 700;
     }
-    /* Tactical Amber Command Alert Box */
+    /* Info Alert Box */
     .intel-box {
       background: rgba(245, 158, 11, 0.07);
       border: 1px solid rgba(245, 158, 11, 0.45);
@@ -392,46 +401,46 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
 <body>
   <div class="wrapper">
     <div class="container">
-      <!-- Tactical HUD Telemetry Top Bar -->
+      <!-- Top Bar -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
         <tr>
-          <td align="left">// SYS.AUTH: VERIFIED</td>
-          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+          <td align="left">// STATUS: VERIFIED</td>
+          <td align="right" style="color: #64748b;">EVENT CODE: ST-2026</td>
         </tr>
       </table>
 
       <!-- Gaming Banner Header -->
       <div class="banner-wrap">
-        <img src="${bannerUrl}" alt="Sustain Tech 2026 Command" class="banner-img" />
+        <img src="${bannerUrl}" alt="Sustain Tech 2026" class="banner-img" />
         <div class="hazard-strip"></div>
       </div>
 
       <div class="content">
-        <!-- Active Duty Status Pill -->
+        <!-- Registration Status Pill -->
         <div class="status-badge">
-          <span class="status-dot"></span>ENLISTMENT CONFIRMED // ACTIVE DUTY
+          <span class="status-dot"></span>REGISTRATION CONFIRMED // READY TO PLAY
         </div>
 
-        <h1>REPORTING FOR <span class="accent-green">SUSTAIN TECH</span></h1>
+        <h1>WELCOME TO <span class="accent-green">SUSTAIN TECH</span></h1>
         <p class="subtitle">
-          High Command has verified your registration. You are officially enlisted in the <strong>Sustain Tech</strong> operational theater - where tactical precision, squad coordination, and sustainable strategy decide victory.
+          Our team has verified your registration. You are officially registered for the <strong>Sustain Tech</strong> challenge - where teamwork, coordination, and sustainable strategy lead to victory.
         </p>
 
-        <!-- Military Personnel Dossier Card -->
+        <!-- Player Profile Card -->
         <div class="dossier-card">
           <div class="dossier-header">
-            &#9632; CLASSIFIED PERSONNEL DOSSIER // UNIT ASSIGNMENT
+            &#9632; PLAYER PROFILE // TEAM ASSIGNMENT
           </div>
           <div class="dossier-body">
             <div>
-              <div class="field-label">&gt; OPERATIVE CALLSIGN / NAME</div>
+              <div class="field-label">&gt; PLAYER NAME</div>
               <div class="field-value">${safeName}</div>
             </div>
 
             <div class="divider"></div>
 
             <div>
-              <div class="field-label">&gt; ASSIGNED COMBAT UNIT / SQUAD</div>
+              <div class="field-label">&gt; ASSIGNED TEAM / SQUAD</div>
               <div style="margin-top: 6px;">
                 <span class="squad-tag">[ ${safeTeam} ]</span>
               </div>
@@ -442,57 +451,48 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
             <table class="telemetry-grid" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td class="telemetry-cell" align="left">
-                  CLEARANCE: <span class="telemetry-val">LEVEL 01</span>
+                  ACCESS LEVEL: <span class="telemetry-val">LEVEL 01</span>
                 </td>
                 <td class="telemetry-cell" align="right">
-                  STATUS: <span style="color: #10b981; font-weight: 700;">READY FOR DEPLOYMENT</span>
+                  STATUS: <span style="color: #10b981; font-weight: 700;">READY TO PLAY</span>
                 </td>
               </tr>
             </table>
           </div>
         </div>
 
-        <!-- Tactical Amber Alert: Gaming Credentials Notice -->
+        <!-- Gaming Credentials Notice -->
         <div class="intel-box">
           <div class="intel-header">
-            &#9888; // PRIORITY INTEL: GAMING CREDENTIALS DISPATCH
+            &#9888; // IMPORTANT: GAME LOGIN DETAILS
           </div>
           <p class="intel-body">
-            <strong>Your Gaming credentials will be sent soon by the administration.</strong> Stand by and monitor this secure communication channel for your encrypted login keys and pre-deployment briefing prior to mission launch.
+            <strong>Your game login credentials will be sent soon by the organizers.</strong> Please check your email inbox for your login details and game instructions before the event starts.
           </p>
         </div>
 
-        <!-- Tactical Callout Footer Box -->
+        <!-- Callout Footer Box -->
         <div class="mission-motto">
-          [RALLY YOUR SQUAD &bull; FORTIFY YOUR STRATEGY &bull; DOMINATE THE ARENA]
+          [ WORK WITH YOUR TEAM &bull; PLAN YOUR STRATEGY &bull; WIN THE CHALLENGE ]
         </div>
       </div>
 
-      <!-- Command Footer -->
+      <!-- Footer -->
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // CENTRAL COMMAND HQ
+          SUSTAIN TECH 2026 // ORGANIZING TEAM
         </div>
         <div style="margin-top: 6px;">
-          AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+          AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
         </div>
         <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
-          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+          Need help or have questions? Contact our support team at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
   </div>
 </body>
 </html>`;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 export interface SendCredentialsEmailParams {
@@ -503,7 +503,7 @@ export interface SendCredentialsEmailParams {
 }
 
 /**
- * Build the Tactical Military + Gaming HUD HTML email for sending player credentials.
+- Build the User-Friendly Gaming HUD HTML email for sending player credentials.
  */
 function buildCredentialsEmailHtml({
   name,
@@ -528,7 +528,7 @@ function buildCredentialsEmailHtml({
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mission Access Keys // Sustain Tech 2026</title>
+  <title>Game Login Details // Sustain Tech 2026</title>
   <style>
     body {
       margin: 0;
@@ -632,7 +632,7 @@ function buildCredentialsEmailHtml({
       color: #94a3b8;
       margin: 0 0 26px 0;
     }
-    /* Tactical Credentials Dossier Card */
+    /* Credentials Card */
     .dossier-card {
       background-color: #0b130f;
       border: 1px solid #233d2e;
@@ -729,7 +729,7 @@ function buildCredentialsEmailHtml({
       color: #cbd5e1;
       font-weight: 700;
     }
-    /* Tactical Launch CTA */
+    /* Launch CTA */
     .cta-wrap {
       text-align: center;
       margin: 28px 0 26px 0;
@@ -754,7 +754,7 @@ function buildCredentialsEmailHtml({
       font-size: 11px;
       color: #64748b;
     }
-    /* Tactical Amber Command Alert Box */
+    /* Info Alert Box */
     .intel-box {
       background: rgba(245, 158, 11, 0.07);
       border: 1px solid rgba(245, 158, 11, 0.45);
@@ -819,46 +819,46 @@ function buildCredentialsEmailHtml({
 <body>
   <div class="wrapper">
     <div class="container">
-      <!-- Tactical HUD Telemetry Top Bar -->
+      <!-- Top Bar -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
         <tr>
-          <td align="left">// SYS.AUTH: LEVEL-01 GRANTED</td>
-          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+          <td align="left">// STATUS: ACCESS GRANTED</td>
+          <td align="right" style="color: #64748b;">EVENT CODE: ST-2026</td>
         </tr>
       </table>
 
       <!-- Gaming Banner Header -->
       <div class="banner-wrap">
-        <img src="${bannerUrl}" alt="Sustain Tech 2026 Command" class="banner-img" />
+        <img src="${bannerUrl}" alt="Sustain Tech 2026" class="banner-img" />
         <div class="hazard-strip"></div>
       </div>
 
       <div class="content">
-        <!-- Active Clearance Status Pill -->
+        <!-- Status Pill -->
         <div class="status-badge">
-          <span class="status-dot"></span>ACCESS KEYS ISSUED // CONFIDENTIAL
+          <span class="status-dot"></span>LOGIN DETAILS READY // PRIVATE
         </div>
 
-        <h1>MISSION ACCESS <span class="accent-green">CREDENTIALS</span></h1>
+        <h1>YOUR GAME <span class="accent-green">LOGIN DETAILS</span></h1>
         <p class="subtitle">
-          Central Command has authorized and dispatched your individual mission credentials. Use the security credentials below to authenticate into the Sustain Tech platform.
+          Here are your personal login details for the Sustain Tech game. Use the email and password below to sign in to the game platform.
         </p>
 
-        <!-- Military Personnel Dossier Card with Login & Password -->
+        <!-- Player Profile Card with Login & Password -->
         <div class="dossier-card">
           <div class="dossier-header">
-            &#9632; CLASSIFIED OPERATIVE ACCESS DOSSIER // AUTH KEYS
+            &#9632; PLAYER PROFILE // LOGIN DETAILS
           </div>
           <div class="dossier-body">
             <div>
-              <div class="field-label">&gt; OPERATIVE CALLSIGN / NAME</div>
+              <div class="field-label">&gt; PLAYER NAME</div>
               <div class="field-value">${safeName}</div>
             </div>
 
             <div class="divider"></div>
 
             <div>
-              <div class="field-label">&gt; ASSIGNED COMBAT UNIT / SQUAD</div>
+              <div class="field-label">&gt; ASSIGNED TEAM / SQUAD</div>
               <div style="margin-top: 6px;">
                 <span class="squad-tag">[ ${safeTeam} ]</span>
               </div>
@@ -867,14 +867,14 @@ function buildCredentialsEmailHtml({
             <div class="divider"></div>
 
             <div>
-              <div class="field-label">&gt; ACCESS TERMINAL EMAIL (LOGIN)</div>
+              <div class="field-label">&gt; LOGIN EMAIL</div>
               <div class="email-box">${safeEmail}</div>
             </div>
 
             <div class="divider"></div>
 
             <div>
-              <div class="field-label">&gt; SECURITY PASSKEY / PASSWORD</div>
+              <div class="field-label">&gt; PASSWORD</div>
               <div class="password-box">${safePassword}</div>
             </div>
 
@@ -883,50 +883,50 @@ function buildCredentialsEmailHtml({
             <table class="telemetry-grid" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td class="telemetry-cell" align="left">
-                  CLEARANCE: <span class="telemetry-val">LEVEL 01</span>
+                  ACCESS LEVEL: <span class="telemetry-val">LEVEL 01</span>
                 </td>
                 <td class="telemetry-cell" align="right">
-                  STATUS: <span style="color: #10b981; font-weight: 700;">AUTHORIZED FOR LAUNCH</span>
+                  STATUS: <span style="color: #10b981; font-weight: 700;">READY TO LOG IN</span>
                 </td>
               </tr>
             </table>
           </div>
         </div>
 
-        <!-- Direct Terminal Launch CTA -->
+        <!-- Direct Launch CTA -->
         <div class="cta-wrap">
           <a href="${loginUrl}" target="_blank" class="cta-btn">
-            &#9654; LAUNCH MISSION TERMINAL // LOGIN
+            &#9654; OPEN GAME &amp; LOG IN
           </a>
-          <div class="cta-subtext">Terminal URL: ${loginUrl}</div>
+          <div class="cta-subtext">Login Link: ${loginUrl}</div>
         </div>
 
-        <!-- Tactical Amber Alert: Security & Time-Lock Notice -->
+        <!-- Security & Time-Lock Notice -->
         <div class="intel-box">
           <div class="intel-header">
-            &#9888; // SECURITY DIRECTIVE &amp; OPERATIONAL LOCK
+            &#9888; // IMPORTANT NOTE
           </div>
           <p class="intel-body">
-            <strong>Keep these credentials secure.</strong> Real-world competitive game sessions remain locked until the designated unlock time authorized by Central Command. In the meantime, you may access practice scenarios to hone your squad strategies.
+            <strong>Please keep your password safe.</strong> The main competition game will stay locked until the official start time. While you wait, you can log in and play the practice mode to get familiar with the game.
           </p>
         </div>
 
-        <!-- Tactical Callout Footer Box -->
+        <!-- Callout Footer Box -->
         <div class="mission-motto">
-          [RALLY YOUR SQUAD &bull; FORTIFY YOUR STRATEGY &bull; DOMINATE THE ARENA]
+          [ WORK WITH YOUR TEAM &bull; PLAN YOUR STRATEGY &bull; WIN THE CHALLENGE ]
         </div>
       </div>
 
-      <!-- Command Footer -->
+      <!-- Footer -->
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // CENTRAL COMMAND HQ
+          SUSTAIN TECH 2026 // ORGANIZING TEAM
         </div>
         <div style="margin-top: 6px;">
-          AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+          AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
         </div>
         <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
-          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+          Need help or have questions? Contact our support team at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
@@ -936,7 +936,7 @@ function buildCredentialsEmailHtml({
 }
 
 /**
- * Low-level Zoho Mail message dispatch helper.
+- Low-level Zoho Mail message dispatch helper.
  */
 async function sendZohoMessage({
   toEmail,
@@ -1020,20 +1020,20 @@ async function sendZohoMessage({
 }
 
 /**
- * Send an attractive tactical gaming-vibe welcome email to a newly registered player via Zoho Mail API.
+- Send an attractive gaming-vibe welcome email to a newly registered player via Zoho Mail API.
  */
 export async function sendPlayerWelcomeEmail({
   toEmail,
   name,
   teamName,
 }: SendWelcomeEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = '🎖️ [MISSION BRIEFING] Sustain Tech - Operative Enlistment Confirmed';
+  const subject = '🎖️ [WELCOME] Sustain Tech - Registration Confirmed';
   const htmlContent = buildWelcomeEmailHtml(name, teamName);
   return sendZohoMessage({ toEmail, subject, htmlContent });
 }
 
 /**
- * Send tactical gaming credentials (email & password) to a player via Zoho Mail API.
+- Send gaming credentials (email & password) to a player via Zoho Mail API.
  */
 export async function sendPlayerCredentialsEmail({
   toEmail,
@@ -1041,7 +1041,7 @@ export async function sendPlayerCredentialsEmail({
   teamName,
   password,
 }: SendCredentialsEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = `🔑 [MISSION ACCESS] Sustain Tech - Login Credentials for ${teamName}`;
+  const subject = `🔑 [GAME LOGIN] Sustain Tech - Login Details for ${teamName}`;
   const htmlContent = buildCredentialsEmailHtml({ name, teamName, email: toEmail, password });
   return sendZohoMessage({ toEmail, subject, htmlContent });
 }
@@ -1070,7 +1070,7 @@ export interface SendGameCompletionEmailParams {
 }
 
 /**
- * Build the Tactical Military + Gaming HUD HTML email for final mission results & debrief.
+- Build the User-Friendly Gaming HUD HTML email for final game results.
  */
 function buildGameCompletionEmailHtml({
   name,
@@ -1129,14 +1129,14 @@ function buildGameCompletionEmailHtml({
           <span style="color: #10b981; font-weight: bold; margin-right: 6px;">&bull;</span>${escapeHtml(t)}
         </div>
       `).join('')
-    : '<div style="font-size: 13px; color: #94a3b8;">Operational balance maintained across all key critical indicators.</div>';
+    : '<div style="font-size: 13px; color: #94a3b8;">Good balance maintained across all key areas.</div>';
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mission Debrief // Sustain Tech 2026</title>
+  <title>Game Results // Sustain Tech 2026</title>
   <style>
     body {
       margin: 0;
@@ -1240,7 +1240,7 @@ function buildGameCompletionEmailHtml({
       color: #94a3b8;
       margin: 0 0 26px 0;
     }
-    /* Outcome Dossier Card */
+    /* Results Card */
     .dossier-card {
       background-color: #0b130f;
       border: 1px solid #233d2e;
@@ -1318,7 +1318,7 @@ function buildGameCompletionEmailHtml({
       background-color: #1a2e22;
       margin: 16px 0;
     }
-    /* Debrief Narrative Box */
+    /* Summary Box */
     .intel-box {
       background: rgba(16, 185, 129, 0.05);
       border: 1px solid rgba(16, 185, 129, 0.35);
@@ -1382,46 +1382,46 @@ function buildGameCompletionEmailHtml({
 <body>
   <div class="wrapper">
     <div class="container">
-      <!-- Tactical HUD Telemetry Top Bar -->
+      <!-- Top Bar -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
         <tr>
-          <td align="left">// SYS.AUTH: MISSION CONCLUDED</td>
-          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+          <td align="left">// STATUS: GAME COMPLETED</td>
+          <td align="right" style="color: #64748b;">EVENT CODE: ST-2026</td>
         </tr>
       </table>
 
       <!-- Gaming Banner Header -->
       <div class="banner-wrap">
-        <img src="${bannerUrl}" alt="Sustain Tech 2026 Command" class="banner-img" />
+        <img src="${bannerUrl}" alt="Sustain Tech 2026" class="banner-img" />
         <div class="hazard-strip"></div>
       </div>
 
       <div class="content">
         <!-- Status Pill -->
         <div class="status-badge">
-          <span class="status-dot"></span>MISSION COMPLETE // OFFICIAL DEBRIEF
+          <span class="status-dot"></span>GAME COMPLETE // FINAL RESULTS
         </div>
 
-        <h1>OPERATION DEBRIEF // <span class="accent-green">FINAL RESULTS</span></h1>
+        <h1>GAME SUMMARY // <span class="accent-green">FINAL RESULTS</span></h1>
         <p class="subtitle">
-          Simulation concluded. High Command has compiled the final operational performance report, tier classification, and preparedness index for squad <strong>${safeTeam}</strong>.
+          The game has finished! Here is the final score report, level achieved, and performance breakdown for team <strong>${safeTeam}</strong>.
         </p>
 
-        <!-- Final Score Dossier Card -->
+        <!-- Final Score Card -->
         <div class="dossier-card">
           <div class="dossier-header">
-            &#9632; CLASSIFIED SQUAD MISSION OUTCOME // PERFORMANCE DOSSIER
+            &#9632; TEAM SCORE REPORT // PERFORMANCE SUMMARY
           </div>
           <div class="dossier-body">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td align="left" style="vertical-align: top;">
-                  <div class="field-label">&gt; SQUAD CALLSIGN</div>
+                  <div class="field-label">&gt; TEAM NAME</div>
                   <div style="font-size: 18px; font-weight: 900; color: #ffffff;">${safeTeam}</div>
-                  <div style="font-size: 12px; font-family: 'Courier New', Courier, monospace; color: #64748b; margin-top: 2px;">OPERATIVE: ${safeName}</div>
+                  <div style="font-size: 12px; font-family: 'Courier New', Courier, monospace; color: #64748b; margin-top: 2px;">PLAYER: ${safeName}</div>
                 </td>
                 <td align="right" style="vertical-align: top;">
-                  <div class="field-label">&gt; COMPOSITE SCORE (CPS)</div>
+                  <div class="field-label">&gt; TOTAL SCORE (CPS)</div>
                   <div>
                     <span class="score-large">${cps}</span>
                     <span style="font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #64748b;">/ 100</span>
@@ -1434,7 +1434,7 @@ function buildGameCompletionEmailHtml({
             <div class="divider"></div>
 
             <div>
-              <div class="field-label">&gt; OFFICIAL ENDING CLASSIFICATION</div>
+              <div class="field-label">&gt; FINAL LEVEL ACHIEVED</div>
               <div style="margin-top: 6px;">
                 <span class="tier-badge">${safeTier}</span>
               </div>
@@ -1442,20 +1442,20 @@ function buildGameCompletionEmailHtml({
 
             <div class="divider"></div>
 
-            <div class="field-label" style="margin-bottom: 12px;">&gt; MULTI-PILLAR READINESS METRICS</div>
+            <div class="field-label" style="margin-bottom: 12px;">&gt; SCORE BREAKDOWN BY CATEGORY</div>
 
             <!-- Pillars Table -->
             <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family: 'Courier New', Courier, monospace; font-size: 13px;">
               <tr style="border-bottom: 1px solid #1a2e22;">
-                <td style="padding: 7px 0; color: #cbd5e1;">🌊 Flood Resilience:</td>
+                <td style="padding: 7px 0; color: #cbd5e1;">🌊 Flood Preparedness:</td>
                 <td align="right" style="padding: 7px 0; font-weight: 700; color: #38bdf8;">${floodPrep}%</td>
               </tr>
               <tr style="border-bottom: 1px solid #1a2e22;">
-                <td style="padding: 7px 0; color: #cbd5e1;">☀️ Drought Storage:</td>
+                <td style="padding: 7px 0; color: #cbd5e1;">☀️ Drought Preparedness:</td>
                 <td align="right" style="padding: 7px 0; font-weight: 700; color: #fbbf24;">${droughtPrep}%</td>
               </tr>
               <tr style="border-bottom: 1px solid #1a2e22;">
-                <td style="padding: 7px 0; color: #cbd5e1;">💰 Emergency Treasury:</td>
+                <td style="padding: 7px 0; color: #cbd5e1;">💰 Remaining Budget:</td>
                 <td align="right" style="padding: 7px 0; font-weight: 700; color: #34d399;">${budgetFormatted}</td>
               </tr>
               <tr style="border-bottom: 1px solid #1a2e22;">
@@ -1474,55 +1474,55 @@ function buildGameCompletionEmailHtml({
           </div>
         </div>
 
-        <!-- Strategic Debrief Observations -->
+        <!-- Key Observations -->
         <div class="intel-box">
           <div class="intel-header">
-            &#9632; STRATEGIC DEBRIEF &amp; TRADE-OFF ANALYSIS
+            &#9632; KEY DECISIONS &amp; SUMMARY
           </div>
           <div>
             ${tradeoffsHtml}
           </div>
         </div>
 
-        <!-- Terminal Reflection CTA -->
+        <!-- Leaderboard CTA -->
         <div class="cta-wrap">
           <a href="${reflectionUrl}" target="_blank" class="cta-btn">
-            &#9654; ACCESS FULL REFLECTION &amp; LEADERBOARD
+            &#9654; VIEW FULL RESULTS &amp; LEADERBOARD
           </a>
           <div style="margin-top: 8px; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #64748b;">
-            Direct URL: ${reflectionUrl}
+            Link: ${reflectionUrl}
           </div>
         </div>
 
         <!-- Feedback Prompt Box -->
         <div style="background-color: #0b1410; border: 1px dashed #10b981; border-radius: 4px; padding: 16px; text-align: center; margin-bottom: 24px;">
           <div style="font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #34d399; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">
-            📢 OPERATIVE MISSION FEEDBACK REQUESTED
+            📢 SHARE YOUR FEEDBACK
           </div>
           <div style="font-size: 13px; color: #cbd5e1; margin: 6px 0 12px 0;">
-            How was your tactical experience? Share what worked, areas to improve, and suggestions with Central Command.
+            How was your experience playing the game? Let us know what you liked and what we can improve.
           </div>
           <a href="https://sustaintech.online/feedback" target="_blank" style="display: inline-block; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; padding: 8px 20px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px;">
-            &gt;&gt; SUBMIT MISSION DEBRIEF &amp; FEEDBACK
+            &gt;&gt; GIVE FEEDBACK
           </a>
         </div>
 
-        <!-- Mission Motto -->
+        <!-- Motto -->
         <div class="mission-motto">
-          [ DEBRIEF COMPLETED &bull; SQUAD LESSONS CONSOLIDATED &bull; SUSTAINABILITY ADVANCED ]
+          [ GAME COMPLETED &bull; GREAT JOB TEAM &bull; THANK YOU FOR PLAYING ]
         </div>
       </div>
 
-      <!-- Command Footer -->
+      <!-- Footer -->
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // CENTRAL COMMAND HQ
+          SUSTAIN TECH 2026 // ORGANIZING TEAM
         </div>
         <div style="margin-top: 6px;">
-          AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+          AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
         </div>
         <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
-          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+          Need help or have questions? Contact our support team at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
@@ -1532,7 +1532,7 @@ function buildGameCompletionEmailHtml({
 }
 
 /**
- * Send final game completion debrief email to a player via Zoho Mail API.
+- Send final game completion results email to a player via Zoho Mail API.
  */
 export async function sendGameCompletionEmail({
   toEmail,
@@ -1542,14 +1542,14 @@ export async function sendGameCompletionEmail({
   scores,
   resources,
 }: SendGameCompletionEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = `🏆 [MISSION DEBRIEF] Sustain Tech 2026 - Final Results for ${teamName} (${result.endingTier || 'Completed'})`;
+  const subject = `🏆 [GAME RESULTS] Sustain Tech 2026 - Final Results for ${teamName} (${result.endingTier || 'Completed'})`;
   const htmlContent = buildGameCompletionEmailHtml({ name, teamName, result, scores, resources });
   return sendZohoMessage({ toEmail, subject, htmlContent });
 }
 
 /**
- * Automatically dispatch final debrief & results emails to all players in a completed game session.
- * Guaranteed idempotent: sets gameSession.completionEmailSent to avoid duplicate emails.
+- Automatically dispatch final results emails to all players in a completed game session.
+- Guaranteed idempotent: sets gameSession.completionEmailSent to avoid duplicate emails.
  */
 export async function dispatchTeamGameCompletionEmail(
   gameSessionId: string
@@ -1573,7 +1573,7 @@ export async function dispatchTeamGameCompletionEmail(
     }
 
     const team = await Team.findById(sessionDoc.teamId);
-    const teamName = team?.name || 'Tactical Squad';
+    const teamName = team?.name || 'Player Team';
 
     const players = await User.find({ teamId: sessionDoc.teamId, role: 'player' }).select('name email');
     if (!players || players.length === 0) {
@@ -1628,13 +1628,13 @@ export interface FeedbackData {
 }
 
 /**
- * Build HTML email for forwarding player feedback to feedback@sustaintech.online.
+- Build HTML email for forwarding player feedback to feedback@sustaintech.online.
  */
 function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
   const safeName = escapeHtml(data.name);
   const safeEmail = escapeHtml(data.email);
-  const safeTeam = escapeHtml(data.teamName || 'Independent Operative');
+  const safeTeam = escapeHtml(data.teamName || 'Independent Player');
   const safeGoods = escapeHtml(data.gameGoods || 'None reported');
   const safeBads = escapeHtml(data.gameBads || 'None reported');
   const safeImprovements = escapeHtml(data.improvements || 'None reported');
@@ -1749,8 +1749,8 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
     <div class="container">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
         <tr>
-          <td align="left">// SYS.FEEDBACK: INCOMING TRANSMISSION</td>
-          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+          <td align="left">// STATUS: NEW FEEDBACK RECEIVED</td>
+          <td align="right" style="color: #64748b;">EVENT CODE: ST-2026</td>
         </tr>
       </table>
 
@@ -1758,21 +1758,21 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
 
       <div class="content">
         <div class="status-badge">
-          &#9632; OPERATIVE DEBRIEF LOGGED
+          &#9632; PLAYER FEEDBACK LOGGED
         </div>
 
         <h1 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 900; color: #ffffff; text-transform: uppercase;">
           NEW PLAYER <span style="color: #10b981;">FEEDBACK REPORT</span>
         </h1>
         <p style="font-size: 14px; color: #94a3b8; margin: 0 0 24px 0;">
-          A player has submitted an official evaluation of the simulation. Details logged below:
+          A player has submitted feedback on the game. Details are shown below:
         </p>
 
-        <!-- Operative Profile Card -->
+        <!-- Player Profile Card -->
         <div class="card">
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family: 'Courier New', Courier, monospace; font-size: 12px;">
             <tr>
-              <td style="color: #64748b; padding-bottom: 6px;">OPERATIVE:</td>
+              <td style="color: #64748b; padding-bottom: 6px;">PLAYER NAME:</td>
               <td style="color: #f8fafc; font-weight: bold; padding-bottom: 6px;">${safeName}</td>
             </tr>
             <tr>
@@ -1780,7 +1780,7 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
               <td style="color: #38bdf8; font-weight: bold; padding-bottom: 6px;">${safeEmail}</td>
             </tr>
             <tr>
-              <td style="color: #64748b; padding-bottom: 6px;">SQUAD:</td>
+              <td style="color: #64748b; padding-bottom: 6px;">TEAM:</td>
               <td style="color: #34d399; font-weight: bold; padding-bottom: 6px;">[ ${safeTeam} ]</td>
             </tr>
             <tr>
@@ -1792,21 +1792,21 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
 
         <!-- Feedback Responses -->
         <div class="section-title" style="color: #34d399;">
-          &gt; WHAT WENT WELL (GAME GOODS)
+          &gt; WHAT WENT WELL
         </div>
         <div class="section-body">
           ${safeGoods}
         </div>
 
         <div class="section-title" style="color: #f87171;">
-          &gt; DIFFICULTIES / PAIN POINTS (GAME BADS)
+          &gt; DIFFICULTIES / ISSUES
         </div>
         <div class="section-body">
           ${safeBads}
         </div>
 
         <div class="section-title" style="color: #38bdf8;">
-          &gt; SUGGESTED IMPROVEMENTS &amp; TACTICAL IDEAS
+          &gt; SUGGESTED IMPROVEMENTS
         </div>
         <div class="section-body">
           ${safeImprovements}
@@ -1822,10 +1822,10 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
 
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // CENTRAL COMMAND FEEDBACK DESK
+          SUSTAIN TECH 2026 // FEEDBACK TEAM
         </div>
         <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
-          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+          Need help or have questions? Contact our support team at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
@@ -1835,7 +1835,7 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
 }
 
 /**
- * Build HTML email for replying to the player confirming feedback receipt.
+- Build HTML email for replying to the player confirming feedback receipt.
  */
 function buildFeedbackReplyEmailHtml(name: string): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
@@ -1846,7 +1846,7 @@ function buildFeedbackReplyEmailHtml(name: string): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Feedback Acknowledged // Sustain Tech 2026</title>
+  <title>Feedback Received // Sustain Tech 2026</title>
   <style>
     body {
       margin: 0;
@@ -1922,8 +1922,8 @@ function buildFeedbackReplyEmailHtml(name: string): string {
     <div class="container">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" class="hud-topbar">
         <tr>
-          <td align="left">// SYS.FEEDBACK: ACKNOWLEDGED</td>
-          <td align="right" style="color: #64748b;">OP-CODE: ST-2026</td>
+          <td align="left">// STATUS: FEEDBACK RECEIVED</td>
+          <td align="right" style="color: #64748b;">EVENT CODE: ST-2026</td>
         </tr>
       </table>
 
@@ -1931,7 +1931,7 @@ function buildFeedbackReplyEmailHtml(name: string): string {
 
       <div class="content">
         <div class="status-badge">
-          &#9632; TRANSMISSION RECEIVED // FILED TO COMMAND
+          &#9632; FEEDBACK RECEIVED // THANK YOU
         </div>
 
         <h1 style="margin: 0 0 12px 0; font-size: 26px; font-weight: 900; color: #ffffff; text-transform: uppercase;">
@@ -1939,32 +1939,32 @@ function buildFeedbackReplyEmailHtml(name: string): string {
         </h1>
 
         <p style="font-size: 15px; line-height: 1.7; color: #cbd5e1; margin: 0 0 20px 0;">
-          Operative <strong>${safeName}</strong>, Central Command has successfully registered and logged your mission evaluation and suggestions for Sustain Tech 2026.
+          Hi <strong>${safeName}</strong>, thank you for sharing your feedback and suggestions for Sustain Tech 2026.
         </p>
 
         <div style="background-color: #0b130f; border: 1px solid #233d2e; border-left: 4px solid #10b981; border-radius: 4px; padding: 20px; margin-bottom: 24px;">
           <div style="font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 800; color: #34d399; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;">
-            &#9632; COMMAND DIRECTIVE NOTICE
+            &#9632; THANK YOU FOR HELPING US IMPROVE
           </div>
           <p style="font-size: 14px; line-height: 1.6; color: #e2e8f0; margin: 0;">
-            Your feedback directly impacts upcoming scenario calibrations, operational balancing, and UI improvements for future competitive seasons. Thank you for taking the time to share your insights with us!
+            Your comments help us improve the game scenarios, balance, and user experience for future events. We really appreciate your time!
           </p>
         </div>
 
         <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; text-align: center;">
-          Together, we advance strategic decision-making and sustainable climate resilience.
+          Thank you for being part of Sustain Tech 2026.
         </p>
       </div>
 
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // CENTRAL COMMAND HQ
+          SUSTAIN TECH 2026 // ORGANIZING TEAM
         </div>
         <div style="margin-top: 6px;">
-          AUTOMATED TACTICAL TRANSMISSION &bull; DO NOT REPLY TO THIS DISPATCH
+          AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
         </div>
         <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
-          Need operational support or assistance? Contact our dispatch desk at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
+          Need help or have questions? Contact our support team at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
         </div>
       </div>
     </div>
@@ -1974,7 +1974,7 @@ function buildFeedbackReplyEmailHtml(name: string): string {
 }
 
 /**
- * Send player feedback to feedback@sustaintech.online.
+- Send player feedback to feedback@sustaintech.online.
  */
 export async function sendFeedbackToAdminEmail(
   data: FeedbackData
@@ -1986,7 +1986,7 @@ export async function sendFeedbackToAdminEmail(
 }
 
 /**
- * Send automatic acknowledgment reply email to the player who submitted feedback.
+- Send automatic acknowledgment reply email to the player who submitted feedback.
  */
 export async function sendFeedbackReplyToPlayerEmail({
   toEmail,
@@ -1995,7 +1995,7 @@ export async function sendFeedbackReplyToPlayerEmail({
   toEmail: string;
   name: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = `🛡️ [FEEDBACK RECEIVED] Thank you for your debrief, Operative ${name}!`;
+  const subject = `🛡️ [FEEDBACK RECEIVED] Thank you for your feedback, ${name}!`;
   const htmlContent = buildFeedbackReplyEmailHtml(name);
   return sendZohoMessage({ toEmail, subject, htmlContent });
 }
