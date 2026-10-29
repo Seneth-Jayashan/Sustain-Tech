@@ -8,7 +8,7 @@ import {
   Save, Edit3, X, UserPlus, CheckCircle2, AlertCircle, ArrowUp, ArrowDown,
   Layers, Link2, ShieldCheck, UserCheck, Search, Info, Menu,
   Clock, Zap, Trophy, Timer, Lock, Unlock, Calendar, Sparkles,
-  Key, Send, Eye, EyeOff, MessageSquare
+  Key, Send, Eye, EyeOff, MessageSquare, FileSpreadsheet
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -1005,7 +1005,13 @@ export default function AdminClient() {
                 </nav>
               </div>
 
-              <div className="pt-4 border-t border-blue-900/40">
+              <div className="pt-4 border-t border-blue-900/40 space-y-2">
+                <Link
+                  href="/admin/upload-teams"
+                  className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"
+                >
+                  <FileSpreadsheet size={16} /> Upload XLSX Roster
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"
@@ -1055,6 +1061,12 @@ export default function AdminClient() {
         </div>
 
         <div className="p-4 border-t border-blue-900/40 space-y-2">
+          <Link
+            href="/admin/upload-teams"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-800/40 rounded-xl transition-colors font-mono text-xs font-bold tracking-wider uppercase cursor-pointer"
+          >
+            <FileSpreadsheet size={16} /> Upload XLSX Roster
+          </Link>
           <Link
             href="/feedback"
             target="_blank"
@@ -1659,6 +1671,12 @@ export default function AdminClient() {
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Link
+                  href="/admin/upload-teams"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl font-mono text-xs font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] cursor-pointer"
+                >
+                  <FileSpreadsheet size={16} /> Upload XLSX Roster
+                </Link>
                 <button
                   onClick={openCreateTeam}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
