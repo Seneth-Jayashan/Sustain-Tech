@@ -1,9 +1,12 @@
 import https from 'node:https';
+import fs from 'node:fs';
+import path from 'node:path';
 
 interface SendWelcomeEmailParams {
   toEmail: string;
   name: string;
   teamName: string;
+  attachInstructions?: boolean;
 }
 
 interface ZohoTokenCache {
@@ -15,8 +18,8 @@ let cachedToken: ZohoTokenCache | null = null;
 let cachedAccountId: string | null = null;
 
 /**
-- Obtain an active OAuth access token from Zoho Accounts using the refresh token.
-- Uses family: 4 to prevent Node.js IPv6 connectivity timeouts on Linux.
+ * Obtain an active OAuth access token from Zoho Accounts using the refresh token.
+ * Uses family: 4 to prevent Node.js IPv6 connectivity timeouts on Linux.
  */
 async function getZohoAccessToken(): Promise<string> {
   const now = Date.now();
@@ -31,7 +34,9 @@ async function getZohoAccessToken(): Promise<string> {
   const accountsUrl = process.env.ZOHO_ACCOUNTS_URL || 'https://accounts.zoho.com';
 
   if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('Zoho Mail credentials (ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN) are missing in environment variables.');
+    throw new Error(
+      'Zoho Mail credentials (ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN) are missing in environment variables.'
+    );
   }
 
   const postData = new URLSearchParams({
@@ -43,34 +48,36 @@ async function getZohoAccessToken(): Promise<string> {
 
   const tokenUrl = new URL('/oauth/v2/token', accountsUrl);
 
-  const resData = await new Promise<{ access_token?: string; expires_in?: number; error?: string }>((resolve, reject) => {
-    const req = https.request(
-      tokenUrl,
-      {
-        method: 'POST',
-        family: 4,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(postData),
+  const resData = await new Promise<{ access_token?: string; expires_in?: number; error?: string }>(
+    (resolve, reject) => {
+      const req = https.request(
+        tokenUrl,
+        {
+          method: 'POST',
+          family: 4,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData),
+          },
         },
-      },
-      (res) => {
-        let raw = '';
-        res.on('data', (chunk) => (raw += chunk));
-        res.on('end', () => {
-          try {
-            resolve(JSON.parse(raw));
-          } catch (e) {
-            reject(new Error(`Failed to parse Zoho token response: ${raw}`));
-          }
-        });
-      }
-    );
+        (res) => {
+          let raw = '';
+          res.on('data', (chunk) => (raw += chunk));
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(raw));
+            } catch (e) {
+              reject(new Error(`Failed to parse Zoho token response: ${raw}`));
+            }
+          });
+        }
+      );
 
-    req.on('error', reject);
-    req.write(postData);
-    req.end();
-  });
+      req.on('error', reject);
+      req.write(postData);
+      req.end();
+    }
+  );
 
   if (resData.error || !resData.access_token) {
     throw new Error(`Zoho OAuth token error: ${resData.error || 'Unknown error'}`);
@@ -86,9 +93,9 @@ async function getZohoAccessToken(): Promise<string> {
 }
 
 /**
-- Determine the Zoho Account ID.
-- Checks process.env.ZOHO_ACCOUNT_ID
-- 2. Attempts GET /api/accounts (requires ZohoMail.accounts.READ scope)
+ * Determine the Zoho Account ID.
+ * 1. Checks process.env.ZOHO_ACCOUNT_ID
+ * 2. Attempts GET /api/accounts (requires ZohoMail.accounts.READ scope)
  */
 async function getZohoAccountId(accessToken: string): Promise<string> {
   if (process.env.ZOHO_ACCOUNT_ID) {
@@ -151,10 +158,12 @@ function escapeHtml(str: string): string {
 }
 
 /**
-- Build the User-Friendly Gaming HUD HTML email for registered players.
+ * Build the User-Friendly Gaming HUD HTML email for registered players,
+ * including the SustainTech Challenge 2026 Instructions Summary.
  */
 function buildWelcomeEmailHtml(name: string, teamName: string): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
+  const instructionsImgUrl = 'https://sustaintech.online/assets/images/Instructions.jpeg';
   const safeName = escapeHtml(name);
   const safeTeam = escapeHtml(teamName);
 
@@ -267,7 +276,7 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
       color: #94a3b8;
       margin: 0 0 28px 0;
     }
-    /* Player Profile Card */
+    /* Player Profile & Briefing Cards */
     .dossier-card {
       background-color: #0b130f;
       border: 1px solid #233d2e;
@@ -339,6 +348,76 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
       color: #cbd5e1;
       font-weight: 700;
     }
+    /* Schedule & Instructions Styles */
+    .schedule-box {
+      background-color: #070d0a;
+      border: 1px solid #1a2e22;
+      border-radius: 4px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .schedule-title {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      font-weight: 800;
+      color: #34d399;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .schedule-table td {
+      padding: 4px 0;
+      color: #cbd5e1;
+    }
+    .schedule-table td.label-col {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+      width: 42%;
+      text-transform: uppercase;
+    }
+    .schedule-table td.val-col {
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .rule-section-title {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 0 0 8px 0;
+    }
+    .rule-text {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin: 0 0 12px 0;
+    }
+    .example-box {
+      background-color: #070d0a;
+      border: 1px dashed #233d2e;
+      border-left: 3px solid #38bdf8;
+      border-radius: 4px;
+      padding: 12px 14px;
+      margin: 10px 0 4px 0;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #94a3b8;
+    }
+    .checklist-item {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
     /* Info Alert Box */
     .intel-box {
       background: rgba(245, 158, 11, 0.07);
@@ -395,6 +474,9 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
       .field-value {
         font-size: 18px;
       }
+      .schedule-table td.label-col {
+        width: 48%;
+      }
     }
   </style>
 </head>
@@ -423,7 +505,7 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
 
         <h1>WELCOME TO <span class="accent-green">SUSTAIN TECH</span></h1>
         <p class="subtitle">
-          Our team has verified your registration. You are officially registered for the <strong>Sustain Tech</strong> challenge - where teamwork, coordination, and sustainable strategy lead to victory.
+          Our team has verified your registration. You are officially registered for the <strong>SustainTech Challenge 2026</strong> — where teamwork, coordination, and sustainable strategy lead to victory. Please read the participant instructions below carefully before participating.
         </p>
 
         <!-- Player Profile Card -->
@@ -461,26 +543,137 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
           </div>
         </div>
 
-        <!-- Gaming Credentials Notice -->
+        <!-- Important Participant Instructions Card -->
+        <div class="dossier-card">
+          <div class="dossier-header">
+            &#9632; MISSION BRIEFING // PARTICIPANT INSTRUCTIONS
+          </div>
+          <div class="dossier-body">
+            <!-- Official Instructions Flyer / Infographic -->
+            <div style="margin-bottom: 20px; text-align: center;">
+              <a href="${instructionsImgUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; display: block;">
+                <img
+                  src="${instructionsImgUrl}"
+                  alt="SustainTech Challenge 2026 - Important Participant Instructions"
+                  style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 4px; border: 1px solid #1f3528; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);"
+                />
+              </a>
+              <div style="margin-top: 10px; font-family: 'Courier New', Courier, monospace; font-size: 11px; letter-spacing: 0.5px;">
+                <a href="${instructionsImgUrl}" target="_blank" rel="noopener noreferrer" style="color: #34d399; text-decoration: underline; font-weight: bold;">
+                  &#128269; View / Download Full-Resolution Instructions Flyer
+                </a>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- 1. Official Challenge Schedule -->
+            <div class="schedule-box">
+              <div class="schedule-title">&#128197; 1. CHALLENGE SCHEDULE &amp; DURATION</div>
+              <table class="schedule-table" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="label-col">DATE:</td>
+                  <td class="val-col">Saturday, 31 October 2026</td>
+                </tr>
+                <tr>
+                  <td class="label-col">TIME WINDOW:</td>
+                  <td class="val-col">12:30 PM to 1:30 PM</td>
+                </tr>
+                <tr>
+                  <td class="label-col">DURATION:</td>
+                  <td class="val-col" style="color: #34d399;">20 Minutes</td>
+                </tr>
+                <tr>
+                  <td class="label-col">ATTEMPTS:</td>
+                  <td class="val-col" style="color: #fbbf24;">1 Attempt Only (Actual Challenge)</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- 4. Practice Challenge -->
+            <div class="schedule-box" style="margin-bottom: 0; border-color: #233d2e;">
+              <div class="schedule-title" style="color: #38bdf8;">&#127918; 2. PRACTICE CHALLENGE (TEST RUN)</div>
+              <table class="schedule-table" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="label-col">AVAILABLE ON:</td>
+                  <td class="val-col">Friday, 30 October 2026</td>
+                </tr>
+                <tr>
+                  <td class="label-col">ATTEMPTS:</td>
+                  <td class="val-col" style="color: #38bdf8;">Multiple Attempts Allowed</td>
+                </tr>
+                <tr>
+                  <td class="label-col">PURPOSE:</td>
+                  <td style="color: #94a3b8; font-size: 12.5px;">Familiarize yourself with the challenge platform and environment before the actual event.</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- 3. Important Team Submission Rules -->
+            <div class="rule-section-title">
+              &#9889; 3. IMPORTANT TEAM SUBMISSION RULES
+            </div>
+            <p class="rule-text">
+              All team members may participate simultaneously using their individual login credentials. However, <strong style="color: #fbbf24;">only the first recorded submission for each section</strong> in the challenge will be considered. Later submissions for the same challenge section will not replace the first recorded submission.
+            </p>
+            <div class="example-box">
+              <strong style="color: #e2e8f0; font-family: 'Courier New', Courier, monospace; font-size: 11px; letter-spacing: 1px;">// EXAMPLE (TEAM: SUSTECH — MEMBERS: SusA, SusB, SusC):</strong><br />
+              &bull; <strong>SusA</strong> submits an answer to <em>Challenge Section 1</em> first &rarr; SusA's submission is recorded for Section 1.<br />
+              &bull; <strong>SusB</strong> submits an answer to <em>Challenge Section 2</em> first &rarr; SusB's submission is recorded for Section 2.<br />
+              &bull; <strong>SusC</strong> may also participate and submit answers, but later submissions for the same section will not replace the first recorded submission.<br />
+              <span style="color: #34d399; font-weight: 700; display: block; margin-top: 6px;">&gt; Coordinate carefully with all team members before submitting your answers!</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- 5. Technical and Participation Instructions -->
+            <div class="rule-section-title" style="color: #34d399;">
+              &#128187; 4. TECHNICAL &amp; PARTICIPATION INSTRUCTIONS
+            </div>
+            <div class="checklist-item">
+              <span style="color: #10b981; font-weight: bold;">&bull;</span> <strong>Device:</strong> Please use a <strong>desktop computer or laptop</strong> for a better challenge experience.
+            </div>
+            <div class="checklist-item">
+              <span style="color: #10b981; font-weight: bold;">&bull;</span> <strong>Audio:</strong> Turn up your device volume and listen carefully to the audio instructions and scenario descriptions.
+            </div>
+            <div class="checklist-item">
+              <span style="color: #10b981; font-weight: bold;">&bull;</span> <strong>Timer:</strong> Pay close attention to the countdown timer displayed for each challenge.
+            </div>
+            <div class="checklist-item">
+              <span style="color: #10b981; font-weight: bold;">&bull;</span> <strong>Decisions:</strong> Some scenarios require you to prioritize options, while others allow you to customize your decisions. Read each scenario carefully and make your selections before the time expires.
+            </div>
+            <div class="checklist-item" style="margin-bottom: 0;">
+              <span style="color: #10b981; font-weight: bold;">&bull;</span> <strong>Connection:</strong> Ensure that you have a stable internet connection and are ready to begin at the scheduled time.
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 2. Team Login Credentials Notice -->
         <div class="intel-box">
           <div class="intel-header">
-            &#9888; // IMPORTANT: GAME LOGIN DETAILS
+            &#9888; // TEAM LOGIN CREDENTIALS
           </div>
           <p class="intel-body">
-            <strong>Your game login credentials will be sent soon by the organizers.</strong> Please check your email inbox for your login details and game instructions before the event starts.
+            <strong>Login credentials will be provided for all team members soon.</strong> Please wait for further instructions regarding your personal login details and official challenge platform access.
           </p>
         </div>
 
         <!-- Callout Footer Box -->
         <div class="mission-motto">
-          [ WORK WITH YOUR TEAM &bull; PLAN YOUR STRATEGY &bull; WIN THE CHALLENGE ]
+          [ PRACTICE ON 30 OCT &bull; COORDINATE WITH YOUR TEAM &bull; COMPETE ON 31 OCT ]
         </div>
       </div>
 
       <!-- Footer -->
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // ORGANIZING TEAM
+          SUSTAINTECH CHALLENGE 2026 // ORGANIZING TEAM
+        </div>
+        <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+          FACULTY OF TECHNOLOGY &bull; UNIVERSITY OF COLOMBO
         </div>
         <div style="margin-top: 6px;">
           AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
@@ -503,7 +696,8 @@ export interface SendCredentialsEmailParams {
 }
 
 /**
-- Build the User-Friendly Gaming HUD HTML email for sending player credentials.
+ * Build the User-Friendly Gaming HUD HTML email for sending player credentials,
+ * including a compact reminder of the SustainTech Challenge 2026 schedule and rules.
  */
 function buildCredentialsEmailHtml({
   name,
@@ -632,7 +826,7 @@ function buildCredentialsEmailHtml({
       color: #94a3b8;
       margin: 0 0 26px 0;
     }
-    /* Credentials Card */
+    /* Credentials & Briefing Cards */
     .dossier-card {
       background-color: #0b130f;
       border: 1px solid #233d2e;
@@ -754,6 +948,27 @@ function buildCredentialsEmailHtml({
       font-size: 11px;
       color: #64748b;
     }
+    /* Schedule & Rules Reminder */
+    .schedule-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .schedule-grid td {
+      padding: 5px 0;
+      color: #cbd5e1;
+    }
+    .schedule-grid td.label-col {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+      width: 44%;
+      text-transform: uppercase;
+    }
+    .schedule-grid td.val-col {
+      font-weight: 700;
+      color: #f8fafc;
+    }
     /* Info Alert Box */
     .intel-box {
       background: rgba(245, 158, 11, 0.07);
@@ -773,7 +988,7 @@ function buildCredentialsEmailHtml({
       margin-bottom: 8px;
     }
     .intel-body {
-      font-size: 14px;
+      font-size: 13.5px;
       line-height: 1.6;
       color: #e2e8f0;
       margin: 0;
@@ -841,7 +1056,7 @@ function buildCredentialsEmailHtml({
 
         <h1>YOUR GAME <span class="accent-green">LOGIN DETAILS</span></h1>
         <p class="subtitle">
-          Here are your personal login details for the Sustain Tech game. Use the email and password below to sign in to the game platform.
+          Here are your personal login credentials for the <strong>SustainTech Challenge 2026</strong>. Use the email and password below to sign in to the challenge platform.
         </p>
 
         <!-- Player Profile Card with Login & Password -->
@@ -898,29 +1113,62 @@ function buildCredentialsEmailHtml({
           <a href="${loginUrl}" target="_blank" class="cta-btn">
             &#9654; OPEN GAME &amp; LOG IN
           </a>
-          <div class="cta-subtext">Login Link: ${loginUrl}</div>
+          <div class="cta-subtext">Challenge Platform: ${loginUrl}</div>
         </div>
 
-        <!-- Security & Time-Lock Notice -->
+        <!-- Compact Schedule & Checklist Card -->
+        <div class="dossier-card">
+          <div class="dossier-header">
+            &#9632; EVENT SCHEDULE &amp; QUICK CHECKLIST
+          </div>
+          <div class="dossier-body">
+            <table class="schedule-grid" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td class="label-col">&#127918; PRACTICE CHALLENGE:</td>
+                <td class="val-col" style="color: #38bdf8;">Friday, 30 Oct 2026 (Multiple Attempts)</td>
+              </tr>
+              <tr>
+                <td class="label-col">&#127942; ACTUAL CHALLENGE:</td>
+                <td class="val-col" style="color: #34d399;">Saturday, 31 Oct 2026 (12:30 PM – 1:30 PM)</td>
+              </tr>
+              <tr>
+                <td class="label-col">&#9201; DURATION &amp; LIMIT:</td>
+                <td class="val-col" style="color: #fbbf24;">20 Minutes &bull; 1 Attempt Only</td>
+              </tr>
+            </table>
+
+            <div class="divider"></div>
+
+            <div style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+              &bull; <strong>Desktop / Laptop:</strong> Use a desktop or laptop with a stable internet connection.<br />
+              &bull; <strong>Audio &amp; Timer:</strong> Turn up your volume for audio instructions and watch the section countdown timer closely.
+            </div>
+          </div>
+        </div>
+
+        <!-- First-Submission Rule & Security Notice -->
         <div class="intel-box">
           <div class="intel-header">
-            &#9888; // IMPORTANT NOTE
+            &#9888; // CRITICAL TEAM SUBMISSION RULE
           </div>
           <p class="intel-body">
-            <strong>Please keep your password safe.</strong> The main competition game will stay locked until the official start time. While you wait, you can log in and play the practice mode to get familiar with the game.
+            <strong>Coordinate before submitting!</strong> All teammates can log in simultaneously, but <strong>only the FIRST recorded submission for each section</strong> will be counted for your team (e.g., if <em>SusA</em> submits Section 1 first and <em>SusB</em> submits Section 2 first, those answers are locked in and later submissions will not replace them).
           </p>
         </div>
 
         <!-- Callout Footer Box -->
         <div class="mission-motto">
-          [ WORK WITH YOUR TEAM &bull; PLAN YOUR STRATEGY &bull; WIN THE CHALLENGE ]
+          [ PRACTICE ON 30 OCT &bull; COORDINATE WITH YOUR TEAM &bull; COMPETE ON 31 OCT ]
         </div>
       </div>
 
       <!-- Footer -->
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // ORGANIZING TEAM
+          SUSTAINTECH CHALLENGE 2026 // ORGANIZING TEAM
+        </div>
+        <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+          FACULTY OF TECHNOLOGY &bull; UNIVERSITY OF COLOMBO
         </div>
         <div style="margin-top: 6px;">
           AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
@@ -935,17 +1183,105 @@ function buildCredentialsEmailHtml({
 </html>`;
 }
 
+interface ZohoAttachmentItem {
+  storeName: string;
+  attachmentName: string;
+  attachmentPath: string;
+}
+
 /**
-- Low-level Zoho Mail message dispatch helper.
+ * Upload an attachment to Zoho Mail's temporary store so it can be attached to messages.
+ */
+async function uploadZohoAttachment(
+  filePath: string,
+  fileName?: string
+): Promise<ZohoAttachmentItem | null> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`[Zoho Mail] Attachment file not found: ${filePath}`);
+      return null;
+    }
+
+    const accessToken = await getZohoAccessToken();
+    const accountId = await getZohoAccountId(accessToken);
+    const resolvedName = fileName || path.basename(filePath);
+    const fileData = fs.readFileSync(filePath);
+
+    let contentType = 'application/octet-stream';
+    const ext = path.extname(resolvedName).toLowerCase();
+    if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+    else if (ext === '.png') contentType = 'image/png';
+    else if (ext === '.pdf') contentType = 'application/pdf';
+
+    const boundary = '----ZohoBoundary' + Math.random().toString(36).substring(2);
+    const header = `--${boundary}\r\nContent-Disposition: form-data; name="attach"; filename="${resolvedName}"\r\nContent-Type: ${contentType}\r\n\r\n`;
+    const footer = `\r\n--${boundary}--\r\n`;
+    const payload = Buffer.concat([Buffer.from(header, 'utf8'), fileData, Buffer.from(footer, 'utf8')]);
+
+    const uploadUrl = new URL(
+      `/api/accounts/${accountId}/messages/attachments?uploadType=multipart`,
+      'https://mail.zoho.com'
+    );
+
+    const uploadRes = await new Promise<any>((resolve, reject) => {
+      const req = https.request(
+        uploadUrl,
+        {
+          method: 'POST',
+          family: 4,
+          headers: {
+            Authorization: `Zoho-oauthtoken ${accessToken}`,
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'Content-Length': payload.length,
+          },
+        },
+        (res) => {
+          let raw = '';
+          res.on('data', (chunk) => (raw += chunk));
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(raw));
+            } catch {
+              resolve(null);
+            }
+          });
+        }
+      );
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+
+    if (uploadRes?.data && Array.isArray(uploadRes.data) && uploadRes.data.length > 0) {
+      const item = uploadRes.data[0];
+      return {
+        storeName: item.storeName,
+        attachmentName: item.attachmentName,
+        attachmentPath: item.attachmentPath,
+      };
+    }
+
+    console.warn('[Zoho Mail] Attachment upload did not return data array:', uploadRes);
+    return null;
+  } catch (err) {
+    console.warn('[Zoho Mail] Failed to upload attachment:', err);
+    return null;
+  }
+}
+
+/**
+ * Low-level Zoho Mail message dispatch helper.
  */
 async function sendZohoMessage({
   toEmail,
   subject,
   htmlContent,
+  attachments,
 }: {
   toEmail: string;
   subject: string;
   htmlContent: string;
+  attachments?: ZohoAttachmentItem[];
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const fromEmail = (process.env.ZOHO_ACCOUNT_EMAIL || 'no-reply@sustaintech.online').trim();
@@ -955,13 +1291,19 @@ async function sendZohoMessage({
     const accessToken = await getZohoAccessToken();
     const accountId = await getZohoAccountId(accessToken);
 
-    const payload = JSON.stringify({
+    const messagePayload: any = {
       fromAddress,
       toAddress: toEmail.trim(),
       subject,
       content: htmlContent,
       mailFormat: 'html',
-    });
+    };
+
+    if (attachments && attachments.length > 0) {
+      messagePayload.attachments = attachments;
+    }
+
+    const payload = JSON.stringify(messagePayload);
 
     const endpointUrl = new URL(`/api/accounts/${accountId}/messages`, 'https://mail.zoho.com');
 
@@ -1020,20 +1362,36 @@ async function sendZohoMessage({
 }
 
 /**
-- Send an attractive gaming-vibe welcome email to a newly registered player via Zoho Mail API.
+ * Send an attractive gaming-vibe welcome email to a newly registered player via Zoho Mail API,
+ * with the official Instructions.jpeg flyer embedded in the body and attached.
  */
 export async function sendPlayerWelcomeEmail({
   toEmail,
   name,
   teamName,
+  attachInstructions = true,
 }: SendWelcomeEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = '🎖️ [WELCOME] Sustain Tech - Registration Confirmed';
+  const subject = '🎖️ [WELCOME] SustainTech Challenge 2026 - Registration & Instructions';
   const htmlContent = buildWelcomeEmailHtml(name, teamName);
-  return sendZohoMessage({ toEmail, subject, htmlContent });
+
+  let attachments: ZohoAttachmentItem[] | undefined;
+  if (attachInstructions) {
+    try {
+      const instructionsPath = path.join(process.cwd(), 'public', 'assets', 'images', 'Instructions.jpeg');
+      const uploaded = await uploadZohoAttachment(instructionsPath, 'Instructions.jpeg');
+      if (uploaded) {
+        attachments = [uploaded];
+      }
+    } catch (attErr) {
+      console.warn('[Zoho Mail] Could not prepare Instructions attachment, proceeding with embedded email:', attErr);
+    }
+  }
+
+  return sendZohoMessage({ toEmail, subject, htmlContent, attachments });
 }
 
 /**
-- Send gaming credentials (email & password) to a player via Zoho Mail API.
+ * Send gaming credentials (email & password) to a player via Zoho Mail API.
  */
 export async function sendPlayerCredentialsEmail({
   toEmail,
@@ -1041,7 +1399,7 @@ export async function sendPlayerCredentialsEmail({
   teamName,
   password,
 }: SendCredentialsEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = `🔑 [GAME LOGIN] Sustain Tech - Login Details for ${teamName}`;
+  const subject = `🔑 [GAME LOGIN] SustainTech Challenge 2026 - Login Details for ${teamName}`;
   const htmlContent = buildCredentialsEmailHtml({ name, teamName, email: toEmail, password });
   return sendZohoMessage({ toEmail, subject, htmlContent });
 }
@@ -1070,7 +1428,7 @@ export interface SendGameCompletionEmailParams {
 }
 
 /**
-- Build the User-Friendly Gaming HUD HTML email for final game results.
+ * Build the User-Friendly Gaming HUD HTML email for final game results.
  */
 function buildGameCompletionEmailHtml({
   name,
@@ -1123,13 +1481,18 @@ function buildGameCompletionEmailHtml({
     tierBg = 'rgba(239, 68, 68, 0.15)';
   }
 
-  const tradeoffsHtml = (result.tradeoffs && result.tradeoffs.length > 0)
-    ? result.tradeoffs.map((t) => `
+  const tradeoffsHtml =
+    result.tradeoffs && result.tradeoffs.length > 0
+      ? result.tradeoffs
+        .map(
+          (t) => `
         <div style="margin-bottom: 8px; font-size: 13px; color: #cbd5e1; line-height: 1.6; padding-left: 14px; position: relative;">
           <span style="color: #10b981; font-weight: bold; margin-right: 6px;">&bull;</span>${escapeHtml(t)}
         </div>
-      `).join('')
-    : '<div style="font-size: 13px; color: #94a3b8;">Good balance maintained across all key areas.</div>';
+      `
+        )
+        .join('')
+      : '<div style="font-size: 13px; color: #94a3b8;">Good balance maintained across all key areas.</div>';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1291,27 +1654,6 @@ function buildGameCompletionEmailHtml({
       color: #10b981;
       letter-spacing: -1px;
       line-height: 1;
-    }
-    .metric-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #1a2e22;
-    }
-    .metric-row:last-child {
-      border-bottom: none;
-    }
-    .metric-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: #e2e8f0;
-    }
-    .metric-val {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 14px;
-      font-weight: 800;
-      color: #10b981;
     }
     .divider {
       height: 1px;
@@ -1516,7 +1858,10 @@ function buildGameCompletionEmailHtml({
       <!-- Footer -->
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // ORGANIZING TEAM
+          SUSTAINTECH CHALLENGE 2026 // ORGANIZING TEAM
+        </div>
+        <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+          FACULTY OF TECHNOLOGY &bull; UNIVERSITY OF COLOMBO
         </div>
         <div style="margin-top: 6px;">
           AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
@@ -1532,7 +1877,7 @@ function buildGameCompletionEmailHtml({
 }
 
 /**
-- Send final game completion results email to a player via Zoho Mail API.
+ * Send final game completion results email to a player via Zoho Mail API.
  */
 export async function sendGameCompletionEmail({
   toEmail,
@@ -1542,14 +1887,14 @@ export async function sendGameCompletionEmail({
   scores,
   resources,
 }: SendGameCompletionEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const subject = `🏆 [GAME RESULTS] Sustain Tech 2026 - Final Results for ${teamName} (${result.endingTier || 'Completed'})`;
+  const subject = `🏆 [GAME RESULTS] SustainTech Challenge 2026 - Final Results for ${teamName} (${result.endingTier || 'Completed'})`;
   const htmlContent = buildGameCompletionEmailHtml({ name, teamName, result, scores, resources });
   return sendZohoMessage({ toEmail, subject, htmlContent });
 }
 
 /**
-- Automatically dispatch final results emails to all players in a completed game session.
-- Guaranteed idempotent: sets gameSession.completionEmailSent to avoid duplicate emails.
+ * Automatically dispatch final results emails to all players in a completed game session.
+ * Guaranteed idempotent: sets gameSession.completionEmailSent to avoid duplicate emails.
  */
 export async function dispatchTeamGameCompletionEmail(
   gameSessionId: string
@@ -1628,7 +1973,7 @@ export interface FeedbackData {
 }
 
 /**
-- Build HTML email for forwarding player feedback to feedback@sustaintech.online.
+ * Build HTML email for forwarding player feedback to feedback@sustaintech.online.
  */
 function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
@@ -1822,7 +2167,10 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
 
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // FEEDBACK TEAM
+          SUSTAINTECH CHALLENGE 2026 // FEEDBACK TEAM
+        </div>
+        <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+          FACULTY OF TECHNOLOGY &bull; UNIVERSITY OF COLOMBO
         </div>
         <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #1a2e22; font-size: 11px; color: #94a3b8;">
           Need help or have questions? Contact our support team at <a href="mailto:support@sustaintech.online" style="color: #10b981; text-decoration: underline; font-weight: bold;">support@sustaintech.online</a>
@@ -1835,7 +2183,7 @@ function buildFeedbackForwardEmailHtml(data: FeedbackData): string {
 }
 
 /**
-- Build HTML email for replying to the player confirming feedback receipt.
+ * Build HTML email for replying to the player confirming feedback receipt.
  */
 function buildFeedbackReplyEmailHtml(name: string): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
@@ -1939,7 +2287,7 @@ function buildFeedbackReplyEmailHtml(name: string): string {
         </h1>
 
         <p style="font-size: 15px; line-height: 1.7; color: #cbd5e1; margin: 0 0 20px 0;">
-          Hi <strong>${safeName}</strong>, thank you for sharing your feedback and suggestions for Sustain Tech 2026.
+          Hi <strong>${safeName}</strong>, thank you for sharing your feedback and suggestions for SustainTech Challenge 2026.
         </p>
 
         <div style="background-color: #0b130f; border: 1px solid #233d2e; border-left: 4px solid #10b981; border-radius: 4px; padding: 20px; margin-bottom: 24px;">
@@ -1952,13 +2300,16 @@ function buildFeedbackReplyEmailHtml(name: string): string {
         </div>
 
         <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; text-align: center;">
-          Thank you for being part of Sustain Tech 2026.
+          Thank you for being part of SustainTech Challenge 2026.
         </p>
       </div>
 
       <div class="footer">
         <div style="color: #10b981; font-weight: 700; letter-spacing: 2px;">
-          SUSTAIN TECH 2026 // ORGANIZING TEAM
+          SUSTAINTECH CHALLENGE 2026 // ORGANIZING TEAM
+        </div>
+        <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+          FACULTY OF TECHNOLOGY &bull; UNIVERSITY OF COLOMBO
         </div>
         <div style="margin-top: 6px;">
           AUTOMATED EMAIL &bull; PLEASE DO NOT REPLY TO THIS MESSAGE
@@ -1974,7 +2325,7 @@ function buildFeedbackReplyEmailHtml(name: string): string {
 }
 
 /**
-- Send player feedback to feedback@sustaintech.online.
+ * Send player feedback to feedback@sustaintech.online.
  */
 export async function sendFeedbackToAdminEmail(
   data: FeedbackData
@@ -1986,7 +2337,7 @@ export async function sendFeedbackToAdminEmail(
 }
 
 /**
-- Send automatic acknowledgment reply email to the player who submitted feedback.
+ * Send automatic acknowledgment reply email to the player who submitted feedback.
  */
 export async function sendFeedbackReplyToPlayerEmail({
   toEmail,
