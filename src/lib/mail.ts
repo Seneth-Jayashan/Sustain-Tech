@@ -160,6 +160,7 @@ function escapeHtml(str: string): string {
  */
 function buildWelcomeEmailHtml(name: string, teamName: string): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
+  const practiceUrl = 'https://sustaintech.online/practice';
   const safeName = escapeHtml(name);
   const safeTeam = escapeHtml(teamName);
 
@@ -343,6 +344,46 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
     .telemetry-val {
       color: #cbd5e1;
       font-weight: 700;
+    }
+    /* Launch CTA */
+    .cta-wrap {
+      text-align: center;
+      margin: 26px 0 24px 0;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 34px;
+      border-radius: 5px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+    }
+    .cta-subtext {
+      margin-top: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .practice-box-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 10px 22px;
+      border-radius: 4px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border: 1px solid #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
     }
     /* Schedule & Instructions Styles */
     .schedule-box {
@@ -539,6 +580,16 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
           </div>
         </div>
 
+        <!-- Direct Launch CTA for Practice Game -->
+        <div class="cta-wrap">
+          <a href="${practiceUrl}" target="_blank" class="cta-btn" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; padding: 14px 34px; border-radius: 5px; font-family: 'Courier New', Courier, monospace; font-size: 13px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; box-shadow: 0 0 25px rgba(16, 185, 129, 0.4); border: 1px solid #34d399;">
+            &#127918; PLAY PRACTICE GAME NOW
+          </a>
+          <div class="cta-subtext" style="margin-top: 8px; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #64748b;">
+            Practice Simulator: <a href="${practiceUrl}" target="_blank" style="color: #38bdf8; text-decoration: underline;">${practiceUrl}</a>
+          </div>
+        </div>
+
         <!-- Important Participant Instructions Card -->
         <div class="dossier-card">
           <div class="dossier-header">
@@ -586,6 +637,12 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
                   <td style="color: #94a3b8; font-size: 12.5px;">Familiarize yourself with the challenge platform and environment before the actual event.</td>
                 </tr>
               </table>
+
+              <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #1a2e22; text-align: center;">
+                <a href="${practiceUrl}" target="_blank" class="practice-box-btn" style="display: inline-block; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff !important; text-decoration: none; padding: 10px 22px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; border: 1px solid #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);">
+                  &#127918; LAUNCH PRACTICE CHALLENGE &rarr;
+                </a>
+              </div>
             </div>
 
             <div class="divider"></div>
