@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star,
@@ -40,8 +40,34 @@ export default function FeedbackClient({ userSession }: Props) {
   const [name, setName] = useState(userSession?.name || '');
   const [email, setEmail] = useState(userSession?.email || '');
   const [teamName, setTeamName] = useState(userSession?.teamName || '');
+  const [isAutoFetched, setIsAutoFetched] = useState(Boolean(userSession?.email));
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+  useEffect(() => {
+    // If email is not passed via props (e.g. client navigation or session without cookie email), fetch from /api/auth/me
+    if (!email || !name) {
+      fetch('/api/auth/me')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.authenticated && data.user) {
+            if (!email && data.user.email) {
+              setEmail(data.user.email);
+              setIsAutoFetched(true);
+            }
+            if (!name && data.user.name) {
+              setName(data.user.name);
+            }
+            if (!teamName && data.user.teamName) {
+              setTeamName(data.user.teamName);
+            }
+          }
+        })
+        .catch(() => {});
+    } else {
+      setIsAutoFetched(true);
+    }
+  }, [email, name, teamName]);
 
   const [gameGoods, setGameGoods] = useState('');
   const [gameBads, setGameBads] = useState('');
@@ -249,9 +275,17 @@ export default function FeedbackClient({ userSession }: Props) {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5 font-bold">
-                        Operative Name *
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[11px] font-mono uppercase text-slate-400 font-bold">
+                          Operative Name *
+                        </label>
+                        {name && (
+                          <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-bold">
+                            <CheckCircle2 size={11} className="text-emerald-400" />
+                            Logged In
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="text"
                         required
@@ -263,23 +297,46 @@ export default function FeedbackClient({ userSession }: Props) {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5 font-bold">
-                        Login Email *
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[11px] font-mono uppercase text-slate-400 font-bold">
+                          Login Email *
+                        </label>
+                        {email && (
+                          <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-bold">
+                            <CheckCircle2 size={11} className="text-emerald-400" />
+                            Auto-Fetched
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="email"
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setIsAutoFetched(false);
+                        }}
                         placeholder="operative@email.com"
-                        className="w-full bg-black/60 border border-emerald-950/80 focus:border-emerald-500 rounded-xl p-3 text-sm font-mono text-white focus:outline-none transition-all"
+                        className={`w-full bg-black/60 border rounded-xl p-3 text-sm font-mono text-white focus:outline-none transition-all ${
+                          email
+                            ? 'border-emerald-500/50 bg-emerald-950/10 focus:border-emerald-400'
+                            : 'border-emerald-950/80 focus:border-emerald-500'
+                        }`}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5 font-bold">
-                        Squad / Team Name
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[11px] font-mono uppercase text-slate-400 font-bold">
+                          Squad / Team Name
+                        </label>
+                        {teamName && (
+                          <span className="text-[10px] font-mono text-teal-400 flex items-center gap-1 font-bold">
+                            <CheckCircle2 size={11} className="text-teal-400" />
+                            Squad Linked
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="text"
                         value={teamName}

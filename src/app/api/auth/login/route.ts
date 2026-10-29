@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const teamIdStr = user.teamId ? (user.teamId as any)._id.toString() : '';
     const teamNameStr = user.teamId ? (user.teamId as any).name : 'Admin Team';
 
-    await createSession(user._id.toString(), user.name, teamIdStr, teamNameStr, user.role);
+    await createSession(user._id.toString(), user.name, teamIdStr, teamNameStr, user.role, user.email);
 
     return NextResponse.json({ success: true, teamId: teamIdStr, role: user.role });
   } catch (error: any) {
