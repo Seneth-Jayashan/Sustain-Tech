@@ -294,6 +294,7 @@ export default function IntroPage() {
   const bgFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rafRef = useRef<number>(0);
 
+  // If intro was already watched, immediately forward to dashboard
   useEffect(() => {
     fetch('/api/game/access-status')
       .then(res => res.json())
@@ -303,13 +304,44 @@ export default function IntroPage() {
         }
       })
       .catch(() => {});
+
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.user) {
+          const userId = data.user.userId;
+          const teamId = data.user.teamId;
+          const watchedInLocal = typeof window !== 'undefined' && (
+            (userId && localStorage.getItem(`intro_watched_${userId}`) === 'true') ||
+            (teamId && localStorage.getItem(`intro_watched_${teamId}`) === 'true')
+          );
+          if (data.user.hasWatchedIntro || watchedInLocal) {
+            router.replace('/dashboard');
+          }
+        }
+      })
+      .catch(() => {});
   }, [router]);
 
+  const markWatched = useCallback(() => {
+    fetch('/api/auth/intro-watched', { method: 'POST' }).catch(() => {});
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.user) {
+          if (data.user.userId) localStorage.setItem(`intro_watched_${data.user.userId}`, 'true');
+          if (data.user.teamId) localStorage.setItem(`intro_watched_${data.user.teamId}`, 'true');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const skipIntro = useCallback(() => {
+    markWatched();
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (bgFadeRef.current) clearInterval(bgFadeRef.current);
     router.push('/dashboard');
-  }, [router]);
+  }, [router, markWatched]);
 
   // ── Reliable bg music loop via JS ended event ────────────────────────────
   const playBgMusic = useCallback((audio: HTMLAudioElement) => {
@@ -338,6 +370,7 @@ export default function IntroPage() {
   }, []);
 
   const handleStart = useCallback(() => {
+    markWatched();
     setPhase('logo');
     setStatusText('INITIALIZING...');
 

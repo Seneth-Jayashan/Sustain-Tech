@@ -21,7 +21,7 @@ import {
   Activity, WifiOff, ShieldAlert, Navigation, Terminal, RotateCcw,
   CheckCircle2, ArrowRight, Truck, Ship, Sliders, Layers, Plus, Minus,
   ChevronDown, ChevronUp, Eye, Clock, Play, Pause, Volume2, VolumeX,
-  Waves, Sun, Scale, MessageSquarePlus
+  Waves, Sun, Scale
 } from 'lucide-react';
 import Image from 'next/image';
 import {
@@ -417,7 +417,11 @@ export default function DashboardClient({ initialState, teamName, initialScenari
 
   // Real-time Emergency Countdown Timer (Server-Enforced Tournament Deadlines)
   const [secondsLeft, setSecondsLeft] = useState<number>(() => {
-    if (state.pendingFallbackAcknowledgement || !state.roundDeadline) return roundAllowance;
+    if (state.pendingFallbackAcknowledgement) return roundAllowance;
+    if (state.isPaused && typeof state.roundRemainingSeconds === 'number') {
+      return state.roundRemainingSeconds;
+    }
+    if (!state.roundDeadline) return state.roundRemainingSeconds || roundAllowance;
     return Math.max(0, Math.ceil((new Date(state.roundDeadline).getTime() - Date.now()) / 1000));
   });
   const [interventionAlert, setInterventionAlert] = useState<string | null>(null);
@@ -649,9 +653,19 @@ export default function DashboardClient({ initialState, teamName, initialScenari
   // Real-time Emergency Timer Countdown Loop
   useEffect(() => {
     const tick = () => {
-      // Pause countdown while acknowledgment is pending or deadline not yet set
-      if (state.pendingFallbackAcknowledgement || !state.roundDeadline) {
+      // Pause countdown while acknowledgment is pending or session is paused / deadline not set
+      if (state.pendingFallbackAcknowledgement) {
         setSecondsLeft(roundAllowance);
+        return;
+      }
+      if (state.isPaused) {
+        if (typeof state.roundRemainingSeconds === 'number') {
+          setSecondsLeft(state.roundRemainingSeconds);
+        }
+        return;
+      }
+      if (!state.roundDeadline) {
+        setSecondsLeft(state.roundRemainingSeconds || roundAllowance);
         return;
       }
       const now = Date.now();
@@ -683,7 +697,20 @@ export default function DashboardClient({ initialState, teamName, initialScenari
     tick();
     const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [state.roundDeadline, state.bucket, state.pendingFallbackAcknowledgement, roundAllowance]);
+  }, [state.roundDeadline, state.bucket, state.pendingFallbackAcknowledgement, state.isPaused, state.roundRemainingSeconds, roundAllowance]);
+
+  // Pause round timer on tab close / browser navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        navigator.sendBeacon('/api/game/pause');
+      } catch {}
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Real-Time Team Synchronization Polling:
   // Keeps all players in the same team synchronized so everyone is on the exact same round.
@@ -1399,16 +1426,6 @@ export default function DashboardClient({ initialState, teamName, initialScenari
               </div>
             </div>
 
-            {/* Prominent Feedback Button */}
-            <Link
-              href="/feedback"
-              className="flex items-center gap-1.5 px-3 h-10 sm:h-11 rounded-xl bg-gradient-to-r from-emerald-950/90 to-teal-950/80 border border-emerald-400/50 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider backdrop-blur-xl transition-all hover:bg-emerald-900/90 hover:border-emerald-300 hover:text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 group"
-              title="Give Mission Feedback & Suggestions"
-            >
-              <MessageSquarePlus size={16} className="text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
-              <span className="hidden sm:inline">Feedback</span>
-            </Link>
-
             {/* Logout */}
             <button
               onClick={handleLogout}
@@ -1447,14 +1464,6 @@ export default function DashboardClient({ initialState, teamName, initialScenari
                   </div>
                 ))}
               </div>
-
-              <Link
-                href="/feedback"
-                className="w-full py-2 px-3 rounded-lg bg-emerald-950/80 border border-emerald-400/40 text-emerald-300 font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-emerald-900/90 transition-all text-center"
-              >
-                <MessageSquarePlus size={14} className="text-emerald-400" />
-                <span>Give Mission Feedback</span>
-              </Link>
             </motion.div>
           )}
         </AnimatePresence>

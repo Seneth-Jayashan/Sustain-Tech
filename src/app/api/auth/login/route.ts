@@ -53,7 +53,13 @@ export async function POST(request: Request) {
 
     await createSession(user._id.toString(), user.name, teamIdStr, teamNameStr, user.role, user.email);
 
-    return NextResponse.json({ success: true, teamId: teamIdStr, role: user.role });
+    return NextResponse.json({
+      success: true,
+      userId: user._id.toString(),
+      teamId: teamIdStr,
+      role: user.role,
+      hasWatchedIntro: Boolean(user.hasWatchedIntro)
+    });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

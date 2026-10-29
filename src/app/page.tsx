@@ -31,6 +31,18 @@ interface GameAccessState {
 export default function HomePage() {
   const [access, setAccess] = useState<GameAccessState | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
+  const [authSession, setAuthSession] = useState<{ authenticated: boolean; role?: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d.authenticated && d.user) {
+          setAuthSession({ authenticated: true, role: d.user.role });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchAccess = useCallback(async () => {
     try {
@@ -248,7 +260,7 @@ export default function HomePage() {
               <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500 pointer-events-none" />
 
               <Link
-                href="/login"
+                href={authSession?.authenticated ? (authSession.role === 'admin' ? '/admin' : '/dashboard') : '/login'}
                 className="relative w-full bg-gradient-to-r from-teal-400 via-cyan-400 to-emerald-400 hover:from-teal-300 hover:via-cyan-300 hover:to-emerald-300 text-slate-950 font-black py-4 sm:py-5 px-8 rounded-[1.35rem] flex items-center justify-between gap-4 text-base sm:text-lg uppercase tracking-wider transition-all cursor-pointer overflow-hidden"
               >
                 <div className="flex items-center gap-3">
@@ -257,10 +269,10 @@ export default function HomePage() {
                   </span>
                   <div className="flex flex-col items-start leading-tight">
                     <span className="text-[10px] font-mono font-extrabold uppercase tracking-[0.2em] text-slate-900/80">
-                      Official Tournament
+                      {authSession?.authenticated ? 'Active Commander Session' : 'Official Tournament'}
                     </span>
                     <span className="text-lg sm:text-xl font-black tracking-tight">
-                      Enter Real Game
+                      {authSession?.authenticated ? 'Enter Command Center' : 'Enter Real Game'}
                     </span>
                   </div>
                 </div>

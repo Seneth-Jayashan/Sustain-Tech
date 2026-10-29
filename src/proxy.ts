@@ -24,13 +24,15 @@ export async function proxy(request: NextRequest) {
   }
 
   let role = 'player';
+  let validSession = false;
   if (session) {
     try {
       const secretKey = process.env.SESSION_SECRET || 'fallback-secret-key-do-not-use-in-prod';
       const key = new TextEncoder().encode(secretKey);
       const { payload } = await jwtVerify(session, key, { algorithms: ['HS256'] });
-      role = payload.role as string;
-    } catch (e) {
+      role = (payload.role as string) || 'player';
+      validSession = true;
+    } catch {
       if (!isPublicRoute) {
         if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         return NextResponse.redirect(new URL('/login', request.url));
@@ -39,7 +41,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Route directing based on authentication and role (for login page when already authenticated)
-  if (session && pathname === '/login') {
+  if (validSession && (pathname === '/login' || pathname === '/login/')) {
     if (role === 'admin') {
       return NextResponse.redirect(new URL('/admin', request.url));
     } else {

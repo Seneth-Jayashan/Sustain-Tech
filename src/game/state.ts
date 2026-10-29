@@ -84,6 +84,9 @@ export interface GameState {
   roundStartTime?: string;      // ISO string of round commencement (UTC)
   roundDeadline?: string;       // ISO string of authoritative server deadline (UTC)
   roundDurationSeconds?: number;// Duration allocated for this round in seconds
+  roundRemainingSeconds?: number;// Remaining seconds when paused (e.g. player not logged in)
+  isPaused?: boolean;           // True if round countdown is paused
+  pausedAt?: string;            // ISO timestamp when round was paused
   
   // Randomized Action Cards (persisted display order per bucket)
   shuffledCardOrders?: Record<number, string[]>;
@@ -106,8 +109,6 @@ export interface GameState {
 // Initial default state factory matching 10 Days to Decide parameters
 export function getInitialGameState(sessionId: string = 'default', seed: string = 'seed', mode: SimulationMode = 'tournament'): GameState {
   const initDuration = getRoundDuration(1);
-  const now = new Date();
-  const initDeadline = new Date(now.getTime() + initDuration * 1000);
 
   return {
     sessionId,
@@ -115,9 +116,11 @@ export function getInitialGameState(sessionId: string = 'default', seed: string 
     bucket: 1,
     day: 0,
     simulationMode: mode,
-    roundStartTime: now.toISOString(),
-    roundDeadline: initDeadline.toISOString(),
+    roundStartTime: undefined,
+    roundDeadline: undefined,
     roundDurationSeconds: initDuration,
+    roundRemainingSeconds: initDuration,
+    isPaused: true,
     shuffledCardOrders: {
       1: getDefaultBucketShuffledOrder(seed, 1)
     },

@@ -74,6 +74,8 @@ export async function POST() {
       state.roundStartTime = now.toISOString();
       state.roundDeadline = new Date(now.getTime() + duration * 1000).toISOString();
       state.roundDurationSeconds = duration;
+      state.isPaused = false;
+      state.roundRemainingSeconds = undefined;
 
       if (!state.shuffledCardOrders) {
         state.shuffledCardOrders = {};

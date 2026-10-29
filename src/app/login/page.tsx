@@ -34,8 +34,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [lockStatus, setLockStatus] = useState<{ isLocked: boolean; unlockTime: string | null; timeRemainingSeconds: number; message?: string } | null>(null);
   const [isLockedRejection, setIsLockedRejection] = useState(false);
+
+  // If user already has an active session, forward directly to dashboard (or admin)
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d.authenticated && d.user) {
+          router.replace(d.user.role === 'admin' ? '/admin' : '/dashboard');
+        } else {
+          setCheckingSession(false);
+        }
+      })
+      .catch(() => {
+        setCheckingSession(false);
+      });
+  }, [router]);
 
   useEffect(() => {
     fetch('/api/game/access-status')
@@ -77,13 +94,35 @@ export default function LoginPage() {
       if (data.role === 'admin') {
         router.push('/admin');
       } else {
-        router.push('/intro');
+        const userId = data.userId;
+        const teamId = data.teamId;
+        const watchedInLocal = typeof window !== 'undefined' && (
+          (userId && localStorage.getItem(`intro_watched_${userId}`) === 'true') ||
+          (teamId && localStorage.getItem(`intro_watched_${teamId}`) === 'true')
+        );
+
+        if (data.hasWatchedIntro || watchedInLocal) {
+          router.push('/dashboard');
+        } else {
+          router.push('/intro');
+        }
       }
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center bg-[#030712] text-slate-100 p-4 font-mono select-none">
+        <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-slate-900/80 border border-teal-500/40 text-teal-300 shadow-[0_0_30px_rgba(20,184,166,0.25)] backdrop-blur-xl">
+          <Loader2 className="animate-spin text-teal-400" size={18} />
+          <span className="text-xs uppercase tracking-widest font-bold">VERIFYING ACTIVE SESSION...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col justify-between relative overflow-hidden bg-[#030712] text-slate-100 p-4 sm:p-6 md:p-8 select-none">

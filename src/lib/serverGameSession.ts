@@ -18,11 +18,11 @@ export async function resolveExpiredRoundIfNecessary(gameSession: any, userId: s
   const state = gameSession.state;
   if (!state || state.bucket > 6) return gameSession;
 
+  // If the game session is paused (e.g. player not logged in) or deadline is not set, time is paused
+  if (state.isPaused || !state.roundDeadline) return gameSession;
+
   // If a contingency report is already pending player acknowledgment, the clock is paused
   if (state.pendingFallbackAcknowledgement) return gameSession;
-
-  // If no deadline has been established yet, return unchanged
-  if (!state.roundDeadline) return gameSession;
 
   const now = new Date();
   const deadlineMs = new Date(state.roundDeadline).getTime();

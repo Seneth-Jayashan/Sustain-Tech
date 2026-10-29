@@ -106,6 +106,10 @@ async function main() {
           state.scores.droughtPreparedness = 62;
           state.information.informationQuality = 70;
           state.scores.informationQuality = 70;
+          state.roundDurationSeconds = 240;
+          state.roundRemainingSeconds = 240;
+          state.isPaused = true;
+          state.roundDeadline = undefined;
           await GameSession.create({ teamId: createdTeams[u.teamName]._id, currentUserId: user._id, status: 'ACTIVE', state });
         } else if (u.teamName === 'Team Beta') {
           state.bucket = 7;
@@ -117,6 +121,8 @@ async function main() {
           state.scores.droughtPreparedness = 72;
           state.information.informationQuality = 68;
           state.scores.informationQuality = 68;
+          state.isPaused = true;
+          state.roundDeadline = undefined;
           await GameSession.create({ 
             teamId: createdTeams[u.teamName]._id, 
             currentUserId: user._id,
@@ -134,6 +140,10 @@ async function main() {
           state.scores.droughtPreparedness = 42;
           state.information.informationQuality = 35;
           state.scores.informationQuality = 35;
+          state.roundDurationSeconds = 180;
+          state.roundRemainingSeconds = 180;
+          state.isPaused = true;
+          state.roundDeadline = undefined;
           await GameSession.create({ teamId: createdTeams[u.teamName]._id, currentUserId: user._id, status: 'ACTIVE', state });
         }
         console.log(`Created mock telemetry for ${u.teamName}`);

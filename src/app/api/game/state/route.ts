@@ -70,13 +70,21 @@ export async function GET(request: Request) {
       // Ensure timer and shuffle state exist on existing active sessions
       let needsSave = false;
       const b = gameSession.state.bucket || 1;
-      if (!gameSession.state.pendingFallbackAcknowledgement && (!gameSession.state.roundDeadline || !gameSession.state.roundStartTime)) {
-        const { getRoundDuration } = await import('@/game/timer');
-        const duration = getRoundDuration(b);
-        const now = new Date();
+      const { getRoundDuration } = await import('@/game/timer');
+      const duration = getRoundDuration(b);
+      const now = new Date();
+
+      // If session was paused (e.g. player was logged out), resume countdown now that player is logged in
+      if (!gameSession.state.pendingFallbackAcknowledgement && (gameSession.state.isPaused || !gameSession.state.roundDeadline || !gameSession.state.roundStartTime)) {
+        const remaining = typeof gameSession.state.roundRemainingSeconds === 'number' && gameSession.state.roundRemainingSeconds > 0
+          ? gameSession.state.roundRemainingSeconds
+          : duration;
         gameSession.state.roundStartTime = now.toISOString();
         gameSession.state.roundDurationSeconds = duration;
-        gameSession.state.roundDeadline = new Date(now.getTime() + duration * 1000).toISOString();
+        gameSession.state.roundDeadline = new Date(now.getTime() + remaining * 1000).toISOString();
+        gameSession.state.roundRemainingSeconds = undefined;
+        gameSession.state.isPaused = false;
+        gameSession.state.pausedAt = undefined;
         needsSave = true;
       }
       if (!gameSession.state.shuffledCardOrders) {

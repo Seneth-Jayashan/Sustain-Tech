@@ -1235,9 +1235,11 @@ export function processDecision(
     // Official decision timer for the next round remains PAUSED until player explicitly acknowledges the report!
     newState.roundStartTime = undefined;
     newState.roundDeadline = undefined;
+    newState.isPaused = true;
 
     if (newState.bucket <= 6) {
       newState.roundDurationSeconds = getRoundDuration(newState.bucket);
+      newState.roundRemainingSeconds = newState.roundDurationSeconds;
       if (!newState.shuffledCardOrders) {
         newState.shuffledCardOrders = {};
       }
@@ -1254,6 +1256,9 @@ export function processDecision(
       newState.roundStartTime = now.toISOString();
       newState.roundDeadline = new Date(now.getTime() + nextDuration * 1000).toISOString();
       newState.roundDurationSeconds = nextDuration;
+      newState.isPaused = false;
+      newState.roundRemainingSeconds = undefined;
+      newState.pausedAt = undefined;
 
       if (!newState.shuffledCardOrders) {
         newState.shuffledCardOrders = {};

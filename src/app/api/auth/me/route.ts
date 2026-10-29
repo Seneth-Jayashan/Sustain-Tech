@@ -16,19 +16,18 @@ export async function GET() {
     let name = session.userName || '';
     let teamName = session.teamName || '';
     const role = session.role || 'player';
+    let hasWatchedIntro = false;
 
-    // If email is not in the session cookie, fetch directly from User record in DB
-    if (!email || !name) {
-      try {
-        await connectDB();
-        const user = await User.findById(session.userId).select('name email').lean();
-        if (user) {
-          if (!email && user.email) email = user.email;
-          if (!name && user.name) name = user.name;
-        }
-      } catch (err) {
-        console.error('[API /auth/me] Error looking up user in DB:', err);
+    try {
+      await connectDB();
+      const user = await User.findById(session.userId).select('name email hasWatchedIntro').lean();
+      if (user) {
+        if (!email && user.email) email = user.email;
+        if (!name && user.name) name = user.name;
+        hasWatchedIntro = Boolean(user.hasWatchedIntro);
       }
+    } catch (err) {
+      console.error('[API /auth/me] Error looking up user in DB:', err);
     }
 
     return NextResponse.json({
@@ -37,8 +36,10 @@ export async function GET() {
         userId: session.userId,
         name,
         email,
+        teamId: session.teamId || '',
         teamName,
         role,
+        hasWatchedIntro,
       },
     });
   } catch (error: any) {
