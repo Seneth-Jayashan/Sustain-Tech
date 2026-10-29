@@ -1,12 +1,9 @@
 import https from 'node:https';
-import fs from 'node:fs';
-import path from 'node:path';
 
 interface SendWelcomeEmailParams {
   toEmail: string;
   name: string;
   teamName: string;
-  attachInstructions?: boolean;
 }
 
 interface ZohoTokenCache {
@@ -163,7 +160,6 @@ function escapeHtml(str: string): string {
  */
 function buildWelcomeEmailHtml(name: string, teamName: string): string {
   const bannerUrl = 'https://sustaintech.online/assets/images/Banner.jpg';
-  const instructionsImgUrl = 'https://sustaintech.online/assets/images/Instructions.jpeg';
   const safeName = escapeHtml(name);
   const safeTeam = escapeHtml(teamName);
 
@@ -549,23 +545,6 @@ function buildWelcomeEmailHtml(name: string, teamName: string): string {
             &#9632; MISSION BRIEFING // PARTICIPANT INSTRUCTIONS
           </div>
           <div class="dossier-body">
-            <!-- Official Instructions Flyer / Infographic -->
-            <div style="margin-bottom: 20px; text-align: center;">
-              <a href="${instructionsImgUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; display: block;">
-                <img
-                  src="${instructionsImgUrl}"
-                  alt="SustainTech Challenge 2026 - Important Participant Instructions"
-                  style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 4px; border: 1px solid #1f3528; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);"
-                />
-              </a>
-              <div style="margin-top: 10px; font-family: 'Courier New', Courier, monospace; font-size: 11px; letter-spacing: 0.5px;">
-                <a href="${instructionsImgUrl}" target="_blank" rel="noopener noreferrer" style="color: #34d399; text-decoration: underline; font-weight: bold;">
-                  &#128269; View / Download Full-Resolution Instructions Flyer
-                </a>
-              </div>
-            </div>
-
-            <div class="divider"></div>
 
             <!-- 1. Official Challenge Schedule -->
             <div class="schedule-box">
@@ -1183,92 +1162,6 @@ function buildCredentialsEmailHtml({
 </html>`;
 }
 
-interface ZohoAttachmentItem {
-  storeName: string;
-  attachmentName: string;
-  attachmentPath: string;
-}
-
-/**
- * Upload an attachment to Zoho Mail's temporary store so it can be attached to messages.
- */
-async function uploadZohoAttachment(
-  filePath: string,
-  fileName?: string
-): Promise<ZohoAttachmentItem | null> {
-  try {
-    if (!fs.existsSync(filePath)) {
-      console.warn(`[Zoho Mail] Attachment file not found: ${filePath}`);
-      return null;
-    }
-
-    const accessToken = await getZohoAccessToken();
-    const accountId = await getZohoAccountId(accessToken);
-    const resolvedName = fileName || path.basename(filePath);
-    const fileData = fs.readFileSync(filePath);
-
-    let contentType = 'application/octet-stream';
-    const ext = path.extname(resolvedName).toLowerCase();
-    if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-    else if (ext === '.png') contentType = 'image/png';
-    else if (ext === '.pdf') contentType = 'application/pdf';
-
-    const boundary = '----ZohoBoundary' + Math.random().toString(36).substring(2);
-    const header = `--${boundary}\r\nContent-Disposition: form-data; name="attach"; filename="${resolvedName}"\r\nContent-Type: ${contentType}\r\n\r\n`;
-    const footer = `\r\n--${boundary}--\r\n`;
-    const payload = Buffer.concat([Buffer.from(header, 'utf8'), fileData, Buffer.from(footer, 'utf8')]);
-
-    const uploadUrl = new URL(
-      `/api/accounts/${accountId}/messages/attachments?uploadType=multipart`,
-      'https://mail.zoho.com'
-    );
-
-    const uploadRes = await new Promise<any>((resolve, reject) => {
-      const req = https.request(
-        uploadUrl,
-        {
-          method: 'POST',
-          family: 4,
-          headers: {
-            Authorization: `Zoho-oauthtoken ${accessToken}`,
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-            'Content-Length': payload.length,
-          },
-        },
-        (res) => {
-          let raw = '';
-          res.on('data', (chunk) => (raw += chunk));
-          res.on('end', () => {
-            try {
-              resolve(JSON.parse(raw));
-            } catch {
-              resolve(null);
-            }
-          });
-        }
-      );
-      req.on('error', reject);
-      req.write(payload);
-      req.end();
-    });
-
-    if (uploadRes?.data && Array.isArray(uploadRes.data) && uploadRes.data.length > 0) {
-      const item = uploadRes.data[0];
-      return {
-        storeName: item.storeName,
-        attachmentName: item.attachmentName,
-        attachmentPath: item.attachmentPath,
-      };
-    }
-
-    console.warn('[Zoho Mail] Attachment upload did not return data array:', uploadRes);
-    return null;
-  } catch (err) {
-    console.warn('[Zoho Mail] Failed to upload attachment:', err);
-    return null;
-  }
-}
-
 /**
  * Low-level Zoho Mail message dispatch helper.
  */
@@ -1276,12 +1169,10 @@ async function sendZohoMessage({
   toEmail,
   subject,
   htmlContent,
-  attachments,
 }: {
   toEmail: string;
   subject: string;
   htmlContent: string;
-  attachments?: ZohoAttachmentItem[];
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const fromEmail = (process.env.ZOHO_ACCOUNT_EMAIL || 'no-reply@sustaintech.online').trim();
@@ -1291,19 +1182,13 @@ async function sendZohoMessage({
     const accessToken = await getZohoAccessToken();
     const accountId = await getZohoAccountId(accessToken);
 
-    const messagePayload: any = {
+    const payload = JSON.stringify({
       fromAddress,
       toAddress: toEmail.trim(),
       subject,
       content: htmlContent,
       mailFormat: 'html',
-    };
-
-    if (attachments && attachments.length > 0) {
-      messagePayload.attachments = attachments;
-    }
-
-    const payload = JSON.stringify(messagePayload);
+    });
 
     const endpointUrl = new URL(`/api/accounts/${accountId}/messages`, 'https://mail.zoho.com');
 
@@ -1362,32 +1247,16 @@ async function sendZohoMessage({
 }
 
 /**
- * Send an attractive gaming-vibe welcome email to a newly registered player via Zoho Mail API,
- * with the official Instructions.jpeg flyer embedded in the body and attached.
+ * Send an attractive gaming-vibe welcome email to a newly registered player via Zoho Mail API.
  */
 export async function sendPlayerWelcomeEmail({
   toEmail,
   name,
   teamName,
-  attachInstructions = true,
 }: SendWelcomeEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const subject = '🎖️ [WELCOME] SustainTech Challenge 2026 - Registration & Instructions';
   const htmlContent = buildWelcomeEmailHtml(name, teamName);
-
-  let attachments: ZohoAttachmentItem[] | undefined;
-  if (attachInstructions) {
-    try {
-      const instructionsPath = path.join(process.cwd(), 'public', 'assets', 'images', 'Instructions.jpeg');
-      const uploaded = await uploadZohoAttachment(instructionsPath, 'Instructions.jpeg');
-      if (uploaded) {
-        attachments = [uploaded];
-      }
-    } catch (attErr) {
-      console.warn('[Zoho Mail] Could not prepare Instructions attachment, proceeding with embedded email:', attErr);
-    }
-  }
-
-  return sendZohoMessage({ toEmail, subject, htmlContent, attachments });
+  return sendZohoMessage({ toEmail, subject, htmlContent });
 }
 
 /**
