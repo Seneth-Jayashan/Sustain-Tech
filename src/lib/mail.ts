@@ -1819,72 +1819,15 @@ export async function sendGameCompletionEmail({
 }
 
 /**
- * Automatically dispatch final results emails to all players in a completed game session.
- * Guaranteed idempotent: sets gameSession.completionEmailSent to avoid duplicate emails.
+ * Game completion results email dispatch.
+ * NOTE: Result emails after the game have been permanently disabled per tournament requirements.
+ * Scores and outcomes are reviewed in-game and on the dashboard.
  */
 export async function dispatchTeamGameCompletionEmail(
-  gameSessionId: string
+  _gameSessionId: string
 ): Promise<{ success: boolean; sentCount: number; error?: string }> {
-  try {
-    const connectDB = (await import('@/lib/mongoose')).default;
-    await connectDB();
-    const GameSession = (await import('@/models/GameSession')).default;
-    const User = (await import('@/models/User')).default;
-    const Team = (await import('@/models/Team')).default;
-    const { calculateFinalOutcome } = await import('@/game/engine');
-
-    const sessionDoc = await GameSession.findById(gameSessionId);
-    if (!sessionDoc || sessionDoc.status !== 'COMPLETED' || !sessionDoc.state) {
-      return { success: false, sentCount: 0, error: 'Session not found or not completed' };
-    }
-
-    if (sessionDoc.completionEmailSent) {
-      console.log(`[Game Completion Email] Already dispatched for session ${gameSessionId}`);
-      return { success: true, sentCount: 0 };
-    }
-
-    const team = await Team.findById(sessionDoc.teamId);
-    const teamName = team?.name || 'Player Team';
-
-    const players = await User.find({ teamId: sessionDoc.teamId, role: 'player' }).select('name email');
-    if (!players || players.length === 0) {
-      return { success: true, sentCount: 0 };
-    }
-
-    const outcome = sessionDoc.finalResult || calculateFinalOutcome(sessionDoc.state);
-    const scores = sessionDoc.state.scores || {};
-    const resources = sessionDoc.state.resources || {};
-
-    let sentCount = 0;
-    for (const player of players) {
-      try {
-        const res = await sendGameCompletionEmail({
-          toEmail: player.email,
-          name: player.name,
-          teamName,
-          result: {
-            cps: outcome.cps,
-            endingTier: outcome.endingTier,
-            rating: outcome.rating,
-            tradeoffs: outcome.tradeoffs,
-          },
-          scores,
-          resources,
-        });
-        if (res.success) sentCount++;
-      } catch (err) {
-        console.error(`[Game Completion Email] Error sending to ${player.email}:`, err);
-      }
-    }
-
-    await GameSession.findByIdAndUpdate(gameSessionId, { $set: { completionEmailSent: true } });
-    console.log(`[Game Completion Email] Dispatched ${sentCount} results email(s) for team "${teamName}"`);
-
-    return { success: true, sentCount };
-  } catch (err: any) {
-    console.error('[Game Completion Email] Dispatch error:', err);
-    return { success: false, sentCount: 0, error: err.message };
-  }
+  // Results email sending disabled
+  return { success: true, sentCount: 0 };
 }
 
 export interface FeedbackData {

@@ -2,7 +2,6 @@ import GameSession from '@/models/GameSession';
 import IntegrityLog from '@/models/IntegrityLog';
 import { getRoundDuration } from '@/game/timer';
 import { createFallbackDecision, processDecision, calculateFinalOutcome } from '@/game/engine';
-import { dispatchTeamGameCompletionEmail } from '@/lib/mail';
 
 /**
  * Server-Authoritative Expired Round Resolver
@@ -109,11 +108,6 @@ export async function resolveExpiredRoundIfNecessary(gameSession: any, userId: s
   );
 
   if (updatedSession) {
-    if (updatedSession.status === 'COMPLETED') {
-      dispatchTeamGameCompletionEmail(String(updatedSession._id)).catch((err) => {
-        console.error('[Reconnection Completion Email Trigger] Error:', err);
-      });
-    }
     try {
       await integrityLogDoc.save();
     } catch (logErr) {
