@@ -8,7 +8,7 @@ import { createSession } from '@/lib/session';
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    
+
     // Explicitly reference Team to ensure the model is registered before population
     if (!Team) throw new Error("Team model failed to load");
 
@@ -33,12 +33,12 @@ export async function POST(request: Request) {
       const { getGameAccessStatus } = await import('@/lib/gameAccess');
       const accessStatus = await getGameAccessStatus();
       if (accessStatus.isLocked) {
-        const formattedUnlock = accessStatus.unlockTime 
-          ? new Date(accessStatus.unlockTime).toLocaleString() 
+        const formattedUnlock = accessStatus.unlockTime
+          ? new Date(accessStatus.unlockTime).toLocaleString()
           : 'the scheduled tournament start time';
         const customMsg = accessStatus.message ? ` Announcement: ${accessStatus.message}` : '';
         return NextResponse.json({
-          error: `Real Game is locked until ${formattedUnlock}.${customMsg} Please play the Practice Game in the meantime!`,
+          error: `Real game is locked until tournament start time Please play the Practice Game in the meantime!`,
           isLocked: true,
           unlockTime: accessStatus.unlockTime,
           timeRemainingSeconds: accessStatus.timeRemainingSeconds,
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         }, { status: 403 });
       }
     }
-    
+
     // For admins, teamId might be null. Safely extract team info.
     const teamIdStr = user.teamId ? (user.teamId as any)._id.toString() : '';
     const teamNameStr = user.teamId ? (user.teamId as any).name : 'Admin Team';
